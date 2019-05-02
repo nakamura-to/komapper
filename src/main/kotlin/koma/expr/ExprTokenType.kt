@@ -1,0 +1,33 @@
+package koma.expr
+
+enum class ExprTokenType {
+    WHITESPACE,
+    OPEN_BRACKET,
+    CLOSE_BRACKET,
+    VALUE,
+    CHAR,
+    STRING,
+    INT,
+    FLOAT,
+    DOUBLE,
+    LONG,
+    BIG_DECIMAL,
+    ILLEGAL_NUMBER,
+    NULL,
+    TRUE,
+    FALSE,
+    NOT,
+    AND,
+    OR,
+    FUNCTION,
+    PROPERTY,
+    COMMA,
+    EQ,
+    NE,
+    GT,
+    LT,
+    GE,
+    LE,
+    OTHER,
+    EOE
+}
