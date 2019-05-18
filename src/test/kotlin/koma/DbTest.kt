@@ -181,7 +181,7 @@ internal class DbTest {
         val list =
             db.select<Address>(
                 "select * from address where street = /*street*/'test'"
-                , mapOf("street" to "STREET 10")
+                , mapOf("street" to ("STREET 10" to String::class))
             )
         println(list)
     }
@@ -192,9 +192,9 @@ internal class DbTest {
         val list =
             db.select<Address>(
                 "select * from address where street = /*o.street*/'test'"
-                , mapOf("o" to object {
+                , mapOf("o" to (object {
                     val street = "STREET 10"
-                })
+                } to Any::class))
             )
         println(list)
     }
