@@ -1,17 +1,23 @@
 package koma.sql
 
 import koma.sql.SqlTokenType.*
+import java.lang.Math.min
 import java.nio.CharBuffer
 
 class SqlTokenizer(private val sql: String) {
 
+    companion object {
+        const val LOOKAHEAD_SIZE: Int = 10
+    }
+
+    private val lookahead = CharArray(LOOKAHEAD_SIZE)
+    private val buf: CharBuffer = CharBuffer.wrap(sql)
+    private val tokenBuf: CharBuffer = buf.asReadOnlyBuffer()
     private var lineNumber: Int = 1
     private var lineStartPosition: Int = 0
     private var type: SqlTokenType = EOF
     var token: String = ""
         private set
-    private val buf: CharBuffer = CharBuffer.wrap(sql)
-    private val tokenBuf: CharBuffer = buf.asReadOnlyBuffer()
 
     val location
         get() = SqlLocation(sql, lineNumber, buf.position() - lineStartPosition)
@@ -26,74 +32,37 @@ class SqlTokenizer(private val sql: String) {
         tokenBuf.position(buf.position())
         return type
     }
-    
+
     private fun read() {
-        if (buf.hasRemaining()) {
-            val c = buf.get()
-            if (buf.hasRemaining()) {
-                val c2 = buf.get()
-                if (buf.hasRemaining()) {
-                    val c3 = buf.get()
-                    if (buf.hasRemaining()) {
-                        val c4 = buf.get()
-                        if (buf.hasRemaining()) {
-                            val c5 = buf.get()
-                            if (buf.hasRemaining()) {
-                                val c6 = buf.get()
-                                if (buf.hasRemaining()) {
-                                    val c7 = buf.get()
-                                    if (buf.hasRemaining()) {
-                                        val c8 = buf.get()
-                                        if (buf.hasRemaining()) {
-                                            val c9 = buf.get()
-                                            if (buf.hasRemaining()) {
-                                                val c10 = buf.get()
-                                                readTenChars(c, c2, c3, c4, c5, c6, c7, c8, c9, c10)
-                                            } else {
-                                                readNineChars(c, c2, c3, c4, c5, c6, c7, c8, c9)
-                                            }
-                                        } else {
-                                            readEightChars(c, c2, c3, c4, c5, c6, c7, c8)
-                                        }
-                                    } else {
-                                        readSevenChars(c, c2, c3, c4, c5, c6, c7)
-                                    }
-                                } else {
-                                    readSixChars(c, c2, c3, c4, c5, c6)
-                                }
-                            } else {
-                                readFiveChars(c, c2, c3, c4, c5)
-                            }
-                        } else {
-                            readFourChars(c, c2, c3, c4)
-                        }
-                    } else {
-                        readThreeChars(c, c2, c3)
-                    }
-                } else {
-                    readTwoChars(c, c2)
-                }
-            } else {
-                readOneChar(c)
-            }
-        } else {
-            type = EOF
+        val length = min(buf.remaining(), LOOKAHEAD_SIZE)
+        buf.get(lookahead, 0, length)
+        when (length) {
+            10 -> readTenChars(lookahead)
+            9 -> readNineChars(lookahead)
+            8 -> readEightChars(lookahead)
+            7 -> readSevenChars(lookahead)
+            6 -> readSixChars(lookahead)
+            5 -> readFiveChars(lookahead)
+            4 -> readFourChars(lookahead)
+            3 -> readThreeChars(lookahead)
+            2 -> readTwoChars(lookahead)
+            1 -> readOneChar(lookahead[0])
+            0 -> type = EOF
+            else -> throw AssertionError()
         }
     }
 
-    private fun readTenChars(
-        c: Char, c2: Char, c3: Char, c4: Char, c5: Char, c6: Char, c7: Char, c8: Char, c9: Char, c10: Char
-    ) {
-        if ((c == 'f' || c == 'F')
-            && (c2 == 'o' || c2 == 'O')
-            && (c3 == 'r' || c3 == 'R')
-            && isWhitespace(c4)
-            && (c5 == 'u' || c5 == 'U')
-            && (c6 == 'p' || c6 == 'P')
-            && (c7 == 'd' || c7 == 'D')
-            && (c8 == 'a' || c8 == 'A')
-            && (c9 == 't' || c9 == 'T')
-            && (c10 == 'e' || c10 == 'E')
+    private fun readTenChars(c: CharArray) {
+        if ((c[0] == 'f' || c[0] == 'F')
+            && (c[1] == 'o' || c[1] == 'O')
+            && (c[2] == 'r' || c[2] == 'R')
+            && isWhitespace(c[3])
+            && (c[4] == 'u' || c[4] == 'U')
+            && (c[5] == 'p' || c[5] == 'P')
+            && (c[6] == 'd' || c[6] == 'D')
+            && (c[7] == 'a' || c[7] == 'A')
+            && (c[8] == 't' || c[8] == 'T')
+            && (c[9] == 'e' || c[9] == 'E')
         ) {
             type = FOR_UPDATE
             if (isWordTerminated()) {
@@ -101,21 +70,19 @@ class SqlTokenizer(private val sql: String) {
             }
         }
         buf.position(buf.position() - 1)
-        readNineChars(c, c2, c3, c4, c5, c6, c7, c8, c9)
+        readNineChars(c)
     }
 
-    private fun readNineChars(
-        c: Char, c2: Char, c3: Char, c4: Char, c5: Char, c6: Char, c7: Char, c8: Char, c9: Char
-    ) {
-        if ((c == 'i' || c == 'I')
-            && (c2 == 'n' || c2 == 'N')
-            && (c3 == 't' || c3 == 'T')
-            && (c4 == 'e' || c4 == 'E')
-            && (c5 == 'r' || c5 == 'R')
-            && (c6 == 's' || c6 == 'S')
-            && (c7 == 'e' || c7 == 'E')
-            && (c8 == 'c' || c8 == 'C')
-            && (c9 == 't' || c9 == 'T')
+    private fun readNineChars(c: CharArray) {
+        if ((c[0] == 'i' || c[0] == 'I')
+            && (c[1] == 'n' || c[1] == 'N')
+            && (c[2] == 't' || c[2] == 'T')
+            && (c[3] == 'e' || c[3] == 'E')
+            && (c[4] == 'r' || c[4] == 'R')
+            && (c[5] == 's' || c[5] == 'S')
+            && (c[6] == 'e' || c[6] == 'E')
+            && (c[7] == 'c' || c[7] == 'C')
+            && (c[8] == 't' || c[8] == 'T')
         ) {
             type = INTERSECT
             if (isWordTerminated()) {
@@ -123,97 +90,87 @@ class SqlTokenizer(private val sql: String) {
             }
         }
         buf.position(buf.position() - 1)
-        readEightChars(c, c2, c3, c4, c5, c6, c7, c8)
+        readEightChars(c)
     }
 
-    private fun readEightChars(
-        c: Char, c2: Char, c3: Char, c4: Char, c5: Char, c6: Char, c7: Char, c8: Char
-    ) {
-        if ((c == 'g' || c == 'G')
-            && (c2 == 'r' || c2 == 'R')
-            && (c3 == 'o' || c3 == 'O')
-            && (c4 == 'u' || c4 == 'U')
-            && (c5 == 'p' || c5 == 'P')
-            && isWhitespace(c6)
-            && (c7 == 'b' || c7 == 'B')
-            && (c8 == 'y' || c8 == 'Y')
+    private fun readEightChars(c: CharArray) {
+        if ((c[0] == 'g' || c[0] == 'G')
+            && (c[1] == 'r' || c[1] == 'R')
+            && (c[2] == 'o' || c[2] == 'O')
+            && (c[3] == 'u' || c[3] == 'U')
+            && (c[4] == 'p' || c[4] == 'P')
+            && isWhitespace(c[5])
+            && (c[6] == 'b' || c[6] == 'B')
+            && (c[7] == 'y' || c[7] == 'Y')
         ) {
             type = GROUP_BY
             if (isWordTerminated()) {
                 return
             }
-        } else if ((c == 'o' || c == 'O')
-            && (c2 == 'r' || c2 == 'R')
-            && (c3 == 'd' || c3 == 'D')
-            && (c4 == 'e' || c4 == 'E')
-            && (c5 == 'r' || c5 == 'R')
-            && Character.isWhitespace(c6)
-            && (c7 == 'b' || c7 == 'B')
-            && (c8 == 'y' || c8 == 'Y')
+        } else if ((c[0] == 'o' || c[0] == 'O')
+            && (c[1] == 'r' || c[1] == 'R')
+            && (c[2] == 'd' || c[2] == 'D')
+            && (c[3] == 'e' || c[3] == 'E')
+            && (c[4] == 'r' || c[4] == 'R')
+            && Character.isWhitespace(c[5])
+            && (c[6] == 'b' || c[6] == 'B')
+            && (c[7] == 'y' || c[7] == 'Y')
         ) {
             type = ORDER_BY
             if (isWordTerminated()) {
                 return
             }
-        } else if ((c == 'o' || c == 'O')
-            && (c2 == 'p' || c2 == 'P')
-            && (c3 == 't' || c3 == 'T')
-            && (c4 == 'i' || c4 == 'I')
-            && (c5 == 'o' || c5 == 'O')
-            && (c6 == 'n' || c6 == 'N')
-            && isWhitespace(c7)
-            && c8 == '('
+        } else if ((c[0] == 'o' || c[0] == 'O')
+            && (c[1] == 'p' || c[1] == 'P')
+            && (c[2] == 't' || c[2] == 'T')
+            && (c[3] == 'i' || c[3] == 'I')
+            && (c[4] == 'o' || c[4] == 'O')
+            && (c[5] == 'n' || c[5] == 'N')
+            && isWhitespace(c[6])
+            && c[7] == '('
         ) {
             type = OPTION
             buf.position(buf.position() - 2)
             return
         }
         buf.position(buf.position() - 1)
-        readSevenChars(c, c2, c3, c4, c5, c6, c7)
+        readSevenChars(c)
     }
 
-    private fun readSevenChars(
-        c: Char,
-        c2: Char,
-        c3: Char,
-        c4: Char,
-        c5: Char,
-        c6: Char,
-        @Suppress("UNUSED_PARAMETER") c7: Char
-    ) {
+    private fun readSevenChars(c: CharArray) {
         buf.position(buf.position() - 1)
-        readSixChars(c, c2, c3, c4, c5, c6)
+        readSixChars(c)
     }
 
-    private fun readSixChars(c: Char, c2: Char, c3: Char, c4: Char, c5: Char, c6: Char) {
-        if ((c == 's' || c == 'S')
-            && (c2 == 'e' || c2 == 'E')
-            && (c3 == 'l' || c3 == 'L')
-            && (c4 == 'e' || c4 == 'E')
-            && (c5 == 'c' || c5 == 'C')
-            && (c6 == 't' || c6 == 'T')
+    private fun readSixChars(c: CharArray) {
+        if ((c[0] == 's' || c[0] == 'S')
+            && (c[1] == 'e' || c[1] == 'E')
+            && (c[2] == 'l' || c[2] == 'L')
+            && (c[3] == 'e' || c[3] == 'E')
+            && (c[4] == 'c' || c[4] == 'C')
+            && (c[5] == 't' || c[5] == 'T')
         ) {
             type = SELECT
             if (isWordTerminated()) {
                 return
             }
-        } else if ((c == 'h' || c == 'H')
-            && (c2 == 'a' || c2 == 'A')
-            && (c3 == 'v' || c3 == 'V')
-            && (c4 == 'i' || c4 == 'I')
-            && (c5 == 'n' || c5 == 'N')
-            && (c6 == 'g' || c6 == 'G')
+        } else if ((c[0] == 'h' || c[0] == 'H')
+            && (c[1] == 'a' || c[1] == 'A')
+            && (c[2] == 'v' || c[2] == 'V')
+            && (c[3] == 'i' || c[3] == 'I')
+            && (c[4] == 'n' || c[4] == 'N')
+            && (c[5] == 'g' || c[5] == 'G')
         ) {
             type = HAVING
             if (isWordTerminated()) {
                 return
             }
-        } else if ((c == 'e' || c == 'E')
-            && (c2 == 'x' || c2 == 'X')
-            && (c3 == 'c' || c3 == 'C')
-            && (c4 == 'e' || c4 == 'E')
-            && (c5 == 'p' || c5 == 'P')
-            && (c6 == 't' || c6 == 'T')
+        } else if ((c[0] == 'e' || c[0] == 'E')
+            && (c[1] == 'x' || c[1] == 'X')
+            && (c[2] == 'c' || c[2] == 'C')
+            && (c[3] == 'e' || c[3] == 'E')
+            && (c[4] == 'p' || c[4] == 'P')
+            && (c[5] == 't' || c[5] == 'T')
         ) {
             type = EXCEPT
             if (isWordTerminated()) {
@@ -221,35 +178,35 @@ class SqlTokenizer(private val sql: String) {
             }
         }
         buf.position(buf.position() - 1)
-        readFiveChars(c, c2, c3, c4, c5)
+        readFiveChars(c)
     }
 
-    private fun readFiveChars(c: Char, c2: Char, c3: Char, c4: Char, c5: Char) {
-        if ((c == 'w' || c == 'W')
-            && (c2 == 'h' || c2 == 'H')
-            && (c3 == 'e' || c3 == 'E')
-            && (c4 == 'r' || c4 == 'R')
-            && (c5 == 'e' || c5 == 'E')
+    private fun readFiveChars(c: CharArray) {
+        if ((c[0] == 'w' || c[0] == 'W')
+            && (c[1] == 'h' || c[1] == 'H')
+            && (c[2] == 'e' || c[2] == 'E')
+            && (c[3] == 'r' || c[3] == 'R')
+            && (c[4] == 'e' || c[4] == 'E')
         ) {
             type = WHERE
             if (isWordTerminated()) {
                 return
             }
-        } else if ((c == 'u' || c == 'U')
-            && (c2 == 'n' || c2 == 'N')
-            && (c3 == 'i' || c3 == 'I')
-            && (c4 == 'o' || c4 == 'O')
-            && (c5 == 'n' || c5 == 'N')
+        } else if ((c[0] == 'u' || c[0] == 'U')
+            && (c[1] == 'n' || c[1] == 'N')
+            && (c[2] == 'i' || c[2] == 'I')
+            && (c[3] == 'o' || c[3] == 'O')
+            && (c[4] == 'n' || c[4] == 'N')
         ) {
             type = UNION
             if (isWordTerminated()) {
                 return
             }
-        } else if ((c == 'm' || c == 'M')
-            && (c2 == 'i' || c2 == 'I')
-            && (c3 == 'n' || c3 == 'N')
-            && (c4 == 'u' || c4 == 'U')
-            && (c5 == 's' || c5 == 'S')
+        } else if ((c[0] == 'm' || c[0] == 'M')
+            && (c[1] == 'i' || c[1] == 'I')
+            && (c[2] == 'n' || c[2] == 'N')
+            && (c[3] == 'u' || c[3] == 'U')
+            && (c[4] == 's' || c[4] == 'S')
         ) {
             type = MINUS
             if (isWordTerminated()) {
@@ -257,14 +214,14 @@ class SqlTokenizer(private val sql: String) {
             }
         }
         buf.position(buf.position() - 1)
-        readFourChars(c, c2, c3, c4)
+        readFourChars(c)
     }
 
-    private fun readFourChars(c: Char, c2: Char, c3: Char, c4: Char) {
-        if ((c == 'f' || c == 'F')
-            && (c2 == 'r' || c2 == 'R')
-            && (c3 == 'o' || c3 == 'O')
-            && (c4 == 'm' || c4 == 'M')
+    private fun readFourChars(c: CharArray) {
+        if ((c[0] == 'f' || c[0] == 'F')
+            && (c[1] == 'r' || c[1] == 'R')
+            && (c[2] == 'o' || c[2] == 'O')
+            && (c[3] == 'm' || c[3] == 'M')
         ) {
             type = FROM
             if (isWordTerminated()) {
@@ -272,11 +229,11 @@ class SqlTokenizer(private val sql: String) {
             }
         }
         buf.position(buf.position() - 1)
-        readThreeChars(c, c2, c3)
+        readThreeChars(c)
     }
 
-    private fun readThreeChars(c: Char, c2: Char, c3: Char) {
-        if ((c == 'a' || c == 'A') && (c2 == 'n' || c2 == 'N') && (c3 == 'd' || c3 == 'D')) {
+    private fun readThreeChars(c: CharArray) {
+        if ((c[0] == 'a' || c[0] == 'A') && (c[1] == 'n' || c[1] == 'N') && (c[2] == 'd' || c[2] == 'D')) {
             type = AND
             if (isWordTerminated()) {
                 return
@@ -284,55 +241,55 @@ class SqlTokenizer(private val sql: String) {
 
         }
         buf.position(buf.position() - 1)
-        readTwoChars(c, c2)
+        readTwoChars(c)
     }
 
-    private fun readTwoChars(c: Char, c2: Char) {
-        if ((c == 'o' || c == 'O') && (c2 == 'r' || c2 == 'R')) {
+    private fun readTwoChars(c: CharArray) {
+        if ((c[0] == 'o' || c[0] == 'O') && (c[1] == 'r' || c[1] == 'R')) {
             type = OR
             if (isWordTerminated()) {
                 return
             }
-        } else if (c == '/' && c2 == '*') {
+        } else if (c[0] == '/' && c[1] == '*') {
             type = MULTI_LINE_COMMENT
             if (buf.hasRemaining()) {
-                val c3 = buf.get()
-                if (isExpressionIdentifierStart(c3)) {
+                val c2 = buf.get()
+                if (isExpressionIdentifierStart(c2)) {
                     type = BIND_VALUE_DIRECTIVE
-                } else if (c3 == '^') {
+                } else if (c2 == '^') {
                     type = LITERAL_VALUE_DIRECTIVE
-                } else if (c3 == '#') {
+                } else if (c2 == '#') {
                     type = EMBEDDED_VALUE_DIRECTIVE
-                } else if (c3 == '%') {
+                } else if (c2 == '%') {
                     if (buf.hasRemaining()) {
-                        val c4 = buf.get()
+                        val c3 = buf.get()
                         if (buf.hasRemaining()) {
-                            val c5 = buf.get()
-                            if (c4 == 'i' && c5 == 'f') {
+                            val c4 = buf.get()
+                            if (c3 == 'i' && c4 == 'f') {
                                 if (isDirectiveTerminated()) {
                                     type = IF_DIRECTIVE
                                 }
                             } else if (buf.hasRemaining()) {
-                                val c6 = buf.get()
-                                if (c4 == 'f' && c5 == 'o' && c6 == 'r') {
+                                val c5 = buf.get()
+                                if (c3 == 'f' && c4 == 'o' && c5 == 'r') {
                                     if (isDirectiveTerminated()) {
                                         type = FOR_DIRECTIVE
                                     }
-                                } else if (c4 == 'e' && c5 == 'n' && c6 == 'd') {
+                                } else if (c3 == 'e' && c4 == 'n' && c5 == 'd') {
                                     if (isDirectiveTerminated()) {
                                         type = END_DIRECTIVE
                                     }
                                 } else if (buf.hasRemaining()) {
-                                    val c7 = buf.get()
-                                    if (c4 == 'e' && c5 == 'l' && c6 == 's' && c7 == 'e') {
+                                    val c6 = buf.get()
+                                    if (c3 == 'e' && c4 == 'l' && c5 == 's' && c6 == 'e') {
                                         if (isDirectiveTerminated()) {
                                             type = ELSE_DIRECTIVE
                                         } else {
                                             if (buf.hasRemaining()) {
-                                                val c8 = buf.get()
+                                                val c7 = buf.get()
                                                 if (buf.hasRemaining()) {
-                                                    val c9 = buf.get()
-                                                    if (c8 == 'i' && c9 == 'f') {
+                                                    val c8 = buf.get()
+                                                    if (c7 == 'i' && c8 == 'f') {
                                                         if (isDirectiveTerminated()) {
                                                             type = ELSEIF_DIRECTIVE
                                                         }
@@ -345,11 +302,11 @@ class SqlTokenizer(private val sql: String) {
                                             }
                                         }
                                     } else if (buf.hasRemaining()) {
-                                        val c8 = buf.get()
+                                        val c7 = buf.get()
                                         if (buf.hasRemaining()) {
-                                            val c9 = buf.get()
-                                            if (c4 == 'e' && c5 == 'x' && c6 == 'p' && c7 == 'a' && c8 == 'n'
-                                                && c9 == 'd'
+                                            val c8 = buf.get()
+                                            if (c3 == 'e' && c4 == 'x' && c5 == 'p' && c6 == 'a' && c7 == 'n'
+                                                && c8 == 'd'
                                             ) {
                                                 if (isDirectiveTerminated()) {
                                                     type = EXPAND_DIRECTIVE
@@ -386,38 +343,38 @@ class SqlTokenizer(private val sql: String) {
                 buf.position(buf.position() - 1)
             }
             while (buf.hasRemaining()) {
-                val c3 = buf.get()
+                val c2 = buf.get()
                 if (buf.hasRemaining()) {
                     buf.mark()
-                    val c4 = buf.get()
-                    if (c3 == '*' && c4 == '/') {
+                    val c3 = buf.get()
+                    if (c2 == '*' && c3 == '/') {
                         return
                     }
-                    if (c3 == '\r' && c4 == '\n' || c3 == '\r' || c3 == '\n') {
+                    if (c2 == '\r' && c3 == '\n' || c2 == '\r' || c2 == '\n') {
                         lineNumber++
                     }
                     buf.reset()
                 }
             }
             throw SqlException("The token \"*/\" for the end of the multi-line comment is not found at $location")
-        } else if (c == '-' && c2 == '-') {
+        } else if (c[0] == '-' && c[1] == '-') {
             type = SINGLE_LINE_COMMENT
             while (buf.hasRemaining()) {
                 buf.mark()
-                val c3 = buf.get()
-                if (c3 == '\r' || c3 == '\n') {
+                val c2 = buf.get()
+                if (c2 == '\r' || c2 == '\n') {
                     buf.reset()
                     return
                 }
             }
             return
-        } else if (c == '\r' && c2 == '\n') {
+        } else if (c[0] == '\r' && c[1] == '\n') {
             type = EOL
             lineNumber++
             return
         }
         buf.position(buf.position() - 1)
-        readOneChar(c)
+        readOneChar(c[0])
     }
 
     private fun readOneChar(c: Char) {
@@ -433,12 +390,12 @@ class SqlTokenizer(private val sql: String) {
             type = QUOTE
             var closed = false
             while (buf.hasRemaining()) {
-                val c2 = buf.get()
-                if (c2 == '\'') {
+                val c1 = buf.get()
+                if (c1 == '\'') {
                     if (buf.hasRemaining()) {
                         buf.mark()
-                        val c3 = buf.get()
-                        if (c3 != '\'') {
+                        val c2 = buf.get()
+                        if (c2 != '\'') {
                             buf.reset()
                             closed = true
                             break
@@ -456,16 +413,16 @@ class SqlTokenizer(private val sql: String) {
             type = WORD
             while (buf.hasRemaining()) {
                 buf.mark()
-                val c2 = buf.get()
-                if (c2 == '\'') {
+                val c1 = buf.get()
+                if (c1 == '\'') {
                     var closed = false
                     while (buf.hasRemaining()) {
-                        val c3 = buf.get()
-                        if (c3 == '\'') {
+                        val c2 = buf.get()
+                        if (c2 == '\'') {
                             if (buf.hasRemaining()) {
                                 buf.mark()
-                                val c4 = buf.get()
-                                if (c4 != '\'') {
+                                val c3 = buf.get()
+                                if (c3 != '\'') {
                                     buf.reset()
                                     closed = true
                                     break
@@ -480,7 +437,7 @@ class SqlTokenizer(private val sql: String) {
                     }
                     throw SqlException("The token \"'\" for the end of the string literal is not found at $location")
                 }
-                if (!isWordPart(c2)) {
+                if (!isWordPart(c1)) {
                     buf.reset()
                     return
                 }
@@ -497,9 +454,9 @@ class SqlTokenizer(private val sql: String) {
         if (c == '+' || c == '-') {
             buf.mark()
             if (buf.hasRemaining()) {
-                val c2 = buf.get()
+                val c1 = buf.get()
                 buf.reset()
-                if (Character.isDigit(c2)) {
+                if (Character.isDigit(c1)) {
                     return true
                 }
             }

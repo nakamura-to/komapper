@@ -1,12 +1,18 @@
 package koma.expr
 
 import koma.expr.ExprTokenType.*
+import java.lang.Math.min
 import java.nio.CharBuffer
 
 class ExprTokenizer(private val expression: String) {
 
-    private var buf = CharBuffer.wrap(expression)
-    private var tokenBuf = buf.asReadOnlyBuffer()
+    companion object {
+        const val LOOKAHEAD_SIZE: Int = 5
+    }
+
+    private val lookahead = CharArray(LOOKAHEAD_SIZE)
+    private val buf = CharBuffer.wrap(expression)
+    private val tokenBuf = buf.asReadOnlyBuffer()
     private var binaryOpAvailable = false
     private var type = EOE
     var token = ""
@@ -22,36 +28,21 @@ class ExprTokenizer(private val expression: String) {
     }
 
     private fun read() {
-        if (buf.hasRemaining()) {
-            val c = buf.get()
-            if (buf.hasRemaining()) {
-                val c2 = buf.get()
-                if (buf.hasRemaining()) {
-                    val c3 = buf.get()
-                    if (buf.hasRemaining()) {
-                        val c4 = buf.get()
-                        if (buf.hasRemaining()) {
-                            val c5 = buf.get()
-                            readFiveChars(c, c2, c3, c4, c5)
-                        } else {
-                            readFourChars(c, c2, c3, c4)
-                        }
-                    } else {
-                        readThreeChars(c, c2, c3)
-                    }
-                } else {
-                    readTwoChars(c, c2)
-                }
-            } else {
-                readOneChar(c)
-            }
-        } else {
-            type = EOE
+        val length = min(buf.remaining(), LOOKAHEAD_SIZE)
+        buf.get(lookahead, 0, length)
+        when (length) {
+            5 -> readFiveChars(lookahead)
+            4 -> readFourChars(lookahead)
+            3 -> readThreeChars(lookahead)
+            2 -> readTwoChars(lookahead)
+            1 -> readOneChar(lookahead[0])
+            0 -> type = EOE
+            else -> throw AssertionError()
         }
     }
 
-    private fun readFiveChars(c: Char, c2: Char, c3: Char, c4: Char, c5: Char) {
-        if (c == 'f' && c2 == 'a' && c3 == 'l' && c4 == 's' && c5 == 'e') {
+    private fun readFiveChars(c: CharArray) {
+        if (c[0] == 'f' && c[1] == 'a' && c[2] == 'l' && c[3] == 's' && c[4] == 'e') {
             if (isWordTerminated()) {
                 type = FALSE
                 binaryOpAvailable = true
@@ -59,17 +50,17 @@ class ExprTokenizer(private val expression: String) {
             }
         }
         buf.position(buf.position() - 1)
-        readFourChars(c, c2, c3, c4)
+        readFourChars(c)
     }
 
-    private fun readFourChars(c: Char, c2: Char, c3: Char, c4: Char) {
-        if (c == 'n' && c2 == 'u' && c3 == 'l' && c4 == 'l') {
+    private fun readFourChars(c: CharArray) {
+        if (c[0] == 'n' && c[1] == 'u' && c[2] == 'l' && c[3] == 'l') {
             if (isWordTerminated()) {
                 type = NULL
                 binaryOpAvailable = true
                 return
             }
-        } else if (c == 't' && c2 == 'r' && c3 == 'u' && c4 == 'e') {
+        } else if (c[0] == 't' && c[1] == 'r' && c[2] == 'u' && c[3] == 'e') {
             if (isWordTerminated()) {
                 type = TRUE
                 binaryOpAvailable = true
@@ -77,44 +68,44 @@ class ExprTokenizer(private val expression: String) {
             }
         }
         buf.position(buf.position() - 1)
-        readThreeChars(c, c2, c3)
+        readThreeChars(c)
     }
 
-    private fun readThreeChars(c: Char, c2: Char, @Suppress("UNUSED_PARAMETER") c3: Char) {
+    private fun readThreeChars(c: CharArray) {
         buf.position(buf.position() - 1)
-        readTwoChars(c, c2)
+        readTwoChars(c)
     }
 
-    private fun readTwoChars(c: Char, c2: Char) {
+    private fun readTwoChars(c: CharArray) {
         if (binaryOpAvailable) {
-            if (c == '&' && c2 == '&') {
+            if (c[0] == '&' && c[1] == '&') {
                 type = AND
                 binaryOpAvailable = false
                 return
-            } else if (c == '|' && c2 == '|') {
+            } else if (c[0] == '|' && c[1] == '|') {
                 type = OR
                 binaryOpAvailable = false
                 return
-            } else if (c == '=' && c2 == '=') {
+            } else if (c[0] == '=' && c[1] == '=') {
                 type = EQ
                 binaryOpAvailable = false
                 return
-            } else if (c == '!' && c2 == '=') {
+            } else if (c[0] == '!' && c[1] == '=') {
                 type = NE
                 binaryOpAvailable = false
                 return
-            } else if (c == '>' && c2 == '=') {
+            } else if (c[0] == '>' && c[1] == '=') {
                 type = GE
                 binaryOpAvailable = false
                 return
-            } else if (c == '<' && c2 == '=') {
+            } else if (c[0] == '<' && c[1] == '=') {
                 type = LE
                 binaryOpAvailable = false
                 return
             }
         }
         buf.position(buf.position() - 1)
-        readOneChar(c)
+        readOneChar(c[0])
     }
 
     private fun readOneChar(c: Char) {
@@ -150,8 +141,8 @@ class ExprTokenizer(private val expression: String) {
             if (buf.hasRemaining()) {
                 buf.get()
                 if (buf.hasRemaining()) {
-                    val c3 = buf.get()
-                    if (c3 == '\'') {
+                    val c2 = buf.get()
+                    if (c2 == '\'') {
                         binaryOpAvailable = true
                         return
                     }
@@ -162,12 +153,12 @@ class ExprTokenizer(private val expression: String) {
             type = STRING
             var closed = false
             while (buf.hasRemaining()) {
-                val c2 = buf.get()
-                if (c2 == '"') {
+                val c1 = buf.get()
+                if (c1 == '"') {
                     if (buf.hasRemaining()) {
                         buf.mark()
-                        val c3 = buf.get()
-                        if (c3 != '"') {
+                        val c2 = buf.get()
+                        if (c2 != '"') {
                             buf.reset()
                             closed = true
                             break
@@ -184,8 +175,8 @@ class ExprTokenizer(private val expression: String) {
         } else if (c == '+' || c == '-') {
             buf.mark()
             if (buf.hasRemaining()) {
-                val c2 = buf.get()
-                if (Character.isDigit(c2)) {
+                val c1 = buf.get()
+                if (Character.isDigit(c1)) {
                     readNumber()
                     return
                 }
@@ -199,8 +190,8 @@ class ExprTokenizer(private val expression: String) {
             binaryOpAvailable = true
             while (buf.hasRemaining()) {
                 buf.mark()
-                val c2 = buf.get()
-                if (!Character.isJavaIdentifierPart(c2)) {
+                val c1 = buf.get()
+                if (!Character.isJavaIdentifierPart(c1)) {
                     buf.reset()
                     break
                 }
@@ -212,13 +203,13 @@ class ExprTokenizer(private val expression: String) {
                 throw ExprException("Either property or function name must follow the dot at $location")
             }
             buf.mark()
-            val c2 = buf.get()
-            if (Character.isJavaIdentifierStart(c2)) {
+            val c1 = buf.get()
+            if (Character.isJavaIdentifierStart(c1)) {
                 while (buf.hasRemaining()) {
                     buf.mark()
-                    val c3 = buf.get()
-                    if (!Character.isJavaIdentifierPart(c3)) {
-                        if (c3 == '(') {
+                    val c2 = buf.get()
+                    if (!Character.isJavaIdentifierPart(c2)) {
+                        if (c2 == '(') {
                             type = FUNCTION
                             binaryOpAvailable = false
                         }
@@ -227,7 +218,7 @@ class ExprTokenizer(private val expression: String) {
                     }
                 }
             } else {
-                throw ExprException("The character \"$c2\" is illegal as an identifier start at $location")
+                throw ExprException("The character \"$c1\" is illegal as an identifier start at $location")
             }
         } else {
             type = OTHER
@@ -239,18 +230,18 @@ class ExprTokenizer(private val expression: String) {
         var decimal = false
         while (buf.hasRemaining()) {
             buf.mark()
-            val c2 = buf.get()
-            if (Character.isDigit(c2)) {
+            val c = buf.get()
+            if (Character.isDigit(c)) {
                 continue
-            } else if (c2 == '.') {
+            } else if (c == '.') {
                 if (decimal) {
                     type = ILLEGAL_NUMBER
                     return
                 }
                 decimal = true
                 if (buf.hasRemaining()) {
-                    val c3 = buf.get()
-                    if (!Character.isDigit(c3)) {
+                    val c2 = buf.get()
+                    if (!Character.isDigit(c2)) {
                         type = ILLEGAL_NUMBER
                         return
                     }
@@ -258,16 +249,16 @@ class ExprTokenizer(private val expression: String) {
                     type = ILLEGAL_NUMBER
                     return
                 }
-            } else if (c2 == 'F') {
+            } else if (c == 'F') {
                 type = FLOAT
                 break
-            } else if (c2 == 'D') {
+            } else if (c == 'D') {
                 type = DOUBLE
                 break
-            } else if (c2 == 'L') {
+            } else if (c == 'L') {
                 type = LONG
                 break
-            } else if (c2 == 'B') {
+            } else if (c == 'B') {
                 type = BIG_DECIMAL
                 break
             } else {
