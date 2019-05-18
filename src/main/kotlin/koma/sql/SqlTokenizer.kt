@@ -6,8 +6,6 @@ import java.nio.CharBuffer
 class SqlTokenizer(private val sql: String) {
 
     private var lineNumber: Int = 1
-    private var position: Int = 0
-    private var peekLineNumber: Int = 1
     private var lineStartPosition: Int = 0
     private var type: SqlTokenType = EOF
     var token: String = ""
@@ -16,39 +14,20 @@ class SqlTokenizer(private val sql: String) {
     private val tokenBuf: CharBuffer = buf.asReadOnlyBuffer()
 
     val location
-        get() = SqlLocation(sql, lineNumber, position)
-
-    init {
-        peek()
-    }
+        get() = SqlLocation(sql, lineNumber, buf.position() - lineStartPosition)
 
     fun next(): SqlTokenType {
-        when (type) {
-            EOF -> {
-                token = ""
-                return EOF
-            }
-            EOL -> {
-                lineStartPosition = buf.position()
-            }
-            else -> {
-            }
+        if (type == EOL) {
+            lineStartPosition = buf.position()
         }
-        val result = type
-        prepare()
-        peek()
-        return result
-    }
-
-    private fun prepare() {
-        lineNumber = peekLineNumber
-        position = buf.position() - lineStartPosition
+        read()
         tokenBuf.limit(buf.position())
         token = tokenBuf.toString()
         tokenBuf.position(buf.position())
+        return type
     }
-
-    private fun peek() {
+    
+    private fun read() {
         if (buf.hasRemaining()) {
             val c = buf.get()
             if (buf.hasRemaining()) {
@@ -69,40 +48,40 @@ class SqlTokenizer(private val sql: String) {
                                             val c9 = buf.get()
                                             if (buf.hasRemaining()) {
                                                 val c10 = buf.get()
-                                                peekTenChars(c, c2, c3, c4, c5, c6, c7, c8, c9, c10)
+                                                readTenChars(c, c2, c3, c4, c5, c6, c7, c8, c9, c10)
                                             } else {
-                                                peekNineChars(c, c2, c3, c4, c5, c6, c7, c8, c9)
+                                                readNineChars(c, c2, c3, c4, c5, c6, c7, c8, c9)
                                             }
                                         } else {
-                                            peekEightChars(c, c2, c3, c4, c5, c6, c7, c8)
+                                            readEightChars(c, c2, c3, c4, c5, c6, c7, c8)
                                         }
                                     } else {
-                                        peekSevenChars(c, c2, c3, c4, c5, c6, c7)
+                                        readSevenChars(c, c2, c3, c4, c5, c6, c7)
                                     }
                                 } else {
-                                    peekSixChars(c, c2, c3, c4, c5, c6)
+                                    readSixChars(c, c2, c3, c4, c5, c6)
                                 }
                             } else {
-                                peekFiveChars(c, c2, c3, c4, c5)
+                                readFiveChars(c, c2, c3, c4, c5)
                             }
                         } else {
-                            peekFourChars(c, c2, c3, c4)
+                            readFourChars(c, c2, c3, c4)
                         }
                     } else {
-                        peekThreeChars(c, c2, c3)
+                        readThreeChars(c, c2, c3)
                     }
                 } else {
-                    peekTwoChars(c, c2)
+                    readTwoChars(c, c2)
                 }
             } else {
-                peekOneChar(c)
+                readOneChar(c)
             }
         } else {
             type = EOF
         }
     }
 
-    private fun peekTenChars(
+    private fun readTenChars(
         c: Char, c2: Char, c3: Char, c4: Char, c5: Char, c6: Char, c7: Char, c8: Char, c9: Char, c10: Char
     ) {
         if ((c == 'f' || c == 'F')
@@ -122,10 +101,10 @@ class SqlTokenizer(private val sql: String) {
             }
         }
         buf.position(buf.position() - 1)
-        peekNineChars(c, c2, c3, c4, c5, c6, c7, c8, c9)
+        readNineChars(c, c2, c3, c4, c5, c6, c7, c8, c9)
     }
 
-    private fun peekNineChars(
+    private fun readNineChars(
         c: Char, c2: Char, c3: Char, c4: Char, c5: Char, c6: Char, c7: Char, c8: Char, c9: Char
     ) {
         if ((c == 'i' || c == 'I')
@@ -144,10 +123,10 @@ class SqlTokenizer(private val sql: String) {
             }
         }
         buf.position(buf.position() - 1)
-        peekEightChars(c, c2, c3, c4, c5, c6, c7, c8)
+        readEightChars(c, c2, c3, c4, c5, c6, c7, c8)
     }
 
-    private fun peekEightChars(
+    private fun readEightChars(
         c: Char, c2: Char, c3: Char, c4: Char, c5: Char, c6: Char, c7: Char, c8: Char
     ) {
         if ((c == 'g' || c == 'G')
@@ -190,10 +169,10 @@ class SqlTokenizer(private val sql: String) {
             return
         }
         buf.position(buf.position() - 1)
-        peekSevenChars(c, c2, c3, c4, c5, c6, c7)
+        readSevenChars(c, c2, c3, c4, c5, c6, c7)
     }
 
-    private fun peekSevenChars(
+    private fun readSevenChars(
         c: Char,
         c2: Char,
         c3: Char,
@@ -203,10 +182,10 @@ class SqlTokenizer(private val sql: String) {
         @Suppress("UNUSED_PARAMETER") c7: Char
     ) {
         buf.position(buf.position() - 1)
-        peekSixChars(c, c2, c3, c4, c5, c6)
+        readSixChars(c, c2, c3, c4, c5, c6)
     }
 
-    private fun peekSixChars(c: Char, c2: Char, c3: Char, c4: Char, c5: Char, c6: Char) {
+    private fun readSixChars(c: Char, c2: Char, c3: Char, c4: Char, c5: Char, c6: Char) {
         if ((c == 's' || c == 'S')
             && (c2 == 'e' || c2 == 'E')
             && (c3 == 'l' || c3 == 'L')
@@ -242,10 +221,10 @@ class SqlTokenizer(private val sql: String) {
             }
         }
         buf.position(buf.position() - 1)
-        peekFiveChars(c, c2, c3, c4, c5)
+        readFiveChars(c, c2, c3, c4, c5)
     }
 
-    private fun peekFiveChars(c: Char, c2: Char, c3: Char, c4: Char, c5: Char) {
+    private fun readFiveChars(c: Char, c2: Char, c3: Char, c4: Char, c5: Char) {
         if ((c == 'w' || c == 'W')
             && (c2 == 'h' || c2 == 'H')
             && (c3 == 'e' || c3 == 'E')
@@ -278,10 +257,10 @@ class SqlTokenizer(private val sql: String) {
             }
         }
         buf.position(buf.position() - 1)
-        peekFourChars(c, c2, c3, c4)
+        readFourChars(c, c2, c3, c4)
     }
 
-    private fun peekFourChars(c: Char, c2: Char, c3: Char, c4: Char) {
+    private fun readFourChars(c: Char, c2: Char, c3: Char, c4: Char) {
         if ((c == 'f' || c == 'F')
             && (c2 == 'r' || c2 == 'R')
             && (c3 == 'o' || c3 == 'O')
@@ -293,10 +272,10 @@ class SqlTokenizer(private val sql: String) {
             }
         }
         buf.position(buf.position() - 1)
-        peekThreeChars(c, c2, c3)
+        readThreeChars(c, c2, c3)
     }
 
-    private fun peekThreeChars(c: Char, c2: Char, c3: Char) {
+    private fun readThreeChars(c: Char, c2: Char, c3: Char) {
         if ((c == 'a' || c == 'A') && (c2 == 'n' || c2 == 'N') && (c3 == 'd' || c3 == 'D')) {
             type = AND
             if (isWordTerminated()) {
@@ -305,10 +284,10 @@ class SqlTokenizer(private val sql: String) {
 
         }
         buf.position(buf.position() - 1)
-        peekTwoChars(c, c2)
+        readTwoChars(c, c2)
     }
 
-    private fun peekTwoChars(c: Char, c2: Char) {
+    private fun readTwoChars(c: Char, c2: Char) {
         if ((c == 'o' || c == 'O') && (c2 == 'r' || c2 == 'R')) {
             type = OR
             if (isWordTerminated()) {
@@ -415,7 +394,7 @@ class SqlTokenizer(private val sql: String) {
                         return
                     }
                     if (c3 == '\r' && c4 == '\n' || c3 == '\r' || c3 == '\n') {
-                        peekLineNumber++
+                        lineNumber++
                     }
                     buf.reset()
                 }
@@ -434,14 +413,14 @@ class SqlTokenizer(private val sql: String) {
             return
         } else if (c == '\r' && c2 == '\n') {
             type = EOL
-            peekLineNumber++
+            lineNumber++
             return
         }
         buf.position(buf.position() - 1)
-        peekOneChar(c)
+        readOneChar(c)
     }
 
-    private fun peekOneChar(c: Char) {
+    private fun readOneChar(c: Char) {
         if (isWhitespace(c)) {
             type = WHITESPACE
         } else if (c == '(') {
@@ -508,7 +487,7 @@ class SqlTokenizer(private val sql: String) {
             }
         } else if (c == '\r' || c == '\n') {
             type = EOL
-            peekLineNumber++
+            lineNumber++
         } else {
             type = OTHER
         }

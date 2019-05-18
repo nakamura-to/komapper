@@ -120,6 +120,8 @@ class SqlTokenizerTest {
         val tokenizer = SqlTokenizer("where 'aaa")
         assertEquals(WHERE, tokenizer.next())
         assertEquals("where", tokenizer.token)
+        assertEquals(WHITESPACE, tokenizer.next())
+        assertEquals(" ", tokenizer.token)
         val exception = assertThrows<SqlException> {
             tokenizer.next()
         }
@@ -131,6 +133,8 @@ class SqlTokenizerTest {
         val tokenizer = SqlTokenizer("where 'aaa''bbb''")
         assertEquals(WHERE, tokenizer.next())
         assertEquals("where", tokenizer.token)
+        assertEquals(WHITESPACE, tokenizer.next())
+        assertEquals(" ", tokenizer.token)
         val exception = assertThrows<SqlException> {
             tokenizer.next()
         }
@@ -534,13 +538,13 @@ class SqlTokenizerTest {
         assertEquals(7, tokenizer.location.position)
         assertEquals(EOL, tokenizer.next())
         assertEquals("\n", tokenizer.token)
-        assertEquals(0, tokenizer.location.position)
+        assertEquals(8, tokenizer.location.position)
         assertEquals(WORD, tokenizer.next())
         assertEquals("c", tokenizer.token)
         assertEquals(1, tokenizer.location.position)
         assertEquals(EOL, tokenizer.next())
         assertEquals("\n", tokenizer.token)
-        assertEquals(0, tokenizer.location.position)
+        assertEquals(2, tokenizer.location.position)
         assertEquals(WORD, tokenizer.next())
         assertEquals("d", tokenizer.token)
         assertEquals(1, tokenizer.location.position)
@@ -552,7 +556,7 @@ class SqlTokenizerTest {
         assertEquals(5, tokenizer.location.position)
         assertEquals(EOL, tokenizer.next())
         assertEquals("\n", tokenizer.token)
-        assertEquals(0, tokenizer.location.position)
+        assertEquals(6, tokenizer.location.position)
         assertEquals(EOF, tokenizer.next())
         assertEquals("", tokenizer.token)
     }
@@ -562,6 +566,8 @@ class SqlTokenizerTest {
         val tokenizer = SqlTokenizer("where /*%*/bbb")
         assertEquals(WHERE, tokenizer.next())
         assertEquals("where", tokenizer.token)
+        assertEquals(WHITESPACE, tokenizer.next())
+        assertEquals(" ", tokenizer.token)
         val exception = assertThrows<SqlException> {
             tokenizer.next()
         }

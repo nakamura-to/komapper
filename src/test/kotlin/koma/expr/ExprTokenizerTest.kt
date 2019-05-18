@@ -154,25 +154,29 @@ class ExprTokenizerTest {
 
     @Test
     fun `The end of single quotation mark is not found`() {
-        val exception = assertThrows<ExprException> { ExprTokenizer("'aaa") }
+        val tokenizer = ExprTokenizer("'aaa")
+        val exception = assertThrows<ExprException> { tokenizer.next() }
         println(exception)
     }
 
     @Test
     fun `The end of double quotation mark is not found`() {
-        val exception = assertThrows<ExprException> { ExprTokenizer("\"aaa") }
+        val tokenizer = ExprTokenizer("\"aaa")
+        val exception = assertThrows<ExprException> { tokenizer.next() }
         println(exception)
     }
 
     @Test
     fun `Either property or function name must follow the dot`() {
-        val exception = assertThrows<ExprException> { ExprTokenizer(".") }
+        val tokenizer = ExprTokenizer(".")
+        val exception = assertThrows<ExprException> { tokenizer.next() }
         println(exception)
     }
 
     @Test
     fun `The character is illegal as an identifier start`() {
-        val exception = assertThrows<ExprException> { ExprTokenizer(".!") }
+        val tokenizer = ExprTokenizer(".!")
+        val exception = assertThrows<ExprException> { tokenizer.next() }
         println(exception)
     }
 

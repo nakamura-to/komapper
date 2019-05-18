@@ -8,40 +8,20 @@ class ExprTokenizer(private val expression: String) {
     private var buf = CharBuffer.wrap(expression)
     private var tokenBuf = buf.asReadOnlyBuffer()
     private var binaryOpAvailable = false
-    private var position = 0
     private var type = EOE
     var token = ""
-        private set
     val location
-        get() = ExprLocation(expression, position)
-
-    init {
-        peek()
-    }
+        get() = ExprLocation(expression, buf.position())
 
     operator fun next(): ExprTokenType {
-        return when (type) {
-            EOE -> {
-                token = ""
-                EOE
-            }
-            else -> {
-                val result = type
-                prepare()
-                peek()
-                result
-            }
-        }
-    }
-
-    private fun prepare() {
-        position = buf.position()
-        tokenBuf.limit(position)
+        read()
+        tokenBuf.limit(buf.position())
         token = tokenBuf.toString()
         tokenBuf.position(buf.position())
+        return type
     }
 
-    private fun peek() {
+    private fun read() {
         if (buf.hasRemaining()) {
             val c = buf.get()
             if (buf.hasRemaining()) {
@@ -52,25 +32,25 @@ class ExprTokenizer(private val expression: String) {
                         val c4 = buf.get()
                         if (buf.hasRemaining()) {
                             val c5 = buf.get()
-                            peekFiveChars(c, c2, c3, c4, c5)
+                            readFiveChars(c, c2, c3, c4, c5)
                         } else {
-                            peekFourChars(c, c2, c3, c4)
+                            readFourChars(c, c2, c3, c4)
                         }
                     } else {
-                        peekThreeChars(c, c2, c3)
+                        readThreeChars(c, c2, c3)
                     }
                 } else {
-                    peekTwoChars(c, c2)
+                    readTwoChars(c, c2)
                 }
             } else {
-                peekOneChar(c)
+                readOneChar(c)
             }
         } else {
             type = EOE
         }
     }
 
-    private fun peekFiveChars(c: Char, c2: Char, c3: Char, c4: Char, c5: Char) {
+    private fun readFiveChars(c: Char, c2: Char, c3: Char, c4: Char, c5: Char) {
         if (c == 'f' && c2 == 'a' && c3 == 'l' && c4 == 's' && c5 == 'e') {
             if (isWordTerminated()) {
                 type = FALSE
@@ -79,10 +59,10 @@ class ExprTokenizer(private val expression: String) {
             }
         }
         buf.position(buf.position() - 1)
-        peekFourChars(c, c2, c3, c4)
+        readFourChars(c, c2, c3, c4)
     }
 
-    private fun peekFourChars(c: Char, c2: Char, c3: Char, c4: Char) {
+    private fun readFourChars(c: Char, c2: Char, c3: Char, c4: Char) {
         if (c == 'n' && c2 == 'u' && c3 == 'l' && c4 == 'l') {
             if (isWordTerminated()) {
                 type = NULL
@@ -97,15 +77,15 @@ class ExprTokenizer(private val expression: String) {
             }
         }
         buf.position(buf.position() - 1)
-        peekThreeChars(c, c2, c3)
+        readThreeChars(c, c2, c3)
     }
 
-    private fun peekThreeChars(c: Char, c2: Char, @Suppress("UNUSED_PARAMETER") c3: Char) {
+    private fun readThreeChars(c: Char, c2: Char, @Suppress("UNUSED_PARAMETER") c3: Char) {
         buf.position(buf.position() - 1)
-        peekTwoChars(c, c2)
+        readTwoChars(c, c2)
     }
 
-    private fun peekTwoChars(c: Char, c2: Char) {
+    private fun readTwoChars(c: Char, c2: Char) {
         if (binaryOpAvailable) {
             if (c == '&' && c2 == '&') {
                 type = AND
@@ -134,10 +114,10 @@ class ExprTokenizer(private val expression: String) {
             }
         }
         buf.position(buf.position() - 1)
-        peekOneChar(c)
+        readOneChar(c)
     }
 
-    private fun peekOneChar(c: Char) {
+    private fun readOneChar(c: Char) {
         if (binaryOpAvailable) {
             if (c == '>') {
                 type = GT
@@ -206,14 +186,14 @@ class ExprTokenizer(private val expression: String) {
             if (buf.hasRemaining()) {
                 val c2 = buf.get()
                 if (Character.isDigit(c2)) {
-                    peekNumber()
+                    readNumber()
                     return
                 }
                 buf.reset()
             }
             type = ILLEGAL_NUMBER
         } else if (Character.isDigit(c)) {
-            peekNumber()
+            readNumber()
         } else if (Character.isJavaIdentifierStart(c)) {
             type = VALUE
             binaryOpAvailable = true
@@ -254,7 +234,7 @@ class ExprTokenizer(private val expression: String) {
         }
     }
 
-    private fun peekNumber() {
+    private fun readNumber() {
         type = INT
         var decimal = false
         while (buf.hasRemaining()) {
