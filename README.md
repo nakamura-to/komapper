@@ -1,13 +1,27 @@
-Koma: Two-way-SQL parser for Kotlin
-===================================
+Koma: Simple DB access library for Kotlin
+=========================================
 
 ## Example
 
 ```kotlin
-val template = "select name, age from person where name = /*name*/'test' and age > 1"
-val sql = SqlBuilder().build(template, mapOf("name" to "aaa"))
-assertEquals("select name, age from person where name = ? and age > 1", sql.text)
-assertEquals(listOf("aaa"), sql.values)
+data class Address(
+    @Id
+    val address_id: Int,
+    val street: String,
+    @Version
+    val version: Int
+)
+```
+
+```kotlin
+val db = Db(config)
+val list =
+    db.select<Address>(
+        "select * from address where street = /*street*/'test'"
+        , object {
+            val street = "STREET 10"
+        }
+    )
 ```
 
 ## License
