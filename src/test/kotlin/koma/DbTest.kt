@@ -1,7 +1,7 @@
 package koma
 
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -208,11 +208,23 @@ internal class DbTest {
 
     @Test
     fun delete() {
+        val sql = "select * from address where address_id = 15"
         val db = Db(config)
-        val address = db.select<Address>("select * from address where address_id = 15").first()
-        assertNotNull(address)
+        val address = db.select<Address>(sql).first()
         db.delete(address)
-        val address2 = db.select<Address>("select * from address where address_id = 15").firstOrNull()
+        val address2 = db.select<Address>(sql).firstOrNull()
         assertNull(address2)
     }
+
+    @Test
+    fun update() {
+        val sql = "select * from address where address_id = 15"
+        val db = Db(config)
+        val address = db.select<Address>(sql).first()
+        val newAddress = address.copy(street = "NY street")
+        db.update(newAddress)
+        val address2 = db.select<Address>(sql).firstOrNull()
+        assertEquals(Address(15, "NY street", 2), address2)
+    }
+
 }

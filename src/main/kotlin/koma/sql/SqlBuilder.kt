@@ -2,6 +2,9 @@ package koma.sql
 
 import koma.expr.ExprEvaluator
 import koma.meta.EntityMeta
+import koma.meta.PropKind
+import java.math.BigDecimal
+import java.math.BigInteger
 import kotlin.reflect.KClass
 
 class SqlBuilder(private val evaluator: ExprEvaluator = ExprEvaluator()) {
@@ -215,18 +218,17 @@ data class Sql(val text: String, val values: List<Pair<*, KClass<*>>>, val log: 
 fun createDeleteSql(entity: Any, entityMeta: EntityMeta): Sql {
     val buf = Buffer()
     buf.append("delete from ${entityMeta.tableName}")
-    val idPropList = entityMeta.idPropList
+    val idPropList = entityMeta.idPropMetaList
     if (idPropList.isNotEmpty()) {
         buf.append(" where ")
         idPropList.forEach {
             buf.append("${it.columnName} = ")
-            val value = it.getValue(entity)
-            buf.bind(value)
+            buf.bind(it.getValue(entity))
             buf.append(" and ")
         }
         buf.cutBack(5)
     }
-    val versionProp = entityMeta.versionProp
+    val versionProp = entityMeta.versionPropMeta
     if (versionProp != null) {
         if (idPropList.isEmpty()) {
             buf.append(" where ")
@@ -234,8 +236,65 @@ fun createDeleteSql(entity: Any, entityMeta: EntityMeta): Sql {
             buf.append(" and ")
         }
         buf.append("${versionProp.columnName} = ")
-        val value = versionProp.getValue(entity)
-        buf.bind(value)
+        buf.bind(versionProp.getValue(entity))
     }
     return Sql(buf.sql.toString(), buf.values, buf.log.toString())
+}
+
+fun createUpdateSql(entity: Any, entityMeta: EntityMeta): Pair<Sql, Any?> {
+    var version: Any? = null
+    val buf = Buffer()
+    buf.append("update ${entityMeta.tableName}")
+    buf.append(" set ")
+    val propList = entityMeta.propMetaList
+    propList.filter { it.kind != PropKind.Id }.forEach { prop ->
+        buf.append("${prop.columnName} = ")
+        val value = prop.getValue(entity)
+        if (prop.kind == PropKind.Version) {
+            val versionValue = increment(value).also { (v) ->
+                version = v
+            }
+            buf.bind(versionValue)
+        } else {
+            buf.bind(value)
+        }
+        buf.append(", ")
+    }
+    buf.cutBack(2)
+    val idPropList = entityMeta.idPropMetaList
+    if (idPropList.isNotEmpty()) {
+        buf.append(" where ")
+        idPropList.forEach {
+            buf.append("${it.columnName} = ")
+            buf.bind(it.getValue(entity))
+            buf.append(" and ")
+        }
+        buf.cutBack(5)
+    }
+    val versionProp = entityMeta.versionPropMeta
+    if (versionProp != null) {
+        if (idPropList.isEmpty()) {
+            buf.append(" where ")
+        } else {
+            buf.append(" and ")
+        }
+        buf.append("${versionProp.columnName} = ")
+        buf.bind(versionProp.getValue(entity))
+    }
+    return Sql(buf.sql.toString(), buf.values, buf.log.toString()) to version
+}
+
+@Suppress("IMPLICIT_CAST_TO_ANY")
+fun increment(value: Pair<Any?, KClass<*>>): Pair<Any?, KClass<*>> {
+    val (first) = value
+    val v = when (first) {
+        is Byte -> first.inc()
+        is Short -> first.inc()
+        is Int -> first.inc()
+        is Long -> first.inc()
+        is BigDecimal -> first.inc()
+        is BigInteger -> first.inc()
+        else -> TODO()
+    }
+    return value.copy(v)
 }

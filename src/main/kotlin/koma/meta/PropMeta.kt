@@ -16,7 +16,8 @@ sealed class PropKind {
 }
 
 data class PropMeta(
-    val kParameter: KParameter,
+    val consParam: KParameter,
+    val copyFunParam: KParameter,
     val kProperty: KProperty1<*, *>,
     val kind: PropKind,
     val columnName: String
@@ -26,16 +27,16 @@ data class PropMeta(
     }
 }
 
-fun makePropMeta(kParameter: KParameter, kProperty: KProperty1<*, *>): PropMeta {
-    val id = kParameter.findAnnotation<Id>()
-    val version = kParameter.findAnnotation<Version>()
-    val column = kParameter.findAnnotation<Column>()
+fun makePropMeta(consParam: KParameter, copyFunParam: KParameter, kProperty: KProperty1<*, *>): PropMeta {
+    val id = consParam.findAnnotation<Id>()
+    val version = consParam.findAnnotation<Version>()
+    val column = consParam.findAnnotation<Column>()
     val kind = when {
         id != null && version != null -> TODO()
         id != null && version == null -> PropKind.Id
         id == null && version != null -> PropKind.Version
         else -> PropKind.Basic
     }
-    val columnName = column?.name ?: kParameter.name!!
-    return PropMeta(kParameter, kProperty, kind, columnName)
+    val columnName = column?.name ?: consParam.name!!
+    return PropMeta(consParam, copyFunParam, kProperty, kind, columnName)
 }

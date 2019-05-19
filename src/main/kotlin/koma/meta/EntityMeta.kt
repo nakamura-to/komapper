@@ -5,23 +5,26 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
 import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.jvm.jvmErasure
 
 class EntityMeta(
     val constructor: KFunction<*>,
+    val copy: KFunction<*>,
     val tableName: String,
-    val paramMap: Map<String, KParameter>,
-    val propList: List<PropMeta>,
-    val idPropList: List<PropMeta>,
-    val versionProp: PropMeta?
+    val consParamMap: Map<String, KParameter>,
+    val propMetaList: List<PropMeta>,
+    val idPropMetaList: List<PropMeta>,
+    val versionPropMeta: PropMeta?
 ) {
     fun new(args: Map<KParameter, Any?>): Any? {
         return constructor.callBy(args)
     }
 
     fun copy(args: Map<KParameter, Any?>): Any? {
-        TODO()
+        return copy.callBy(args)
     }
 }
 
@@ -29,16 +32,19 @@ fun makeEntityMeta(kClass: KClass<*>): EntityMeta {
     if (!kClass.isData) throw AssertionError()
     if (kClass.isAbstract) throw AssertionError()
     val constructor = kClass.primaryConstructor ?: throw AssertionError()
+    val copyFun = kClass.memberFunctions.find { it.name == "copy" && it.returnType.jvmErasure == kClass } ?: TODO()
     val table = kClass.findAnnotation<Table>()
     val tableName = table?.name ?: kClass.simpleName!!
-    val paramMap = constructor.parameters.associateBy { it.name!! }
-    val propList = paramMap.values.map { param ->
-        val prop = kClass.memberProperties.find { prop ->
-            param.name!! == prop.name
-        } ?: TODO()
-        makePropMeta(param, prop)
-    }
-    val idPropList = propList.filter { it.kind == PropKind.Id }
-    val versionProp = propList.find { it.kind == PropKind.Version }
-    return EntityMeta(constructor, tableName, paramMap, propList, idPropList, versionProp)
+    val consParamMap = constructor.parameters.associateBy { it.name!! }
+    val propMetaList = constructor.parameters
+        .zip(copyFun.parameters.subList(1, copyFun.parameters.size))
+        .map { (consParam, copyFunParam) ->
+            val prop = kClass.memberProperties.find { prop ->
+                consParam.name!! == prop.name
+            } ?: TODO()
+            makePropMeta(consParam, copyFunParam, prop)
+        }
+    val idPropMetaList = propMetaList.filter { it.kind == PropKind.Id }
+    val versionPropMeta = propMetaList.find { it.kind == PropKind.Version }
+    return EntityMeta(constructor, copyFun, tableName, consParamMap, propMetaList, idPropMetaList, versionPropMeta)
 }

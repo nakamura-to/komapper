@@ -4,6 +4,7 @@ import koma.meta.ObjectMeta
 import koma.meta.makeEntityMeta
 import koma.sql.SqlBuilder
 import koma.sql.createDeleteSql
+import koma.sql.createUpdateSql
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import javax.sql.DataSource
@@ -51,18 +52,18 @@ class Db(val config: DbConfig) {
         if (kClass.isData) {
             val entityMeta = makeEntityMeta(kClass)
             return executeQuery(sql.toString(), condition) { resultSet ->
-                val propMetaMap = mutableMapOf<Int, KParameter>()
+                val paramMap = mutableMapOf<Int, KParameter>()
                 val metaData = resultSet.metaData
                 val count = metaData.columnCount
                 for (i in 1..count) {
                     val label = metaData.getColumnLabel(i).toLowerCase()
-                    val kParameter = entityMeta.paramMap[label] ?: continue
-                    propMetaMap[i] = kParameter
+                    val kParameter = entityMeta.consParamMap[label] ?: continue
+                    paramMap[i] = kParameter
                 }
                 sequence {
                     while (resultSet.next()) {
                         val row = mutableMapOf<KParameter, Any?>()
-                        for (e in propMetaMap) {
+                        for (e in paramMap) {
                             val (index, kParameter) = e
                             val type = kParameter.type.jvmErasure
                             val value = config.dialect.getValue(resultSet, index, type)
@@ -120,7 +121,31 @@ class Db(val config: DbConfig) {
                 sql.values.forEachIndexed { index, (value, valueKClass) ->
                     config.dialect.setValue(stmt, index + 1, value, valueKClass)
                 }
-                stmt.executeUpdate()
+                val count = stmt.executeUpdate()
+                if (count == 0) TODO()
+            }
+        }
+    }
+
+    inline fun <reified T : Any> update(entity: T): T {
+        val kClass = entity::class
+        if (!kClass.isData) TODO()
+        val entityMeta = makeEntityMeta(kClass)
+        val (sql, version) = createUpdateSql(entity, entityMeta)
+        val connection = config.dataSource.connection
+        connection.use {
+            connection.prepareStatement(sql.text).use { stmt ->
+                sql.values.forEachIndexed { index, (value, valueKClass) ->
+                    config.dialect.setValue(stmt, index + 1, value, valueKClass)
+                }
+                val count = stmt.executeUpdate()
+                if (count == 0) TODO()
+                if (version == null) {
+                    return entity
+                }
+                val receiverArg = entityMeta.copy.parameters[0] to entity
+                val versionArg = entityMeta.versionPropMeta!!.copyFunParam to version
+                return entityMeta.copy(mapOf(receiverArg, versionArg)) as T
             }
         }
     }
