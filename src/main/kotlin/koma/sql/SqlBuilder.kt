@@ -1,6 +1,7 @@
 package koma.sql
 
 import koma.expr.ExprEvaluator
+import koma.meta.EntityMeta
 import kotlin.reflect.KClass
 
 class SqlBuilder(private val evaluator: ExprEvaluator = ExprEvaluator()) {
@@ -170,6 +171,12 @@ class Buffer(capacity: Int = 200) {
         log.append(toText(value))
         values.add(value)
     }
+
+    fun cutBack(length: Int) {
+        sql.setLength(sql.length - length)
+        log.setLength(sql.length - length)
+    }
+
 }
 
 class State(ctx: Map<String, Pair<*, KClass<*>>>) {
@@ -204,3 +211,31 @@ private fun toText(value: Any?): String {
 }
 
 data class Sql(val text: String, val values: List<Pair<*, KClass<*>>>, val log: String)
+
+fun createDeleteSql(entity: Any, entityMeta: EntityMeta): Sql {
+    val buf = Buffer()
+    buf.append("delete from ${entityMeta.tableName}")
+    val idPropList = entityMeta.idPropList
+    if (idPropList.isNotEmpty()) {
+        buf.append(" where ")
+        idPropList.forEach {
+            buf.append("${it.columnName} = ")
+            val value = it.getValue(entity)
+            buf.bind(value)
+            buf.append(" and ")
+        }
+        buf.cutBack(5)
+    }
+    val versionProp = entityMeta.versionProp
+    if (versionProp != null) {
+        if (idPropList.isEmpty()) {
+            buf.append(" where ")
+        } else {
+            buf.append(" and ")
+        }
+        buf.append("${versionProp.columnName} = ")
+        val value = versionProp.getValue(entity)
+        buf.bind(value)
+    }
+    return Sql(buf.sql.toString(), buf.values, buf.log.toString())
+}

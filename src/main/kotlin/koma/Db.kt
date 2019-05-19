@@ -1,9 +1,9 @@
 package koma
 
 import koma.meta.ObjectMeta
-import koma.meta.PropMeta
 import koma.meta.makeEntityMeta
 import koma.sql.SqlBuilder
+import koma.sql.createDeleteSql
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import javax.sql.DataSource
@@ -51,22 +51,22 @@ class Db(val config: DbConfig) {
         if (kClass.isData) {
             val entityMeta = makeEntityMeta(kClass)
             return executeQuery(sql.toString(), condition) { resultSet ->
-                val propMetaMap = mutableMapOf<Int, PropMeta>()
+                val propMetaMap = mutableMapOf<Int, KParameter>()
                 val metaData = resultSet.metaData
                 val count = metaData.columnCount
                 for (i in 1..count) {
                     val label = metaData.getColumnLabel(i).toLowerCase()
-                    val propMeta = entityMeta.propMetaMap[label] ?: continue
-                    propMetaMap[i] = propMeta
+                    val kParameter = entityMeta.paramMap[label] ?: continue
+                    propMetaMap[i] = kParameter
                 }
                 sequence {
                     while (resultSet.next()) {
                         val row = mutableMapOf<KParameter, Any?>()
                         for (e in propMetaMap) {
-                            val (index, propMeta) = e
-                            val type = propMeta.kParameter.type.jvmErasure
+                            val (index, kParameter) = e
+                            val type = kParameter.type.jvmErasure
                             val value = config.dialect.getValue(resultSet, index, type)
-                            row[propMeta.kParameter] = value
+                            row[kParameter] = value
                         }
                         val entity = entityMeta.new(row) as T
                         yield(entity)
@@ -105,6 +105,22 @@ class Db(val config: DbConfig) {
                         yieldAll(handler(resultSet))
                     }
                 }
+            }
+        }
+    }
+
+    inline fun <reified T : Any> delete(entity: T) {
+        val kClass = entity::class
+        if (!kClass.isData) TODO()
+        val entityMeta = makeEntityMeta(kClass)
+        val sql = createDeleteSql(entity, entityMeta)
+        val connection = config.dataSource.connection
+        connection.use {
+            connection.prepareStatement(sql.text).use { stmt ->
+                sql.values.forEachIndexed { index, (value, valueKClass) ->
+                    config.dialect.setValue(stmt, index + 1, value, valueKClass)
+                }
+                stmt.executeUpdate()
             }
         }
     }

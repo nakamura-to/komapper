@@ -1,6 +1,8 @@
 package koma
 
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import test.koma.jdbc.SimpleDataSource
@@ -9,8 +11,10 @@ import test.koma.jdbc.SimpleDataSource
 internal class DbTest {
 
     data class Address(
+        @Id
         val address_id: Int,
         val street: String,
+        @Version
         val version: Int
     )
 
@@ -71,6 +75,7 @@ internal class DbTest {
                     INSERT INTO ADDRESS VALUES(12,'STREET 12',1);
                     INSERT INTO ADDRESS VALUES(13,'STREET 13',1);
                     INSERT INTO ADDRESS VALUES(14,'STREET 14',1);
+                    INSERT INTO ADDRESS VALUES(15,'STREET 15',1);
                     INSERT INTO EMPLOYEE VALUES(1,7369,'SMITH',13,'1980-12-17',800,2,1,1);
                     INSERT INTO EMPLOYEE VALUES(2,7499,'ALLEN',6,'1981-02-20',1600,3,2,1);
                     INSERT INTO EMPLOYEE VALUES(3,7521,'WARD',6,'1981-02-22',1250,3,3,1);
@@ -201,4 +206,13 @@ internal class DbTest {
         println(list)
     }
 
+    @Test
+    fun delete() {
+        val db = Db(config)
+        val address = db.select<Address>("select * from address where address_id = 15").first()
+        assertNotNull(address)
+        db.delete(address)
+        val address2 = db.select<Address>("select * from address where address_id = 15").firstOrNull()
+        assertNull(address2)
+    }
 }
