@@ -1,5 +1,6 @@
 package koma
 
+import koma.meta.ObjectMeta
 import koma.meta.PropMeta
 import koma.meta.makeEntityMeta
 import koma.sql.SqlBuilder
@@ -29,14 +30,14 @@ class Db(val config: DbConfig) {
 
     inline fun <reified T : Any?> select(
         sql: CharSequence,
-        condition: Map<String, Pair<*, KClass<*>>> = emptyMap()
+        condition: Any = object {}
     ): List<T> {
         return selectAsSequence<T>(sql, condition).toList()
     }
 
     inline fun <reified T : Any?> select(
         sql: CharSequence,
-        condition: Map<String, Pair<*, KClass<*>>> = emptyMap(),
+        condition: Any = object {},
         action: (T) -> Unit
     ) {
         selectAsSequence<T>(sql, condition).forEach(action)
@@ -44,7 +45,7 @@ class Db(val config: DbConfig) {
 
     inline fun <reified T : Any?> selectAsSequence(
         sql: CharSequence,
-        condition: Map<String, Pair<*, KClass<*>>> = emptyMap()
+        condition: Any = object {}
     ): Sequence<T> {
         val kClass = T::class
         if (kClass.isData) {
@@ -87,10 +88,12 @@ class Db(val config: DbConfig) {
 
     fun <R : Any?> executeQuery(
         template: String,
-        condition: Map<String, Pair<*, KClass<*>>>,
+        condition: Any,
         handler: (resultSet: ResultSet) -> Sequence<R>
     ): Sequence<R> {
-        val sql = SqlBuilder().build(template, condition)
+        val objectMeta = ObjectMeta(condition::class)
+        val ctx = objectMeta.toMap(condition)
+        val sql = SqlBuilder().build(template, ctx)
         val connection = config.dataSource.connection
         return sequence {
             connection.use {

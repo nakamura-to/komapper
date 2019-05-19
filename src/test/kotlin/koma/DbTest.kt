@@ -5,7 +5,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import test.koma.jdbc.SimpleDataSource
 
-
+@Suppress("UNUSED")
 internal class DbTest {
 
     data class Address(
@@ -181,20 +181,22 @@ internal class DbTest {
         val list =
             db.select<Address>(
                 "select * from address where street = /*street*/'test'"
-                , mapOf("street" to ("STREET 10" to String::class))
+                , object {
+                    val street = "STREET 10"
+                }
             )
         println(list)
     }
 
     @Test
     fun select_condition2() {
+        data class X(val street: String)
+
         val db = Db(config)
         val list =
             db.select<Address>(
-                "select * from address where street = /*o.street*/'test'"
-                , mapOf("o" to (object {
-                    val street = "STREET 10"
-                } to Any::class))
+                "select * from address where street = /*street*/'test'"
+                , X("STREET 10")
             )
         println(list)
     }
