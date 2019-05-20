@@ -241,6 +241,26 @@ fun createDeleteSql(entity: Any, entityMeta: EntityMeta): Sql {
     return Sql(buf.sql.toString(), buf.values, buf.log.toString())
 }
 
+fun createInsertSql(entity: Any, entityMeta: EntityMeta): Sql {
+    var version: Any? = null
+    val buf = Buffer()
+    buf.append("insert into ${entityMeta.tableName}")
+    buf.append(" (")
+    val propList = entityMeta.propMetaList
+    propList.forEach { prop ->
+        buf.append("${prop.columnName}, ")
+    }
+    buf.cutBack(2)
+    buf.append(") values(")
+    propList.forEach { prop ->
+        buf.bind(prop.getValue(entity))
+        buf.append(", ")
+    }
+    buf.cutBack(2)
+    buf.append(")")
+    return Sql(buf.sql.toString(), buf.values, buf.log.toString())
+}
+
 fun createUpdateSql(entity: Any, entityMeta: EntityMeta): Pair<Sql, Any?> {
     var version: Any? = null
     val buf = Buffer()

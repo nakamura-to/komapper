@@ -217,6 +217,15 @@ internal class DbTest {
     }
 
     @Test
+    fun insert() {
+        val db = Db(config)
+        val address = Address(16, "STREET 16", 0)
+        db.insert(address)
+        val address2 = db.select<Address>("select * from address where address_id = 16").firstOrNull()
+        assertEquals(address, address2)
+    }
+
+    @Test
     fun update() {
         val sql = "select * from address where address_id = 15"
         val db = Db(config)

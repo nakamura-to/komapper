@@ -4,6 +4,7 @@ import koma.meta.ObjectMeta
 import koma.meta.makeEntityMeta
 import koma.sql.SqlBuilder
 import koma.sql.createDeleteSql
+import koma.sql.createInsertSql
 import koma.sql.createUpdateSql
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -115,6 +116,23 @@ class Db(val config: DbConfig) {
         if (!kClass.isData) TODO()
         val entityMeta = makeEntityMeta(kClass)
         val sql = createDeleteSql(entity, entityMeta)
+        val connection = config.dataSource.connection
+        connection.use {
+            connection.prepareStatement(sql.text).use { stmt ->
+                sql.values.forEachIndexed { index, (value, valueKClass) ->
+                    config.dialect.setValue(stmt, index + 1, value, valueKClass)
+                }
+                val count = stmt.executeUpdate()
+                if (count == 0) TODO()
+            }
+        }
+    }
+
+    inline fun <reified T : Any> insert(entity: T) {
+        val kClass = entity::class
+        if (!kClass.isData) TODO()
+        val entityMeta = makeEntityMeta(kClass)
+        val sql = createInsertSql(entity, entityMeta)
         val connection = config.dataSource.connection
         connection.use {
             connection.prepareStatement(sql.text).use { stmt ->
