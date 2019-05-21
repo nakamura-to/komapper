@@ -151,14 +151,14 @@ internal class DbTest {
     }
 
     @Test
-    fun selectEntity() {
+    fun select() {
         val db = Db(config)
         val list = db.select<Address>("select * from address")
         println(list)
     }
 
     @Test
-    fun selectEntity_block() {
+    fun select_action() {
         val db = Db(config)
         db.select<Address>("select * from address") {
             println(it)
@@ -166,16 +166,16 @@ internal class DbTest {
     }
 
     @Test
-    fun selectSingleColumn() {
+    fun selectOneColumn() {
         val db = Db(config)
-        val list = db.select<String>("select street from address")
+        val list = db.selectOneColumn<String>("select street from address")
         println(list)
     }
 
     @Test
-    fun selectSingleColumn_block() {
+    fun selectOneColumn_action() {
         val db = Db(config)
-        db.select<String>("select street from address") {
+        db.selectOneColumn<String?>("select street from address") {
             println(it)
         }
     }

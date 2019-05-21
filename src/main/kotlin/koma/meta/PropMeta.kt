@@ -15,19 +15,19 @@ sealed class PropKind {
     object Basic : PropKind()
 }
 
-data class PropMeta(
+data class PropMeta<T>(
     val consParam: KParameter,
     val copyFunParam: KParameter,
-    val kProperty: KProperty1<*, *>,
+    val kProperty: KProperty1<T, *>,
     val kind: PropKind,
     val columnName: String
 ) {
-    fun getValue(entity: Any): Pair<Any?, KClass<*>> {
+    fun getValue(entity: T): Pair<Any?, KClass<*>> {
         return kProperty.call(entity) to kProperty.returnType.jvmErasure
     }
 }
 
-fun makePropMeta(consParam: KParameter, copyFunParam: KParameter, kProperty: KProperty1<*, *>): PropMeta {
+fun <T> makePropMeta(consParam: KParameter, copyFunParam: KParameter, kProperty: KProperty1<T, *>): PropMeta<T> {
     val id = consParam.findAnnotation<Id>()
     val version = consParam.findAnnotation<Version>()
     val column = consParam.findAnnotation<Column>()

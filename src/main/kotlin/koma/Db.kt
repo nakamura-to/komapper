@@ -1,11 +1,10 @@
 package koma
 
+import koma.meta.EntityMeta
 import koma.meta.ObjectMeta
 import koma.meta.makeEntityMeta
+import koma.sql.Sql
 import koma.sql.SqlBuilder
-import koma.sql.createDeleteSql
-import koma.sql.createInsertSql
-import koma.sql.createUpdateSql
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import javax.sql.DataSource
@@ -19,152 +18,168 @@ class DbConfig {
 }
 
 class Dialect {
-    fun getValue(resultSet: ResultSet, index: Int, valueKClass: KClass<*>): Any? {
-        return resultSet.getObject(index)
+    fun getValue(rs: ResultSet, index: Int, valueClass: KClass<*>): Any? {
+        return rs.getObject(index)
     }
 
-    fun setValue(statement: PreparedStatement, index: Int, value: Any?, valueKClass: KClass<*>) {
-        statement.setObject(index, value)
+    fun setValue(stmt: PreparedStatement, index: Int, value: Any?, valueClass: KClass<*>) {
+        stmt.setObject(index, value)
     }
 }
 
-class Db(val config: DbConfig) {
+open class Db(config: DbConfig) {
+    protected val dataSource = config.dataSource
+    protected val dialect = config.dialect
 
-    inline fun <reified T : Any?> select(
-        sql: CharSequence,
+    inline fun <reified T : Any> select(
+        template: CharSequence,
         condition: Any = object {}
     ): List<T> {
-        return selectAsSequence<T>(sql, condition).toList()
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        return selectAsSequence(template, condition, T::class).toList()
     }
 
-    inline fun <reified T : Any?> select(
-        sql: CharSequence,
+    inline fun <reified T : Any> select(
+        template: CharSequence,
         condition: Any = object {},
         action: (T) -> Unit
     ) {
-        selectAsSequence<T>(sql, condition).forEach(action)
+        require(T::class.isData) { "The T must a be data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        selectAsSequence(template, condition, T::class).forEach(action)
     }
 
-    inline fun <reified T : Any?> selectAsSequence(
-        sql: CharSequence,
-        condition: Any = object {}
+    fun <T : Any> selectAsSequence(
+        template: CharSequence,
+        condition: Any = object {},
+        clazz: KClass<T>
     ): Sequence<T> {
-        val kClass = T::class
-        if (kClass.isData) {
-            val entityMeta = makeEntityMeta(kClass)
-            return executeQuery(sql.toString(), condition) { resultSet ->
-                val paramMap = mutableMapOf<Int, KParameter>()
-                val metaData = resultSet.metaData
-                val count = metaData.columnCount
-                for (i in 1..count) {
-                    val label = metaData.getColumnLabel(i).toLowerCase()
-                    val kParameter = entityMeta.consParamMap[label] ?: continue
-                    paramMap[i] = kParameter
-                }
-                sequence {
-                    while (resultSet.next()) {
-                        val row = mutableMapOf<KParameter, Any?>()
-                        for (e in paramMap) {
-                            val (index, kParameter) = e
-                            val type = kParameter.type.jvmErasure
-                            val value = config.dialect.getValue(resultSet, index, type)
-                            row[kParameter] = value
-                        }
-                        val entity = entityMeta.new(row) as T
-                        yield(entity)
+        require(clazz.isData) { "The clazz must be a data class." }
+        require(!clazz.isAbstract) { "The clazz must not be abstract." }
+        val meta = makeEntityMeta(clazz)
+        return executeQuery(template.toString(), condition) { rs ->
+            val paramMap = mutableMapOf<Int, KParameter>()
+            val metaData = rs.metaData
+            val count = metaData.columnCount
+            for (i in 1..count) {
+                val label = metaData.getColumnLabel(i).toLowerCase()
+                val param = meta.consParamMap[label] ?: continue
+                paramMap[i] = param
+            }
+            sequence {
+                while (rs.next()) {
+                    val row = mutableMapOf<KParameter, Any?>()
+                    for ((index, param) in paramMap) {
+                        val value = dialect.getValue(rs, index, param.type.jvmErasure)
+                        row[param] = value
                     }
+                    val entity = meta.new(row)
+                    yield(entity)
                 }
             }
-        } else {
-            return executeQuery(sql.toString(), condition) { resultSet ->
-                sequence {
-                    while (resultSet.next()) {
-                        val value = config.dialect.getValue(resultSet, 1, kClass) as T
-                        yield(value)
-                    }
-                }
-            }
-
         }
     }
 
-    fun <R : Any?> executeQuery(
+    inline fun <reified T : Any?> selectOneColumn(
+        template: CharSequence,
+        condition: Any = object {}
+    ): List<T> {
+        return selectOneColumnAsSequence<T>(template, condition, T::class).toList()
+    }
+
+    inline fun <reified T : Any?> selectOneColumn(
+        template: CharSequence,
+        condition: Any = object {},
+        action: (T) -> Unit
+    ) {
+        selectOneColumnAsSequence<T>(template, condition, T::class).forEach(action)
+    }
+
+    fun <T : Any?> selectOneColumnAsSequence(
+        template: CharSequence,
+        condition: Any = object {},
+        type: KClass<*>
+    ): Sequence<T> {
+        return executeQuery(template.toString(), condition) { rs ->
+            sequence {
+                while (rs.next()) {
+                    @Suppress("UNCHECKED_CAST")
+                    val value = dialect.getValue(rs, 1, type) as T
+                    yield(value)
+                }
+            }
+        }
+    }
+
+    protected fun <R : Any?> executeQuery(
         template: String,
         condition: Any,
-        handler: (resultSet: ResultSet) -> Sequence<R>
+        handler: (rs: ResultSet) -> Sequence<R>
     ): Sequence<R> {
         val objectMeta = ObjectMeta(condition::class)
         val ctx = objectMeta.toMap(condition)
         val sql = SqlBuilder().build(template, ctx)
-        val connection = config.dataSource.connection
         return sequence {
-            connection.use {
-                connection.prepareStatement(sql.text).use { stmt ->
-                    sql.values.forEachIndexed { index, (value, valueKClass) ->
-                        config.dialect.setValue(stmt, index + 1, value, valueKClass)
-                    }
-                    stmt.executeQuery().use { resultSet ->
-                        yieldAll(handler(resultSet))
+            dataSource.connection.use { con ->
+                con.prepareStatement(sql.text).use { stmt ->
+                    bindValues(stmt, sql.values)
+                    stmt.executeQuery().use { rs ->
+                        yieldAll(handler(rs))
                     }
                 }
             }
+        }
+    }
+
+    inline fun <reified T : Any> insert(entity: T): T {
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        val meta = makeEntityMeta(T::class)
+        return meta.assignId(entity).also { newEntity ->
+            val sql = meta.buildInsertSql(newEntity)
+            val count = `access$executeUpdate`(sql)
+            if (count == 0) TODO()
         }
     }
 
     inline fun <reified T : Any> delete(entity: T) {
-        val kClass = entity::class
-        if (!kClass.isData) TODO()
-        val entityMeta = makeEntityMeta(kClass)
-        val sql = createDeleteSql(entity, entityMeta)
-        val connection = config.dataSource.connection
-        connection.use {
-            connection.prepareStatement(sql.text).use { stmt ->
-                sql.values.forEachIndexed { index, (value, valueKClass) ->
-                    config.dialect.setValue(stmt, index + 1, value, valueKClass)
-                }
-                val count = stmt.executeUpdate()
-                if (count == 0) TODO()
-            }
-        }
-    }
-
-    inline fun <reified T : Any> insert(entity: T) {
-        val kClass = entity::class
-        if (!kClass.isData) TODO()
-        val entityMeta = makeEntityMeta(kClass)
-        val sql = createInsertSql(entity, entityMeta)
-        val connection = config.dataSource.connection
-        connection.use {
-            connection.prepareStatement(sql.text).use { stmt ->
-                sql.values.forEachIndexed { index, (value, valueKClass) ->
-                    config.dialect.setValue(stmt, index + 1, value, valueKClass)
-                }
-                val count = stmt.executeUpdate()
-                if (count == 0) TODO()
-            }
-        }
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        val meta = makeEntityMeta(T::class)
+        val sql = meta.buildDeleteSql(entity)
+        val count = `access$executeUpdate`(sql)
+        if (count == 0) TODO()
     }
 
     inline fun <reified T : Any> update(entity: T): T {
-        val kClass = entity::class
-        if (!kClass.isData) TODO()
-        val entityMeta = makeEntityMeta(kClass)
-        val (sql, version) = createUpdateSql(entity, entityMeta)
-        val connection = config.dataSource.connection
-        connection.use {
-            connection.prepareStatement(sql.text).use { stmt ->
-                sql.values.forEachIndexed { index, (value, valueKClass) ->
-                    config.dialect.setValue(stmt, index + 1, value, valueKClass)
-                }
-                val count = stmt.executeUpdate()
-                if (count == 0) TODO()
-                if (version == null) {
-                    return entity
-                }
-                val receiverArg = entityMeta.copy.parameters[0] to entity
-                val versionArg = entityMeta.versionPropMeta!!.copyFunParam to version
-                return entityMeta.copy(mapOf(receiverArg, versionArg)) as T
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        val meta = makeEntityMeta(T::class)
+        return meta.incrementVersion(entity).also { newEntity ->
+            val sql = meta.buildUpdateSql(entity, newEntity)
+            val count = `access$executeUpdate`(sql)
+            if (count == 0) TODO()
+        }
+    }
+
+    @PublishedApi
+    internal fun `access$executeUpdate`(sql: Sql) = executeUpdate(sql)
+
+    protected fun executeUpdate(sql: Sql): Int {
+        val count = dataSource.connection.use { con ->
+            con.prepareStatement(sql.text).use { stmt ->
+                bindValues(stmt, sql.values)
+                stmt.executeUpdate()
             }
+        }
+        if (count == 0) TODO()
+        return count
+    }
+
+    protected fun bindValues(stmt: PreparedStatement, values: List<Pair<Any?, KClass<*>>>) {
+        values.forEachIndexed { index, (value, valueType) ->
+            dialect.setValue(stmt, index + 1, value, valueType)
         }
     }
 
