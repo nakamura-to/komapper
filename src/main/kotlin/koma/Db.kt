@@ -1,6 +1,5 @@
 package koma
 
-import koma.meta.EntityMeta
 import koma.meta.ObjectMeta
 import koma.meta.makeEntityMeta
 import koma.sql.Sql
@@ -96,6 +95,8 @@ open class Db(config: DbConfig) {
         selectOneColumnAsSequence<T>(template, condition, T::class).forEach(action)
     }
 
+
+    @Suppress("UNCHECKED_CAST")
     fun <T : Any?> selectOneColumnAsSequence(
         template: CharSequence,
         condition: Any = object {},
@@ -104,7 +105,6 @@ open class Db(config: DbConfig) {
         return executeQuery(template.toString(), condition) { rs ->
             sequence {
                 while (rs.next()) {
-                    @Suppress("UNCHECKED_CAST")
                     val value = dialect.getValue(rs, 1, type) as T
                     yield(value)
                 }
@@ -120,13 +120,10 @@ open class Db(config: DbConfig) {
         val objectMeta = ObjectMeta(condition::class)
         val ctx = objectMeta.toMap(condition)
         val sql = SqlBuilder().build(template, ctx)
-        return sequence {
-            dataSource.connection.use { con ->
-                con.prepareStatement(sql.text).use { stmt ->
-                    bindValues(stmt, sql.values)
-                    stmt.executeQuery().use { rs ->
-                        yieldAll(handler(rs))
-                    }
+        return execute(sql) { stmt ->
+            sequence {
+                stmt.executeQuery().use { rs ->
+                    yieldAll(handler(rs))
                 }
             }
         }
@@ -138,7 +135,7 @@ open class Db(config: DbConfig) {
         val meta = makeEntityMeta(T::class)
         return meta.assignId(entity).also { newEntity ->
             val sql = meta.buildInsertSql(newEntity)
-            val count = `access$executeUpdate`(sql)
+            val count = modify(sql)
             if (count == 0) TODO()
         }
     }
@@ -148,7 +145,7 @@ open class Db(config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = makeEntityMeta(T::class)
         val sql = meta.buildDeleteSql(entity)
-        val count = `access$executeUpdate`(sql)
+        val count = modify(sql)
         if (count == 0) TODO()
     }
 
@@ -158,23 +155,35 @@ open class Db(config: DbConfig) {
         val meta = makeEntityMeta(T::class)
         return meta.incrementVersion(entity).also { newEntity ->
             val sql = meta.buildUpdateSql(entity, newEntity)
-            val count = `access$executeUpdate`(sql)
+            val count = modify(sql)
             if (count == 0) TODO()
         }
     }
 
-    @PublishedApi
-    internal fun `access$executeUpdate`(sql: Sql) = executeUpdate(sql)
 
-    protected fun executeUpdate(sql: Sql): Int {
-        val count = dataSource.connection.use { con ->
-            con.prepareStatement(sql.text).use { stmt ->
-                bindValues(stmt, sql.values)
-                stmt.executeUpdate()
+    fun modify(sql: Sql): Int {
+        // invoke toList() to close resources
+        return executeUpdate(sql).toList().first()
+    }
+
+
+    protected fun executeUpdate(sql: Sql): Sequence<Int> {
+        return execute(sql) { stmt ->
+            sequence {
+                yield(stmt.executeUpdate())
             }
         }
-        if (count == 0) TODO()
-        return count
+    }
+
+    protected fun <T> execute(sql: Sql, handler: (PreparedStatement) -> Sequence<T>): Sequence<T> {
+        return sequence {
+            dataSource.connection.use { con ->
+                con.prepareStatement(sql.text).use { stmt ->
+                    bindValues(stmt, sql.values)
+                    yieldAll(handler(stmt))
+                }
+            }
+        }
     }
 
     protected fun bindValues(stmt: PreparedStatement, values: List<Pair<Any?, KClass<*>>>) {
