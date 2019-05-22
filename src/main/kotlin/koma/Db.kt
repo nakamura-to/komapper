@@ -6,10 +6,15 @@ import koma.sql.Sql
 import koma.sql.SqlBuilder
 import java.sql.PreparedStatement
 import java.sql.ResultSet
+import java.util.*
+import java.util.stream.Collectors
+import java.util.stream.Stream
+import java.util.stream.StreamSupport
 import javax.sql.DataSource
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.jvm.jvmErasure
+import kotlin.streams.asSequence
 
 class DbConfig {
     lateinit var dataSource: DataSource
@@ -36,24 +41,40 @@ open class Db(config: DbConfig) {
     ): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        return selectAsSequence(template, condition, T::class).toList()
+        return selectAsStream(template, condition, T::class).use {
+            it.collect(Collectors.toList())
+        }
     }
 
-    inline fun <reified T : Any> select(
+    inline fun <reified T : Any> iterate(
         template: CharSequence,
         condition: Any = object {},
         action: (T) -> Unit
     ) {
         require(T::class.isData) { "The T must a be data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        selectAsSequence(template, condition, T::class).forEach(action)
+        return selectAsStream(template, condition, T::class).use {
+            it.asSequence().forEach(action)
+        }
     }
 
-    fun <T : Any> selectAsSequence(
+    inline fun <reified T : Any, R> sequence(
+        template: CharSequence,
+        condition: Any = object {},
+        action: (Sequence<T>) -> R
+    ): R {
+        require(T::class.isData) { "The T must a be data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        return selectAsStream(template, condition, T::class).use {
+            action(it.asSequence())
+        }
+    }
+
+    fun <T : Any> selectAsStream(
         template: CharSequence,
         condition: Any = object {},
         clazz: KClass<T>
-    ): Sequence<T> {
+    ): Stream<T> {
         require(clazz.isData) { "The clazz must be a data class." }
         require(!clazz.isAbstract) { "The clazz must not be abstract." }
         val meta = makeEntityMeta(clazz)
@@ -66,16 +87,13 @@ open class Db(config: DbConfig) {
                 val param = meta.consParamMap[label] ?: continue
                 paramMap[i] = param
             }
-            sequence {
-                while (rs.next()) {
-                    val row = mutableMapOf<KParameter, Any?>()
-                    for ((index, param) in paramMap) {
-                        val value = dialect.getValue(rs, index, param.type.jvmErasure)
-                        row[param] = value
-                    }
-                    val entity = meta.new(row)
-                    yield(entity)
+            stream(rs) {
+                val row = mutableMapOf<KParameter, Any?>()
+                for ((index, param) in paramMap) {
+                    val value = dialect.getValue(it, index, param.type.jvmErasure)
+                    row[param] = value
                 }
+                meta.new(row)
             }
         }
     }
@@ -84,48 +102,87 @@ open class Db(config: DbConfig) {
         template: CharSequence,
         condition: Any = object {}
     ): List<T> {
-        return selectOneColumnAsSequence<T>(template, condition, T::class).toList()
+        return selectOneColumnAsStream<T>(template, condition, T::class).use {
+            it.collect(Collectors.toList())
+        }
     }
 
-    inline fun <reified T : Any?> selectOneColumn(
+    inline fun <reified T : Any?> iterateOneColumn(
         template: CharSequence,
         condition: Any = object {},
         action: (T) -> Unit
     ) {
-        selectOneColumnAsSequence<T>(template, condition, T::class).forEach(action)
+        selectOneColumnAsStream<T>(template, condition, T::class).use {
+            it.asSequence().forEach(action)
+        }
     }
 
+    inline fun <reified T : Any?, R> sequenceOneColumn(
+        template: CharSequence,
+        condition: Any = object {},
+        action: (Sequence<T>) -> R
+    ): R {
+        return selectOneColumnAsStream<T>(template, condition, T::class).use {
+            action(it.asSequence())
+        }
+    }
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : Any?> selectOneColumnAsSequence(
+    fun <T : Any?> selectOneColumnAsStream(
         template: CharSequence,
         condition: Any = object {},
         type: KClass<*>
-    ): Sequence<T> {
+    ): Stream<T> {
         return executeQuery(template.toString(), condition) { rs ->
-            sequence {
-                while (rs.next()) {
-                    val value = dialect.getValue(rs, 1, type) as T
-                    yield(value)
-                }
+            stream(rs) {
+                dialect.getValue(it, 1, type) as T
             }
         }
     }
 
-    protected fun <R : Any?> executeQuery(
+    protected fun <T> stream(rs: ResultSet, provider: (ResultSet) -> T): Stream<T> {
+        val iterator = object : Iterator<T> {
+            var hasNext = rs.next()
+            override fun hasNext(): Boolean {
+                return hasNext
+            }
+
+            override fun next(): T {
+                return provider(rs).also { hasNext = rs.next() }
+            }
+        }
+        return StreamSupport.stream(
+            { Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED) },
+            Spliterator.ORDERED,
+            false
+        )
+    }
+
+    protected fun <T : Any?> executeQuery(
         template: String,
         condition: Any,
-        handler: (rs: ResultSet) -> Sequence<R>
-    ): Sequence<R> {
+        handler: (rs: ResultSet) -> Stream<T>
+    ): Stream<T> {
         val objectMeta = ObjectMeta(condition::class)
         val ctx = objectMeta.toMap(condition)
         val sql = SqlBuilder().build(template, ctx)
-        return execute(sql) { stmt ->
-            sequence {
-                stmt.executeQuery().use { rs ->
-                    yieldAll(handler(rs))
+        var stream: Stream<T>? = null
+        val con = dataSource.connection
+        try {
+            val stmt = con.prepareStatement(sql.text)
+            try {
+                bindValues(stmt, sql.values)
+                val rs = stmt.executeQuery()
+                try {
+                    return handler(rs).also { stream = it }
+                } finally {
+                    stream.onClose(rs)
                 }
+            } finally {
+                stream.onClose(stmt)
             }
+        } finally {
+            stream.onClose(con)
         }
     }
 
@@ -160,28 +217,15 @@ open class Db(config: DbConfig) {
         }
     }
 
-
     fun modify(sql: Sql): Int {
-        // invoke toList() to close resources
-        return executeUpdate(sql).toList().first()
+        return executeUpdate(sql)
     }
 
-
-    protected fun executeUpdate(sql: Sql): Sequence<Int> {
-        return execute(sql) { stmt ->
-            sequence {
-                yield(stmt.executeUpdate())
-            }
-        }
-    }
-
-    protected fun <T> execute(sql: Sql, handler: (PreparedStatement) -> Sequence<T>): Sequence<T> {
-        return sequence {
-            dataSource.connection.use { con ->
-                con.prepareStatement(sql.text).use { stmt ->
-                    bindValues(stmt, sql.values)
-                    yieldAll(handler(stmt))
-                }
+    protected fun executeUpdate(sql: Sql): Int {
+        return dataSource.connection.use { con ->
+            con.prepareStatement(sql.text).use { stmt ->
+                bindValues(stmt, sql.values)
+                stmt.executeUpdate()
             }
         }
     }
@@ -192,4 +236,14 @@ open class Db(config: DbConfig) {
         }
     }
 
+    fun <T : Any?> Stream<T>?.onClose(closeable: AutoCloseable) {
+        if (this == null) {
+            try {
+                closeable.close()
+            } catch (ignored: Exception) {
+            }
+        } else {
+            onClose(closeable::close)
+        }
+    }
 }

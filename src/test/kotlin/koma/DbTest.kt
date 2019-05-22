@@ -154,30 +154,58 @@ internal class DbTest {
     fun select() {
         val db = Db(config)
         val list = db.select<Address>("select * from address")
-        println(list)
+        assertEquals(15, list.size)
+        assertEquals(Address(1, "STREET 1", 1), list[0])
     }
 
     @Test
-    fun select_action() {
+    fun iterate() {
         val db = Db(config)
-        db.select<Address>("select * from address") {
-            println(it)
+        val list = mutableListOf<Address>()
+        db.iterate<Address>("select * from address") {
+            list.add(it)
         }
+        assertEquals(15, list.size)
+        assertEquals(Address(1, "STREET 1", 1), list[0])
+    }
+
+    @Test
+    fun sequence() {
+        val db = Db(config)
+        val list = db.sequence<Address, List<Address>>("select * from address") {
+            it.toList()
+        }
+        assertEquals(15, list.size)
+        assertEquals(Address(1, "STREET 1", 1), list[0])
     }
 
     @Test
     fun selectOneColumn() {
         val db = Db(config)
         val list = db.selectOneColumn<String>("select street from address")
-        println(list)
+        assertEquals(15, list.size)
+        assertEquals("STREET 1", list[0])
     }
 
     @Test
-    fun selectOneColumn_action() {
+    fun iterateOneColumn() {
         val db = Db(config)
-        db.selectOneColumn<String?>("select street from address") {
-            println(it)
+        val list = mutableListOf<String?>()
+        db.iterateOneColumn<String?>("select street from address") {
+            list.add(it)
         }
+        assertEquals(15, list.size)
+        assertEquals("STREET 1", list[0])
+    }
+
+    @Test
+    fun sequenceOneColumn() {
+        val db = Db(config)
+        val list = db.sequenceOneColumn<String?, List<String?>>("select street from address") {
+            it.toList()
+        }
+        assertEquals(15, list.size)
+        assertEquals("STREET 1", list[0])
     }
 
     @Test
@@ -190,20 +218,22 @@ internal class DbTest {
                     val street = "STREET 10"
                 }
             )
-        println(list)
+        assertEquals(1, list.size)
+        assertEquals(Address(10, "STREET 10", 1), list[0])
     }
 
     @Test
     fun select_condition2() {
-        data class X(val street: String)
+        data class Condition(val street: String)
 
         val db = Db(config)
         val list =
             db.select<Address>(
                 "select * from address where street = /*street*/'test'"
-                , X("STREET 10")
+                , Condition("STREET 10")
             )
-        println(list)
+        assertEquals(1, list.size)
+        assertEquals(Address(10, "STREET 10", 1), list[0])
     }
 
     @Test
