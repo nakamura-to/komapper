@@ -1,11 +1,13 @@
 package koma
 
+import koma.meta.EntityMeta
 import koma.meta.ObjectMeta
 import koma.meta.makeEntityMeta
 import koma.sql.Sql
 import koma.sql.SqlBuilder
 import java.sql.PreparedStatement
 import java.sql.ResultSet
+import java.sql.SQLException
 import java.util.*
 import java.util.stream.Collectors
 import java.util.stream.Stream
@@ -18,17 +20,7 @@ import kotlin.streams.asSequence
 
 class DbConfig {
     lateinit var dataSource: DataSource
-    val dialect = Dialect()
-}
-
-class Dialect {
-    fun getValue(rs: ResultSet, index: Int, valueClass: KClass<*>): Any? {
-        return rs.getObject(index)
-    }
-
-    fun setValue(stmt: PreparedStatement, index: Int, value: Any?, valueClass: KClass<*>) {
-        stmt.setObject(index, value)
-    }
+    val dialect = H2Dialect()
 }
 
 open class Db(config: DbConfig) {
@@ -190,9 +182,24 @@ open class Db(config: DbConfig) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = makeEntityMeta(T::class)
+        return `access$insert`(entity, meta)
+    }
+
+    @PublishedApi
+    internal fun <T : Any> `access$insert`(entity: T, meta: EntityMeta<T>) = insert(entity, meta)
+
+    protected fun <T : Any> insert(entity: T, meta: EntityMeta<T>): T {
         return meta.assignId(entity).also { newEntity ->
             val sql = meta.buildInsertSql(newEntity)
-            val count = modify(sql)
+            val count = try {
+                executeUpdate(sql)
+            } catch (e: SQLException) {
+                if (dialect.isUniqueConstraintViolated(e)) {
+                    throw UniqueConstraintException(e, entity)
+                } else {
+                    throw e
+                }
+            }
             check(count == 1)
         }
     }
@@ -201,8 +208,15 @@ open class Db(config: DbConfig) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = makeEntityMeta(T::class)
+        `access$delete`(entity, meta)
+    }
+
+    @PublishedApi
+    internal fun <T : Any> `access$delete`(entity: T, meta: EntityMeta<T>) = delete(entity, meta)
+
+    protected fun <T : Any> delete(entity: T, meta: EntityMeta<T>) {
         val sql = meta.buildDeleteSql(entity)
-        val count = modify(sql)
+        val count = executeUpdate(sql)
         if (count == 0 && meta.versionPropMeta != null) {
             throw OptimisticLockException(entity)
         }
@@ -212,17 +226,28 @@ open class Db(config: DbConfig) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = makeEntityMeta(T::class)
+        return `access$update`(entity, meta)
+    }
+
+    @PublishedApi
+    internal fun <T : Any> `access$update`(entity: T, meta: EntityMeta<T>) = update(entity, meta)
+
+    protected fun <T : Any> update(entity: T, meta: EntityMeta<T>): T {
         return meta.incrementVersion(entity).also { newEntity ->
             val sql = meta.buildUpdateSql(entity, newEntity)
-            val count = modify(sql)
+            val count = try {
+                executeUpdate(sql)
+            } catch (e: SQLException) {
+                if (dialect.isUniqueConstraintViolated(e)) {
+                    throw UniqueConstraintException(e, entity)
+                } else {
+                    throw e
+                }
+            }
             if (count == 0 && meta.versionPropMeta != null) {
                 throw OptimisticLockException(entity)
             }
         }
-    }
-
-    fun modify(sql: Sql): Int {
-        return executeUpdate(sql)
     }
 
     protected fun executeUpdate(sql: Sql): Int {
@@ -253,3 +278,5 @@ open class Db(config: DbConfig) {
 }
 
 class OptimisticLockException(val entity: Any) : Exception()
+
+class UniqueConstraintException(cause: SQLException, val entity: Any) : Exception(cause)

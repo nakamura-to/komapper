@@ -33,7 +33,7 @@ internal class DbTest {
                     CREATE SEQUENCE MY_SEQUENCE_STRATEGY_ID START WITH 1 INCREMENT BY 100;
 
                     CREATE TABLE DEPARTMENT(DEPARTMENT_ID INTEGER NOT NULL PRIMARY KEY, DEPARTMENT_NO INTEGER NOT NULL UNIQUE,DEPARTMENT_NAME VARCHAR(20),LOCATION VARCHAR(20) DEFAULT 'TOKYO', VERSION INTEGER);
-                    CREATE TABLE ADDRESS(ADDRESS_ID INTEGER NOT NULL PRIMARY KEY, STREET VARCHAR(20), VERSION INTEGER);
+                    CREATE TABLE ADDRESS(ADDRESS_ID INTEGER NOT NULL PRIMARY KEY, STREET VARCHAR(20) UNIQUE, VERSION INTEGER);
                     CREATE TABLE EMPLOYEE(EMPLOYEE_ID INTEGER NOT NULL PRIMARY KEY, EMPLOYEE_NO INTEGER NOT NULL ,EMPLOYEE_NAME VARCHAR(20),MANAGER_ID INTEGER,HIREDATE DATE,SALARY NUMERIC(7,2),DEPARTMENT_ID INTEGER,ADDRESS_ID INTEGER,VERSION INTEGER, CONSTRAINT FK_DEPARTMENT_ID FOREIGN KEY(DEPARTMENT_ID) REFERENCES DEPARTMENT(DEPARTMENT_ID), CONSTRAINT FK_ADDRESS_ID FOREIGN KEY(ADDRESS_ID) REFERENCES ADDRESS(ADDRESS_ID));
 
                     CREATE TABLE COMP_KEY_DEPARTMENT(DEPARTMENT_ID1 INTEGER NOT NULL, DEPARTMENT_ID2 INTEGER NOT NULL, DEPARTMENT_NO INTEGER NOT NULL UNIQUE,DEPARTMENT_NAME VARCHAR(20),LOCATION VARCHAR(20) DEFAULT 'TOKYO', VERSION INTEGER, CONSTRAINT PK_COMP_KEY_DEPARTMENT PRIMARY KEY(DEPARTMENT_ID1, DEPARTMENT_ID2));
@@ -266,6 +266,13 @@ internal class DbTest {
     }
 
     @Test
+    fun insert_UniqueConstraintException() {
+        val db = Db(config)
+        val address = Address(1, "STREET 1", 0)
+        assertThrows<UniqueConstraintException> { db.insert(address) }
+    }
+
+    @Test
     fun update() {
         val sql = "select * from address where address_id = 15"
         val db = Db(config)
@@ -274,6 +281,14 @@ internal class DbTest {
         db.update(newAddress)
         val address2 = db.select<Address>(sql).firstOrNull()
         assertEquals(Address(15, "NY street", 2), address2)
+    }
+
+    @Test
+    fun update_UniqueConstraintException() {
+        val sql = "select * from address where address_id = 15"
+        val db = Db(config)
+        val address = Address(1, "STREET 2", 1)
+        assertThrows<UniqueConstraintException> { db.update(address) }
     }
 
     @Test
