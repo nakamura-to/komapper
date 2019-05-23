@@ -193,7 +193,7 @@ open class Db(config: DbConfig) {
         return meta.assignId(entity).also { newEntity ->
             val sql = meta.buildInsertSql(newEntity)
             val count = modify(sql)
-            if (count == 0) TODO()
+            check(count == 1)
         }
     }
 
@@ -203,7 +203,9 @@ open class Db(config: DbConfig) {
         val meta = makeEntityMeta(T::class)
         val sql = meta.buildDeleteSql(entity)
         val count = modify(sql)
-        if (count == 0) TODO()
+        if (count == 0 && meta.versionPropMeta != null) {
+            throw OptimisticLockException(entity)
+        }
     }
 
     inline fun <reified T : Any> update(entity: T): T {
@@ -213,7 +215,9 @@ open class Db(config: DbConfig) {
         return meta.incrementVersion(entity).also { newEntity ->
             val sql = meta.buildUpdateSql(entity, newEntity)
             val count = modify(sql)
-            if (count == 0) TODO()
+            if (count == 0 && meta.versionPropMeta != null) {
+                throw OptimisticLockException(entity)
+            }
         }
     }
 
@@ -247,3 +251,5 @@ open class Db(config: DbConfig) {
         }
     }
 }
+
+class OptimisticLockException(val entity: Any) : Exception()

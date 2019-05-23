@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import test.koma.jdbc.SimpleDataSource
 
 @Suppress("UNUSED")
@@ -247,6 +248,15 @@ internal class DbTest {
     }
 
     @Test
+    fun delete_OptimisticLockException() {
+        val sql = "select * from address where address_id = 15"
+        val db = Db(config)
+        val address = db.select<Address>(sql).first()
+        db.delete(address)
+        assertThrows<OptimisticLockException> { db.delete(address) }
+    }
+
+    @Test
     fun insert() {
         val db = Db(config)
         val address = Address(16, "STREET 16", 0)
@@ -264,6 +274,15 @@ internal class DbTest {
         db.update(newAddress)
         val address2 = db.select<Address>(sql).firstOrNull()
         assertEquals(Address(15, "NY street", 2), address2)
+    }
+
+    @Test
+    fun update_OptimisticLockException() {
+        val sql = "select * from address where address_id = 15"
+        val db = Db(config)
+        val address = db.select<Address>(sql).first()
+        db.update(address)
+        assertThrows<OptimisticLockException> { db.update(address) }
     }
 
 }
