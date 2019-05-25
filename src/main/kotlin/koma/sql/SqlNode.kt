@@ -12,19 +12,19 @@ sealed class SqlNode {
     abstract fun toText(): String
 }
 
-data class Statement(val nodeList: NodeList<SqlNode>) : SqlNode() {
+data class StatementNode(val nodeList: NodeList<SqlNode>) : SqlNode() {
     override fun toText(): String {
         return nodeList.toText()
     }
 }
 
-data class Set(val location: SqlLocation, val keyword: String, val left: SqlNode, val right: SqlNode) : SqlNode() {
+data class SetNode(val location: SqlLocation, val keyword: String, val left: SqlNode, val right: SqlNode) : SqlNode() {
     override fun toText(): String {
         return left.toText() + keyword + right.toText()
     }
 }
 
-sealed class Keyword : SqlNode() {
+sealed class KeywordNode : SqlNode() {
     abstract val location: SqlLocation
     abstract val keyword: String
     abstract val nodeList: NodeList<SqlNode>
@@ -33,77 +33,77 @@ sealed class Keyword : SqlNode() {
     }
 }
 
-data class Select(
+data class SelectNode(
     override val location: SqlLocation,
     override val keyword: String,
     override val nodeList: NodeList<SqlNode>
-) : Keyword()
+) : KeywordNode()
 
-data class From(
+data class FromNode(
     override val location: SqlLocation,
     override val keyword: String,
     override val nodeList: NodeList<SqlNode>
-) : Keyword()
+) : KeywordNode()
 
-data class Where(
+data class WhereNode(
     override val location: SqlLocation,
     override val keyword: String,
     override val nodeList: NodeList<SqlNode>
-) : Keyword()
+) : KeywordNode()
 
-data class Having(
+data class HavingNode(
     override val location: SqlLocation,
     override val keyword: String,
     override val nodeList: NodeList<SqlNode>
-) : Keyword()
+) : KeywordNode()
 
-data class GroupBy(
+data class GroupByNode(
     override val location: SqlLocation,
     override val keyword: String,
     override val nodeList: NodeList<SqlNode>
-) : Keyword()
+) : KeywordNode()
 
-data class OrderBy(
+data class OrderByNode(
     override val location: SqlLocation,
     override val keyword: String,
     override val nodeList: NodeList<SqlNode>
-) : Keyword()
+) : KeywordNode()
 
-data class ForUpdate(
+data class ForUpdateNode(
     override val location: SqlLocation,
     override val keyword: String,
     override val nodeList: NodeList<SqlNode>
-) : Keyword()
+) : KeywordNode()
 
-data class Option(
+data class OptionNode(
     override val location: SqlLocation,
     override val keyword: String,
     override val nodeList: NodeList<SqlNode>
-) : Keyword()
+) : KeywordNode()
 
-data class And(
+data class AndNode(
     override val location: SqlLocation,
     override val keyword: String,
     override val nodeList: NodeList<SqlNode>
-) : Keyword()
+) : KeywordNode()
 
-data class Or(
+data class OrNode(
     override val location: SqlLocation,
     override val keyword: String,
     override val nodeList: NodeList<SqlNode>
-) : Keyword()
+) : KeywordNode()
 
-data class Brackets(val node: SqlNode) : SqlNode() {
+data class BracketsNode(val node: SqlNode) : SqlNode() {
     override fun toText(): String {
         return "(${node.toText()})"
     }
 }
 
-data class IfBlock(
-    val ifDirective: IfDirective,
-    val elseifDirectives: NodeList<ElseifDirective>,
-    val elseDirective: ElseDirective?,
-    val endDirective: EndDirective
+data class IfBlockNode(
+    val ifDirective: IfDirectiveNode,
+    val elseifDirectives: NodeList<ElseifDirectiveNode>,
+    val elseDirective: ElseDirectiveNode?,
+    val endDirective: EndDirectiveNode
 ) : SqlNode() {
     override fun toText(): String {
         return ifDirective.toText() +
@@ -113,16 +113,16 @@ data class IfBlock(
     }
 }
 
-data class ForBlock(
-    val forDirective: ForDirective,
-    val endDirective: EndDirective
+data class ForBlockNode(
+    val forDirective: ForDirectiveNode,
+    val endDirective: EndDirectiveNode
 ) : SqlNode() {
     override fun toText(): String {
         return forDirective.toText() + endDirective.toText()
     }
 }
 
-data class IfDirective(
+data class IfDirectiveNode(
     val location: SqlLocation,
     val token: String,
     val expression: String,
@@ -133,7 +133,7 @@ data class IfDirective(
     }
 }
 
-data class ElseifDirective(
+data class ElseifDirectiveNode(
     val location: SqlLocation,
     val token: String,
     val expression: String,
@@ -144,19 +144,20 @@ data class ElseifDirective(
     }
 }
 
-data class ElseDirective(val location: SqlLocation, val token: String, val nodeList: NodeList<SqlNode>) : SqlNode() {
+data class ElseDirectiveNode(val location: SqlLocation, val token: String, val nodeList: NodeList<SqlNode>) :
+    SqlNode() {
     override fun toText(): String {
         return token + nodeList.toText()
     }
 }
 
-data class EndDirective(val location: SqlLocation, val token: String) : SqlNode() {
+data class EndDirectiveNode(val location: SqlLocation, val token: String) : SqlNode() {
     override fun toText(): String {
         return token
     }
 }
 
-data class ForDirective(
+data class ForDirectiveNode(
     val location: SqlLocation,
     val token: String,
     val identifier: String,
@@ -168,7 +169,7 @@ data class ForDirective(
     }
 }
 
-data class ExpandDirective(
+data class ExpandDirectiveNode(
     val location: SqlLocation,
     val token: String,
     val expression: String,
@@ -181,7 +182,7 @@ data class ExpandDirective(
     }
 }
 
-data class BindValueDirective(
+data class BindValueDirectiveNode(
     val location: SqlLocation,
     val token: String,
     val expression: String,
@@ -194,13 +195,14 @@ data class BindValueDirective(
     }
 }
 
-data class EmbeddedValueDirective(val location: SqlLocation, val token: String, val expression: String) : SqlNode() {
+data class EmbeddedValueDirectiveNode(val location: SqlLocation, val token: String, val expression: String) :
+    SqlNode() {
     override fun toText(): String {
         return token
     }
 }
 
-data class LiteralValueDirective(
+data class LiteralValueDirectiveNode(
     val location: SqlLocation,
     val token: String,
     val expression: String,
@@ -213,7 +215,7 @@ data class LiteralValueDirective(
     }
 }
 
-sealed class Token : SqlNode() {
+sealed class TokenNode : SqlNode() {
     abstract val token: String
     override fun toText(): String {
         return token
@@ -221,51 +223,51 @@ sealed class Token : SqlNode() {
 
 }
 
-data class Comment(override val token: String) : Token()
-data class Word(override val token: String) : Token()
-data class Whitespaces(override val token: String) : Token() {
+data class CommentNode(override val token: String) : TokenNode()
+data class WordNode(override val token: String) : TokenNode()
+data class WhitespacesNode(override val token: String) : TokenNode() {
     companion object {
         val map = mapOf(
-            '\u0009'.toString() to Whitespaces('\u0009'.toString()),
-            '\u000B'.toString() to Whitespaces('\u000B'.toString()),
-            '\u000C'.toString() to Whitespaces('\u000C'.toString()),
-            '\u001C'.toString() to Whitespaces('\u001C'.toString()),
-            '\u001D'.toString() to Whitespaces('\u001D'.toString()),
-            '\u001E'.toString() to Whitespaces('\u001E'.toString()),
-            '\u001F'.toString() to Whitespaces('\u001F'.toString()),
-            '\u0020'.toString() to Whitespaces('\u0020'.toString()),
-            " " to Whitespaces(" "),
-            "  " to Whitespaces("  "),
-            "   " to Whitespaces("   "),
-            "    " to Whitespaces("    "),
-            "\t" to Whitespaces("\t"),
-            "\t\t" to Whitespaces("\t\t")
+            '\u0009'.toString() to WhitespacesNode('\u0009'.toString()),
+            '\u000B'.toString() to WhitespacesNode('\u000B'.toString()),
+            '\u000C'.toString() to WhitespacesNode('\u000C'.toString()),
+            '\u001C'.toString() to WhitespacesNode('\u001C'.toString()),
+            '\u001D'.toString() to WhitespacesNode('\u001D'.toString()),
+            '\u001E'.toString() to WhitespacesNode('\u001E'.toString()),
+            '\u001F'.toString() to WhitespacesNode('\u001F'.toString()),
+            '\u0020'.toString() to WhitespacesNode('\u0020'.toString()),
+            " " to WhitespacesNode(" "),
+            "  " to WhitespacesNode("  "),
+            "   " to WhitespacesNode("   "),
+            "    " to WhitespacesNode("    "),
+            "\t" to WhitespacesNode("\t"),
+            "\t\t" to WhitespacesNode("\t\t")
         )
 
-        fun of(token: String): Whitespaces {
-            return map.getOrElse(token) { Whitespaces(token) }
+        fun of(token: String): WhitespacesNode {
+            return map.getOrElse(token) { WhitespacesNode(token) }
         }
     }
 }
 
-data class Other(override val token: String) : Token() {
+data class OtherNode(override val token: String) : TokenNode() {
     companion object {
         private val map = mapOf(
-            "," to Other(","),
-            "=" to Other("="),
-            ">" to Other(">"),
-            "<" to Other("<"),
-            "-" to Other("-"),
-            "+" to Other("+"),
-            "*" to Other("*"),
-            "/" to Other("/"),
-            "(" to Other("("),
-            ")" to Other(")"),
-            ";" to Other(";")
+            "," to OtherNode(","),
+            "=" to OtherNode("="),
+            ">" to OtherNode(">"),
+            "<" to OtherNode("<"),
+            "-" to OtherNode("-"),
+            "+" to OtherNode("+"),
+            "*" to OtherNode("*"),
+            "/" to OtherNode("/"),
+            "(" to OtherNode("("),
+            ")" to OtherNode(")"),
+            ";" to OtherNode(";")
         )
 
-        fun of(token: String): Other {
-            return map.getOrElse(token) { Other(token) }
+        fun of(token: String): OtherNode {
+            return map.getOrElse(token) { OtherNode(token) }
         }
     }
 }

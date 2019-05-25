@@ -10,7 +10,7 @@ class SqlParser constructor(
     private val tokenizer: SqlTokenizer = SqlTokenizer(sql)
 ) {
 
-    private val reducers: LinkedList<SqlNodeReducer> = LinkedList()
+    private val reducers: LinkedList<SqlReducer> = LinkedList()
     private var tokenType: SqlTokenType = EOF
     private var token: String = ""
     private val location: SqlLocation
@@ -32,13 +32,13 @@ class SqlParser constructor(
                     if (parser.tokenType != CLOSE_BRACKET) {
                         throw SqlException("The close bracket is not found at $location")
                     }
-                    pushNode(Brackets(node))
+                    pushNode(BracketsNode(node))
                 }
                 CLOSE_BRACKET -> break@outer
-                WORD, QUOTE -> pushNode(Word(token))
-                WHITESPACE -> pushNode(Whitespaces.of(token))
-                OTHER, EOL -> pushNode(Other.of(token))
-                MULTI_LINE_COMMENT, SINGLE_LINE_COMMENT -> pushNode(Comment(token))
+                WORD, QUOTE -> pushNode(WordNode(token))
+                WHITESPACE -> pushNode(WhitespacesNode.of(token))
+                OTHER, EOL -> pushNode(OtherNode.of(token))
+                MULTI_LINE_COMMENT, SINGLE_LINE_COMMENT -> pushNode(CommentNode(token))
                 SELECT -> reducers.push(SelectReducer(location, token))
                 FROM -> reducers.push(FromReducer(location, token))
                 WHERE -> reducers.push(WhereReducer(location, token))
@@ -89,7 +89,7 @@ class SqlParser constructor(
         if (expression.isEmpty()) {
             throw SqlException("The expression is not found in the embedded value directive at $location")
         }
-        pushNode(EmbeddedValueDirective(location, token, expression))
+        pushNode(EmbeddedValueDirectiveNode(location, token, expression))
     }
 
     private fun parseIfDirective() {
@@ -126,7 +126,7 @@ class SqlParser constructor(
         if (reducers.isEmpty()) {
             throw SqlException("The corresponding if or for directive is not found at $location")
         }
-        pushNode(EndDirective(location, token))
+        pushNode(EndDirectiveNode(location, token))
         val block = reducers.pop()
         pushNode(block.reduce())
     }
@@ -165,7 +165,7 @@ class SqlParser constructor(
     }
 
 
-    private fun reduceUntil(kClass: KClass<out SqlNodeReducer>) {
+    private fun reduceUntil(kClass: KClass<out SqlReducer>) {
         val it = reducers.iterator()
         while (it.hasNext()) {
             val reducer = it.next()

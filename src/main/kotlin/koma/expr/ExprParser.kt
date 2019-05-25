@@ -10,7 +10,7 @@ class ExprParser(
 ) {
 
     private val nodes: Deque<ExprNode> = LinkedList()
-    private val reducers: Deque<ExprNodeReducer> = LinkedList()
+    private val reducers: Deque<ExprReducer> = LinkedList()
     private var tokenType = EOE
     private var token = ""
     private val location
@@ -57,13 +57,13 @@ class ExprParser(
         }
         reduceAll()
         return when (val node = nodes.poll()) {
-            null -> Empty(location)
+            null -> EmptyNode(location)
             else -> node
         }
     }
 
     private fun parseValue() {
-        val node = Value(location, token)
+        val node = ValueNode(location, token)
         nodes.push(node)
     }
 
@@ -78,13 +78,13 @@ class ExprParser(
 
     private fun parseStringLiteral() {
         val value = token.substring(1, token.length - 1)
-        val node = Literal(location, value, String::class)
+        val node = LiteralNode(location, value, String::class)
         nodes.push(node)
     }
 
     private fun parseCharLiteral() {
         val value = token[1]
-        val node = Literal(location, value, Char::class)
+        val node = LiteralNode(location, value, Char::class)
         nodes.push(node)
     }
 
@@ -92,7 +92,7 @@ class ExprParser(
         val start = if (token[0] == '+') 1 else 0
         val end = token.length
         val value = Integer.valueOf(token.substring(start, end))
-        val node = Literal(location, value, Int::class)
+        val node = LiteralNode(location, value, Int::class)
         nodes.push(node)
     }
 
@@ -100,7 +100,7 @@ class ExprParser(
         val start = if (token[0] == '+') 1 else 0
         val end = token.length - 1
         val value = java.lang.Long.valueOf(token.substring(start, end))
-        val node = Literal(location, value, Long::class)
+        val node = LiteralNode(location, value, Long::class)
         nodes.push(node)
     }
 
@@ -108,7 +108,7 @@ class ExprParser(
         val start = if (token[0] == '+') 1 else 0
         val end = token.length - 1
         val value = java.lang.Float.valueOf(token.substring(start, end))
-        val node = Literal(location, value, Float::class)
+        val node = LiteralNode(location, value, Float::class)
         nodes.push(node)
     }
 
@@ -116,7 +116,7 @@ class ExprParser(
         val start = if (token[0] == '+') 1 else 0
         val end = token.length - 1
         val value = java.lang.Double.valueOf(token.substring(start, end))
-        val node = Literal(location, value, Double::class)
+        val node = LiteralNode(location, value, Double::class)
         nodes.push(node)
     }
 
@@ -124,22 +124,22 @@ class ExprParser(
         val start = 0
         val end = token.length - 1
         val value = BigDecimal(token.substring(start, end))
-        val node = Literal(location, value, BigDecimal::class)
+        val node = LiteralNode(location, value, BigDecimal::class)
         nodes.push(node)
     }
 
     private fun parseTrueLiteral() {
-        val node = Literal(location, true, Boolean::class)
+        val node = LiteralNode(location, true, Boolean::class)
         nodes.push(node)
     }
 
     private fun parseFalseLiteral() {
-        val node = Literal(location, false, Boolean::class)
+        val node = LiteralNode(location, false, Boolean::class)
         nodes.push(node)
     }
 
     private fun parseNullLiteral() {
-        val node = Literal(location, null, Any::class)
+        val node = LiteralNode(location, null, Any::class)
         nodes.push(node)
     }
 
@@ -157,7 +157,7 @@ class ExprParser(
         pushReducer(reducer)
     }
 
-    private fun pushReducer(reducer: ExprNodeReducer) {
+    private fun pushReducer(reducer: ExprReducer) {
         if (reducers.isNotEmpty()) {
             val first = reducers.peek()
             if (first.priority > reducer.priority) {
@@ -183,7 +183,7 @@ class ExprParser(
         }
     }
 
-    private fun reduce(reducer: ExprNodeReducer) {
+    private fun reduce(reducer: ExprReducer) {
         val node = reducer.reduce(nodes)
         nodes.push(node)
     }

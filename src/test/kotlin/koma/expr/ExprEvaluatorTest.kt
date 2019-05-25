@@ -1,9 +1,9 @@
 package koma.expr
 
+import koma.Value
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import kotlin.reflect.KClass
 
 class ExprEvaluatorTest {
 
@@ -269,7 +269,7 @@ class ExprEvaluatorTest {
     class ValueTest {
         @Test
         fun `The value cannot be resolved`() {
-            val ctx = emptyMap<String, Pair<Any?, KClass<*>>>()
+            val ctx = emptyMap<String, Value>()
             val result = ExprEvaluator().eval("a", ctx)
             assertEquals(null to Any::class, result)
         }

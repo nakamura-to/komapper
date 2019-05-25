@@ -10,9 +10,9 @@ class ExprParserTest {
     @Test
     fun gt() {
         when (val expr = ExprParser("aaa > 1").parse()) {
-            is Gt -> {
-                assertTrue(expr.left is Value)
-                assertTrue(expr.right is Literal)
+            is GtNode -> {
+                assertTrue(expr.left is ValueNode)
+                assertTrue(expr.right is LiteralNode)
             }
             else -> throw AssertionError()
         }
@@ -21,9 +21,9 @@ class ExprParserTest {
     @Test
     fun and() {
         when (val expr = ExprParser("aaa > 1 && true").parse()) {
-            is And -> {
-                assertTrue(expr.left is Gt)
-                assertTrue(expr.right is Literal)
+            is AndNode -> {
+                assertTrue(expr.left is GtNode)
+                assertTrue(expr.right is LiteralNode)
             }
             else -> throw AssertionError()
         }
@@ -32,9 +32,9 @@ class ExprParserTest {
     @Test
     fun property() {
         when (val expr = ExprParser("aaa.age").parse()) {
-            is Property -> {
+            is PropertyNode -> {
                 assertEquals(expr.name, "age")
-                assertTrue(expr.receiver is Value)
+                assertTrue(expr.receiver is ValueNode)
             }
             else -> throw AssertionError()
         }
@@ -43,7 +43,7 @@ class ExprParserTest {
     @Test
     fun comma() {
         when (val expr = ExprParser("a, b, c").parse()) {
-            is Comma -> {
+            is CommaNode -> {
                 assertEquals(3, expr.nodeList.size)
             }
             else -> throw AssertionError()

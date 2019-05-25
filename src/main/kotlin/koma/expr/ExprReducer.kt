@@ -2,7 +2,7 @@ package koma.expr
 
 import java.util.*
 
-abstract class ExprNodeReducer(val priority: Int, val location: ExprLocation) {
+abstract class ExprReducer(val priority: Int, val location: ExprLocation) {
     abstract fun reduce(deque: Deque<ExprNode>): ExprNode
 
     fun pop(deque: Deque<ExprNode>): ExprNode {
@@ -10,100 +10,100 @@ abstract class ExprNodeReducer(val priority: Int, val location: ExprLocation) {
     }
 }
 
-class PropertyReducer(location: ExprLocation, val name: String) : ExprNodeReducer(100, location) {
+class PropertyReducer(location: ExprLocation, val name: String) : ExprReducer(100, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val receiver = pop(deque)
-        return Property(location, name, receiver)
+        return PropertyNode(location, name, receiver)
     }
 }
 
-class FunctionReducer(location: ExprLocation, val name: String) : ExprNodeReducer(100, location) {
+class FunctionReducer(location: ExprLocation, val name: String) : ExprReducer(100, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val args = pop(deque)
         val receiver = pop(deque)
-        return Function(location, name, receiver, args)
+        return FunctionNode(location, name, receiver, args)
     }
 }
 
-class NotReducer(location: ExprLocation) : ExprNodeReducer(50, location) {
+class NotReducer(location: ExprLocation) : ExprReducer(50, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val expr = pop(deque)
-        return Not(location, expr)
+        return NotNode(location, expr)
     }
 }
 
-class EqReducer(location: ExprLocation) : ExprNodeReducer(40, location) {
+class EqReducer(location: ExprLocation) : ExprReducer(40, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return Eq(location, left, right)
+        return EqNode(location, left, right)
     }
 }
 
-class NeReducer(location: ExprLocation) : ExprNodeReducer(40, location) {
+class NeReducer(location: ExprLocation) : ExprReducer(40, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return Ne(location, left, right)
+        return NeNode(location, left, right)
     }
 }
 
-class GeReducer(location: ExprLocation) : ExprNodeReducer(40, location) {
+class GeReducer(location: ExprLocation) : ExprReducer(40, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return Ge(location, left, right)
+        return GeNode(location, left, right)
     }
 }
 
-class GtReducer(location: ExprLocation) : ExprNodeReducer(40, location) {
+class GtReducer(location: ExprLocation) : ExprReducer(40, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return Gt(location, left, right)
+        return GtNode(location, left, right)
     }
 }
 
-class LeReducer(location: ExprLocation) : ExprNodeReducer(40, location) {
+class LeReducer(location: ExprLocation) : ExprReducer(40, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return Le(location, left, right)
+        return LeNode(location, left, right)
     }
 }
 
-class LtReducer(location: ExprLocation) : ExprNodeReducer(40, location) {
+class LtReducer(location: ExprLocation) : ExprReducer(40, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return Lt(location, left, right)
+        return LtNode(location, left, right)
     }
 }
 
-class AndReducer(location: ExprLocation) : ExprNodeReducer(20, location) {
+class AndReducer(location: ExprLocation) : ExprReducer(20, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return And(location, left, right)
+        return AndNode(location, left, right)
     }
 }
 
-class OrReducer(location: ExprLocation) : ExprNodeReducer(10, location) {
+class OrReducer(location: ExprLocation) : ExprReducer(10, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return Or(location, left, right)
+        return OrNode(location, left, right)
     }
 }
 
-class CommaReducer(location: ExprLocation) : ExprNodeReducer(0, location) {
+class CommaReducer(location: ExprLocation) : ExprReducer(0, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
         val exprList = when (right) {
-            is Comma -> listOf(left) + right.nodeList
+            is CommaNode -> listOf(left) + right.nodeList
             else -> listOf(left, right)
         }
-        return Comma(location, exprList)
+        return CommaNode(location, exprList)
     }
 }

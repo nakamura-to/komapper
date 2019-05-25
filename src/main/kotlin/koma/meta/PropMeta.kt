@@ -2,8 +2,8 @@ package koma.meta
 
 import koma.Column
 import koma.Id
+import koma.Value
 import koma.Version
-import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.findAnnotation
@@ -22,7 +22,7 @@ data class PropMeta<T>(
     val kind: PropKind,
     val columnName: String
 ) {
-    fun getValue(entity: T): Pair<Any?, KClass<*>> {
+    fun getValue(entity: T): Value {
         return kProperty.call(entity) to kProperty.returnType.jvmErasure
     }
 }

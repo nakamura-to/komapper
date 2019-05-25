@@ -1,13 +1,11 @@
 package koma.sql
 
+import koma.Value
 import koma.expr.ExprEvaluator
-import koma.meta.EntityMeta
-import koma.meta.PropKind
-import kotlin.reflect.KClass
 
 class SqlBuilder(private val evaluator: ExprEvaluator = ExprEvaluator()) {
 
-    fun build(template: String, ctx: Map<String, Pair<*, KClass<*>>> = emptyMap()): Sql {
+    fun build(template: String, ctx: Map<String, Value> = emptyMap()): Sql {
         val parser = SqlParser(template)
         val node = parser.parse()
         val state = visit(State(ctx), node)
@@ -16,17 +14,17 @@ class SqlBuilder(private val evaluator: ExprEvaluator = ExprEvaluator()) {
     }
 
     private fun visit(state: State, node: SqlNode): State = when (node) {
-        is Statement -> node.nodeList.fold(state, ::visit)
-        is Set -> {
+        is StatementNode -> node.nodeList.fold(state, ::visit)
+        is SetNode -> {
             val left = visit(state, node.left)
             state.append(node.keyword)
             visit(left, node.right)
         }
-        is ForUpdate -> {
+        is ForUpdateNode -> {
             state.append(node.keyword)
             node.nodeList.fold(state, ::visit)
         }
-        is Keyword -> {
+        is KeywordNode -> {
             val childState = node.nodeList.fold(State(state), ::visit)
             if (childState.available) {
                 state.append(node.keyword)
@@ -34,21 +32,21 @@ class SqlBuilder(private val evaluator: ExprEvaluator = ExprEvaluator()) {
             }
             state
         }
-        is Token -> {
-            if (node is Word || node is Other) {
+        is TokenNode -> {
+            if (node is WordNode || node is OtherNode) {
                 state.available = true
             }
             state.append(node.token)
             state
         }
-        is Brackets -> {
+        is BracketsNode -> {
             state.available = true
             state.append("(")
             visit(state, node.node).also {
                 state.append(")")
             }
         }
-        is BindValueDirective -> {
+        is BindValueDirectiveNode -> {
             val result = eval(node.expression, state.ctx)
             when (val value = result.first) {
                 is Iterable<*> -> {
@@ -67,7 +65,7 @@ class SqlBuilder(private val evaluator: ExprEvaluator = ExprEvaluator()) {
             }
             node.nodeList.fold(state, ::visit)
         }
-        is EmbeddedValueDirective -> {
+        is EmbeddedValueDirectiveNode -> {
             val (value) = eval(node.expression, state.ctx)
             val s = value?.toString()
             if (!s.isNullOrEmpty()) {
@@ -76,17 +74,17 @@ class SqlBuilder(private val evaluator: ExprEvaluator = ExprEvaluator()) {
             }
             state
         }
-        is LiteralValueDirective -> {
+        is LiteralValueDirectiveNode -> {
             val (value) = eval(node.expression, state.ctx)
             val literal = toText(value)
             state.append(literal)
             node.nodeList.fold(state, ::visit)
         }
-        is ExpandDirective -> {
+        is ExpandDirectiveNode -> {
             // TODO
             throw NotImplementedError()
         }
-        is IfBlock -> {
+        is IfBlockNode -> {
             fun chooseNodeList(): List<SqlNode> {
                 val (result) = eval(node.ifDirective.expression, state.ctx)
                 if (result == true) {
@@ -111,7 +109,7 @@ class SqlBuilder(private val evaluator: ExprEvaluator = ExprEvaluator()) {
             val nodeList = chooseNodeList()
             nodeList.fold(state, ::visit)
         }
-        is ForBlock -> {
+        is ForBlockNode -> {
             val forDirective = node.forDirective
             val id = forDirective.identifier
             val (expression) = eval(node.forDirective.expression, state.ctx)
@@ -137,16 +135,16 @@ class SqlBuilder(private val evaluator: ExprEvaluator = ExprEvaluator()) {
             s.ctx.remove(idHasNext)
             s
         }
-        is IfDirective,
-        is ElseifDirective,
-        is ElseDirective,
-        is EndDirective,
-        is ForDirective -> {
+        is IfDirectiveNode,
+        is ElseifDirectiveNode,
+        is ElseDirectiveNode,
+        is EndDirectiveNode,
+        is ForDirectiveNode -> {
             throw AssertionError("unreachable")
         }
     }
 
-    private fun eval(expression: String, ctx: Map<String, Pair<*, KClass<*>>>): Pair<*, KClass<*>> {
+    private fun eval(expression: String, ctx: Map<String, Value>): Value {
         return evaluator.eval(expression, ctx)
     }
 
@@ -160,14 +158,14 @@ class Buffer(capacity: Int = 200) {
 
     val sql = StringBuilder(capacity)
     val log = StringBuilder(capacity)
-    val values = ArrayList<Pair<*, KClass<*>>>()
+    val values = ArrayList<Value>()
 
     fun append(s: CharSequence) {
         sql.append(s)
         log.append(s)
     }
 
-    fun bind(value: Pair<*, KClass<*>>) {
+    fun bind(value: Value) {
         sql.append("?")
         log.append(toText(value))
         values.add(value)
@@ -180,9 +178,9 @@ class Buffer(capacity: Int = 200) {
 
 }
 
-class State(ctx: Map<String, Pair<*, KClass<*>>>) {
+class State(ctx: Map<String, Value>) {
     var available: Boolean = false
-    val ctx: MutableMap<String, Pair<*, KClass<*>>> = HashMap(ctx)
+    val ctx: MutableMap<String, Value> = HashMap(ctx)
     val buf = Buffer()
 
     constructor(state: State) : this(state.ctx)
@@ -197,7 +195,7 @@ class State(ctx: Map<String, Pair<*, KClass<*>>>) {
         buf.append(s)
     }
 
-    fun bind(value: Pair<*, KClass<*>>) {
+    fun bind(value: Value) {
         buf.bind(value)
     }
 
@@ -211,4 +209,4 @@ private fun toText(value: Any?): String {
     return if (value is CharSequence) "'$value'" else value.toString()
 }
 
-data class Sql(val text: String, val values: List<Pair<*, KClass<*>>>, val log: String)
+data class Sql(val text: String, val values: List<Value>, val log: String)

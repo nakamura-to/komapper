@@ -263,7 +263,7 @@ open class Db(config: DbConfig) {
         }
     }
 
-    protected fun bindValues(stmt: PreparedStatement, values: List<Pair<Any?, KClass<*>>>) {
+    protected fun bindValues(stmt: PreparedStatement, values: List<Value>) {
         values.forEachIndexed { index, (value, valueType) ->
             dialect.setValue(stmt, index + 1, value, valueType)
         }

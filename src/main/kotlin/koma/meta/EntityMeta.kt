@@ -1,6 +1,7 @@
 package koma.meta
 
 import koma.Table
+import koma.Value
 import koma.sql.Buffer
 import koma.sql.Sql
 import java.math.BigDecimal
@@ -48,7 +49,7 @@ class EntityMeta<T>(
     }
 
     @Suppress("IMPLICIT_CAST_TO_ANY")
-    fun increment(value: Pair<Any?, KClass<*>>): Pair<Any?, KClass<*>> {
+    fun increment(value: Value): Value {
         val (first) = value
         val v = when (first) {
             is Byte -> first.inc()
@@ -144,7 +145,7 @@ class EntityMeta<T>(
 
 }
 
-fun <T: Any> makeEntityMeta(clazz: KClass<T>): EntityMeta<T> {
+fun <T : Any> makeEntityMeta(clazz: KClass<T>): EntityMeta<T> {
     require(clazz.isData) { "The clazz must be a data class." }
     require(!clazz.isAbstract) { "The clazz must not be abstract." }
     val constructor = clazz.primaryConstructor ?: throw AssertionError()

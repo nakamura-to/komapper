@@ -1,7 +1,7 @@
 package koma.expr
 
+import koma.Value
 import kotlin.reflect.KCallable
-import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
@@ -18,34 +18,34 @@ class ExprEvaluator(private val extensions: List<KCallable<Any?>> = emptyList())
     // used to distinguish multiple arguments from a single List
     class ArgList : ArrayList<Any?>()
 
-    fun eval(expression: String, ctx: Map<String, Pair<*, KClass<*>>> = emptyMap()): Pair<*, KClass<*>> {
+    fun eval(expression: String, ctx: Map<String, Value> = emptyMap()): Value {
         val node = ExprParser(expression).parse()
         return visit(node, ctx)
     }
 
-    private fun visit(node: ExprNode, ctx: Map<String, Pair<*, KClass<*>>>): Pair<*, KClass<*>> = when (node) {
-        is Not -> perform(node, ctx) { !it }
-        is And -> perform(node, ctx) { x, y -> x && y }
-        is Or -> perform(node, ctx) { x, y -> x || y }
-        is Eq -> equal(node, ctx) { x, y -> x == y }
-        is Ne -> equal(node, ctx) { x, y -> x != y }
-        is Ge -> compare(node, ctx) { x, y -> x >= y }
-        is Gt -> compare(node, ctx) { x, y -> x > y }
-        is Le -> compare(node, ctx) { x, y -> x <= y }
-        is Lt -> compare(node, ctx) { x, y -> x < y }
-        is Literal -> node.value to node.kClass
-        is Comma -> node.nodeList.map { visit(it, ctx) }.map { it.first }.toCollection(ArgList()) to List::class
-        is Value -> visitValue(node, ctx)
-        is Property -> visitProperty(node, ctx)
-        is Function -> visitFunction(node, ctx)
-        is Empty -> Unit to Unit::class
+    private fun visit(node: ExprNode, ctx: Map<String, Value>): Value = when (node) {
+        is NotNode -> perform(node, ctx) { !it }
+        is AndNode -> perform(node, ctx) { x, y -> x && y }
+        is OrNode -> perform(node, ctx) { x, y -> x || y }
+        is EqNode -> equal(node, ctx) { x, y -> x == y }
+        is NeNode -> equal(node, ctx) { x, y -> x != y }
+        is GeNode -> compare(node, ctx) { x, y -> x >= y }
+        is GtNode -> compare(node, ctx) { x, y -> x > y }
+        is LeNode -> compare(node, ctx) { x, y -> x <= y }
+        is LtNode -> compare(node, ctx) { x, y -> x < y }
+        is LiteralNode -> node.value to node.kClass
+        is CommaNode -> node.nodeList.map { visit(it, ctx) }.map { it.first }.toCollection(ArgList()) to List::class
+        is ValueNode -> visitValue(node, ctx)
+        is PropertyNode -> visitProperty(node, ctx)
+        is FunctionNode -> visitFunction(node, ctx)
+        is EmptyNode -> Unit to Unit::class
     }
 
     private fun perform(
         node: UnaryOp,
-        ctx: Map<String, Pair<*, KClass<*>>>,
+        ctx: Map<String, Value>,
         f: (Boolean) -> Boolean
-    ): Pair<*, KClass<*>> {
+    ): Value {
         fun checkNull(location: ExprLocation, value: Any?) {
             if (value != null) {
                 return
@@ -67,9 +67,9 @@ class ExprEvaluator(private val extensions: List<KCallable<Any?>> = emptyList())
 
     private fun perform(
         node: BinaryOp,
-        ctx: Map<String, Pair<*, KClass<*>>>,
+        ctx: Map<String, Value>,
         f: (Boolean, Boolean) -> Boolean
-    ): Pair<*, KClass<*>> {
+    ): Value {
         fun checkNull(location: ExprLocation, value: Any?, which: String) {
             if (value != null) {
                 return
@@ -93,9 +93,9 @@ class ExprEvaluator(private val extensions: List<KCallable<Any?>> = emptyList())
 
     private fun equal(
         node: BinaryOp,
-        ctx: Map<String, Pair<*, KClass<*>>>,
+        ctx: Map<String, Value>,
         f: (Any?, Any?) -> Boolean
-    ): Pair<*, KClass<*>> {
+    ): Value {
         val (left) = visit(node.left, ctx)
         val (right) = visit(node.right, ctx)
         return f(left, right) to Boolean::class
@@ -104,9 +104,9 @@ class ExprEvaluator(private val extensions: List<KCallable<Any?>> = emptyList())
     @Suppress("UNCHECKED_CAST")
     private fun compare(
         node: BinaryOp,
-        ctx: Map<String, Pair<*, KClass<*>>>,
+        ctx: Map<String, Value>,
         f: (Comparable<Any>, Comparable<Any>) -> Boolean
-    ): Pair<*, KClass<*>> {
+    ): Value {
         fun checkNull(location: ExprLocation, value: Any?, which: String) {
             if (value != null) {
                 return
@@ -131,11 +131,11 @@ class ExprEvaluator(private val extensions: List<KCallable<Any?>> = emptyList())
         }
     }
 
-    private fun visitValue(node: Value, ctx: Map<String, Pair<*, KClass<*>>>): Pair<*, KClass<*>> {
+    private fun visitValue(node: ValueNode, ctx: Map<String, Value>): Value {
         return ctx[node.name] ?: null to Any::class
     }
 
-    private fun visitProperty(node: Property, ctx: Map<String, Pair<*, KClass<*>>>): Pair<*, KClass<*>> {
+    private fun visitProperty(node: PropertyNode, ctx: Map<String, Value>): Value {
         val (receiver) = visit(node.receiver, ctx)
         val property = findProperty(node.name, receiver)
             ?: throw ExprException("The receiver of the property \"${node.name}\" is null or the property is not found at ${node.location}")
@@ -160,7 +160,7 @@ class ExprEvaluator(private val extensions: List<KCallable<Any?>> = emptyList())
         return extensions.find(::predicate)
     }
 
-    private fun visitFunction(node: Function, ctx: Map<String, Pair<*, KClass<*>>>): Pair<*, KClass<*>> {
+    private fun visitFunction(node: FunctionNode, ctx: Map<String, Value>): Value {
         val (receiver) = visit(node.receiver, ctx)
         // arguments for KCallable
         val (args) = visit(node.args, ctx)

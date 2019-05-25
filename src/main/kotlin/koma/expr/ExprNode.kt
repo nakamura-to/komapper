@@ -15,36 +15,41 @@ sealed class BinaryOp : ExprNode() {
     abstract val right: ExprNode
 }
 
-data class Not(override val location: ExprLocation, override val operand: ExprNode) : UnaryOp()
-data class Or(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
+data class NotNode(override val location: ExprLocation, override val operand: ExprNode) : UnaryOp()
+data class OrNode(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
     BinaryOp()
 
-data class And(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
+data class AndNode(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
     BinaryOp()
 
-data class Eq(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
+data class EqNode(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
     BinaryOp()
 
-data class Ne(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
+data class NeNode(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
     BinaryOp()
 
-data class Ge(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
+data class GeNode(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
     BinaryOp()
 
-data class Le(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
+data class LeNode(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
     BinaryOp()
 
-data class Gt(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
+data class GtNode(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
     BinaryOp()
 
-data class Lt(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
+data class LtNode(override val location: ExprLocation, override val left: ExprNode, override val right: ExprNode) :
     BinaryOp()
 
-data class Property(override val location: ExprLocation, val name: String, val receiver: ExprNode) : ExprNode()
-data class Function(override val location: ExprLocation, val name: String, val receiver: ExprNode, val args: ExprNode) :
+data class PropertyNode(override val location: ExprLocation, val name: String, val receiver: ExprNode) : ExprNode()
+data class FunctionNode(
+    override val location: ExprLocation,
+    val name: String,
+    val receiver: ExprNode,
+    val args: ExprNode
+) :
     ExprNode()
 
-data class Comma(override val location: ExprLocation, val nodeList: List<ExprNode>) : ExprNode()
-data class Value(override val location: ExprLocation, val name: String) : ExprNode()
-data class Literal(override val location: ExprLocation, val value: Any?, val kClass: KClass<out Any>) : ExprNode()
-data class Empty(override val location: ExprLocation) : ExprNode()
+data class CommaNode(override val location: ExprLocation, val nodeList: List<ExprNode>) : ExprNode()
+data class ValueNode(override val location: ExprLocation, val name: String) : ExprNode()
+data class LiteralNode(override val location: ExprLocation, val value: Any?, val kClass: KClass<out Any>) : ExprNode()
+data class EmptyNode(override val location: ExprLocation) : ExprNode()
