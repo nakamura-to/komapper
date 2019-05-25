@@ -39,7 +39,7 @@ open class Db(config: DbConfig) {
         condition: Any = object {},
         action: (T) -> Unit
     ) {
-        require(T::class.isData) { "The T must a be data class." }
+        require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         return selectAsStream(template, condition, T::class).use {
             it.asSequence().forEach(action)
@@ -51,7 +51,7 @@ open class Db(config: DbConfig) {
         condition: Any = object {},
         action: (Sequence<T>) -> R
     ): R {
-        require(T::class.isData) { "The T must a be data class." }
+        require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         return selectAsStream(template, condition, T::class).use {
             action(it.asSequence())
