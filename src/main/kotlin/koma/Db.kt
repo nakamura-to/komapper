@@ -21,6 +21,7 @@ import kotlin.streams.asSequence
 open class Db(config: DbConfig) {
     protected val dataSource = config.dataSource
     protected val dialect = config.dialect
+    protected val logger = config.logger
     val transaction: TransactionScope by lazy { config.transactionScope }
 
     inline fun <reified T : Any> select(
@@ -168,6 +169,7 @@ open class Db(config: DbConfig) {
             val stmt = con.prepareStatement(sql.text)
             try {
                 bindValues(stmt, sql.values)
+                logger { sql.log }
                 val rs = stmt.executeQuery()
                 try {
                     return handler(rs).also { stream = it }
@@ -258,6 +260,7 @@ open class Db(config: DbConfig) {
         return dataSource.connection.use { con ->
             con.prepareStatement(sql.text).use { stmt ->
                 bindValues(stmt, sql.values)
+                logger { sql.log }
                 stmt.executeUpdate()
             }
         }

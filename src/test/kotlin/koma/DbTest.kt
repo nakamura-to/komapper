@@ -21,7 +21,8 @@ internal class DbTest {
 
     val config = DbConfig(
         dataSource = SimpleDataSource("jdbc:h2:mem:koma;DB_CLOSE_DELAY=-1"),
-        dialect = H2Dialect()
+        dialect = H2Dialect(),
+        logger = { println(it()) }
     )
 
     @BeforeEach

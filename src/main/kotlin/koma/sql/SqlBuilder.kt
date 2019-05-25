@@ -173,7 +173,7 @@ class Buffer(capacity: Int = 200) {
 
     fun cutBack(length: Int) {
         sql.setLength(sql.length - length)
-        log.setLength(sql.length - length)
+        log.setLength(log.length - length)
     }
 
 }
@@ -205,8 +205,9 @@ class State(ctx: Map<String, Value>) {
 
 }
 
-private fun toText(value: Any?): String {
-    return if (value is CharSequence) "'$value'" else value.toString()
+private fun toText(value: Value): String {
+    val (obj) = value
+    return if (obj is CharSequence) "'$obj'" else obj.toString()
 }
 
 data class Sql(val text: String, val values: List<Value>, val log: String)
