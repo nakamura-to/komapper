@@ -29,7 +29,7 @@ open class Db(config: DbConfig) {
     ): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        return selectAsStream(template, condition, T::class).use {
+        return `access$stream`(template, condition, T::class).use {
             it.collect(Collectors.toList())
         }
     }
@@ -41,7 +41,7 @@ open class Db(config: DbConfig) {
     ) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        return selectAsStream(template, condition, T::class).use {
+        return `access$stream`(template, condition, T::class).use {
             it.asSequence().forEach(action)
         }
     }
@@ -53,12 +53,16 @@ open class Db(config: DbConfig) {
     ): R {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        return selectAsStream(template, condition, T::class).use {
+        return `access$stream`(template, condition, T::class).use {
             action(it.asSequence())
         }
     }
 
-    fun <T : Any> selectAsStream(
+    @PublishedApi
+    internal fun <T : Any> `access$stream`(template: CharSequence, condition: Any, clazz: KClass<T>) =
+        stream(template, condition, clazz)
+
+    protected fun <T : Any> stream(
         template: CharSequence,
         condition: Any = object {},
         clazz: KClass<T>
@@ -90,7 +94,7 @@ open class Db(config: DbConfig) {
         template: CharSequence,
         condition: Any = object {}
     ): List<T> {
-        return selectOneColumnAsStream<T>(template, condition, T::class).use {
+        return `access$streamOneColumn`<T>(template, condition, T::class).use {
             it.collect(Collectors.toList())
         }
     }
@@ -100,7 +104,7 @@ open class Db(config: DbConfig) {
         condition: Any = object {},
         action: (T) -> Unit
     ) {
-        selectOneColumnAsStream<T>(template, condition, T::class).use {
+        `access$streamOneColumn`<T>(template, condition, T::class).use {
             it.asSequence().forEach(action)
         }
     }
@@ -110,13 +114,17 @@ open class Db(config: DbConfig) {
         condition: Any = object {},
         action: (Sequence<T>) -> R
     ): R {
-        return selectOneColumnAsStream<T>(template, condition, T::class).use {
+        return `access$streamOneColumn`<T>(template, condition, T::class).use {
             action(it.asSequence())
         }
     }
 
+    @PublishedApi
+    internal fun <T> `access$streamOneColumn`(template: CharSequence, condition: Any, type: KClass<*>) =
+        streamOneColumn<T>(template, condition, type)
+
     @Suppress("UNCHECKED_CAST")
-    fun <T : Any?> selectOneColumnAsStream(
+    protected fun <T : Any?> streamOneColumn(
         template: CharSequence,
         condition: Any = object {},
         type: KClass<*>
@@ -261,7 +269,7 @@ open class Db(config: DbConfig) {
         }
     }
 
-    fun <T : Any?> Stream<T>?.onClose(closeable: AutoCloseable) {
+    private fun <T : Any?> Stream<T>?.onClose(closeable: AutoCloseable) {
         if (this == null) {
             try {
                 closeable.close()
