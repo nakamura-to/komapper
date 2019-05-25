@@ -14,6 +14,8 @@ interface Dialect {
     fun setValue(stmt: PreparedStatement, index: Int, value: Any?, valueClass: KClass<*>) {
         stmt.setObject(index, value)
     }
+
+    fun isUniqueConstraintViolated(exception: SQLException): Boolean
 }
 
 abstract class AbstractDialect : Dialect {
@@ -35,9 +37,8 @@ class H2Dialect : AbstractDialect() {
         const val UNIQUE_CONSTRAINT_VIOLATION_ERROR_CODE = 23505
     }
 
-    fun isUniqueConstraintViolated(exception: SQLException): Boolean {
+    override fun isUniqueConstraintViolated(exception: SQLException): Boolean {
         val code = getErrorCode(exception)
-        return UNIQUE_CONSTRAINT_VIOLATION_ERROR_CODE === code
+        return UNIQUE_CONSTRAINT_VIOLATION_ERROR_CODE == code
     }
-
 }

@@ -5,6 +5,7 @@ import koma.meta.ObjectMeta
 import koma.meta.makeEntityMeta
 import koma.sql.Sql
 import koma.sql.SqlBuilder
+import koma.tx.TransactionScope
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.SQLException
@@ -12,20 +13,15 @@ import java.util.*
 import java.util.stream.Collectors
 import java.util.stream.Stream
 import java.util.stream.StreamSupport
-import javax.sql.DataSource
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.jvm.jvmErasure
 import kotlin.streams.asSequence
 
-class DbConfig {
-    lateinit var dataSource: DataSource
-    val dialect = H2Dialect()
-}
-
 open class Db(config: DbConfig) {
     protected val dataSource = config.dataSource
     protected val dialect = config.dialect
+    val transaction: TransactionScope by lazy { config.transactionScope }
 
     inline fun <reified T : Any> select(
         template: CharSequence,

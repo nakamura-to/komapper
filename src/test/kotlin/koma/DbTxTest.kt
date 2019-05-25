@@ -1,15 +1,14 @@
 package koma
 
+import koma.tx.TransactionIsolationLevel
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import test.koma.jdbc.SimpleDataSource
 
 @Suppress("UNUSED")
-internal class DbTest {
+internal class DbTxTest {
 
     data class Address(
         @Id
@@ -19,14 +18,18 @@ internal class DbTest {
         val version: Int
     )
 
+    val simpleDataSource = SimpleDataSource("jdbc:h2:mem:koma;DB_CLOSE_DELAY=-1")
+
     val config = DbConfig(
-        dataSource = SimpleDataSource("jdbc:h2:mem:koma;DB_CLOSE_DELAY=-1"),
-        dialect = H2Dialect()
+        dataSource = simpleDataSource,
+        dialect = H2Dialect(),
+        logger = { println(it()) },
+        useTransaction = true
     )
 
     @BeforeEach
     fun before() {
-        config.dataSource.connection.use { con ->
+        simpleDataSource.connection.use { con ->
             con.createStatement().use { stmt ->
                 stmt.execute(
                     """
@@ -145,7 +148,7 @@ internal class DbTest {
 
     @AfterEach
     fun after() {
-        config.dataSource.connection.use { con ->
+        simpleDataSource.connection.use { con ->
             con.createStatement().use { stmt ->
                 stmt.execute("DROP ALL OBJECTS")
             }
@@ -155,150 +158,139 @@ internal class DbTest {
     @Test
     fun select() {
         val db = Db(config)
-        val list = db.select<Address>("select * from address")
-        assertEquals(15, list.size)
-        assertEquals(Address(1, "STREET 1", 1), list[0])
-    }
-
-    @Test
-    fun iterate() {
-        val db = Db(config)
-        val list = mutableListOf<Address>()
-        db.iterate<Address>("select * from address") {
-            list.add(it)
+        val list = db.transaction.required {
+            db.select<DbTest.Address>("select * from address")
         }
         assertEquals(15, list.size)
-        assertEquals(Address(1, "STREET 1", 1), list[0])
+        assertEquals(DbTest.Address(1, "STREET 1", 1), list[0])
     }
 
     @Test
-    fun sequence() {
+    fun commit() {
+        val sql = "select * from address where address_id = 15"
         val db = Db(config)
-        val list = db.sequence<Address, List<Address>>("select * from address") {
-            it.toList()
+        db.transaction.required {
+            val address = db.select<Address>(sql).first()
+            db.delete(address)
         }
-        assertEquals(15, list.size)
-        assertEquals(Address(1, "STREET 1", 1), list[0])
-    }
-
-    @Test
-    fun selectOneColumn() {
-        val db = Db(config)
-        val list = db.selectOneColumn<String>("select street from address")
-        assertEquals(15, list.size)
-        assertEquals("STREET 1", list[0])
-    }
-
-    @Test
-    fun iterateOneColumn() {
-        val db = Db(config)
-        val list = mutableListOf<String?>()
-        db.iterateOneColumn<String?>("select street from address") {
-            list.add(it)
+        db.transaction.required {
+            val address = db.select<Address>(sql).firstOrNull()
+            assertNull(address)
         }
-        assertEquals(15, list.size)
-        assertEquals("STREET 1", list[0])
     }
 
     @Test
-    fun sequenceOneColumn() {
+    fun rollback() {
+        val sql = "select * from address where address_id = 15"
         val db = Db(config)
-        val list = db.sequenceOneColumn<String?, List<String?>>("select street from address") {
-            it.toList()
+        try {
+            db.transaction.required {
+                val address = db.select<Address>(sql).first()
+                db.delete(address)
+                throw Exception()
+            }
+        } catch (ignored: Exception) {
         }
-        assertEquals(15, list.size)
-        assertEquals("STREET 1", list[0])
+        db.transaction.required {
+            val address = db.select<Address>(sql).first()
+            assertNotNull(address)
+        }
     }
 
     @Test
-    fun select_condition() {
-        val db = Db(config)
-        val list =
-            db.select<Address>(
-                "select * from address where street = /*street*/'test'"
-                , object {
-                    val street = "STREET 10"
-                }
-            )
-        assertEquals(1, list.size)
-        assertEquals(Address(10, "STREET 10", 1), list[0])
-    }
-
-    @Test
-    fun select_condition2() {
-        data class Condition(val street: String)
-
-        val db = Db(config)
-        val list =
-            db.select<Address>(
-                "select * from address where street = /*street*/'test'"
-                , Condition("STREET 10")
-            )
-        assertEquals(1, list.size)
-        assertEquals(Address(10, "STREET 10", 1), list[0])
-    }
-
-    @Test
-    fun delete() {
+    fun setRollbackOnly() {
         val sql = "select * from address where address_id = 15"
         val db = Db(config)
-        val address = db.select<Address>(sql).first()
-        db.delete(address)
-        val address2 = db.select<Address>(sql).firstOrNull()
-        assertNull(address2)
+        db.transaction.required {
+            val address = db.select<Address>(sql).first()
+            db.delete(address)
+            assertFalse(isRollbackOnly())
+            setRollbackOnly()
+            assertTrue(isRollbackOnly())
+        }
+        db.transaction.required {
+            val address = db.select<Address>(sql).first()
+            assertNotNull(address)
+        }
     }
 
     @Test
-    fun delete_OptimisticLockException() {
+    fun isolationLevel() {
         val sql = "select * from address where address_id = 15"
         val db = Db(config)
-        val address = db.select<Address>(sql).first()
-        db.delete(address)
-        assertThrows<OptimisticLockException> { db.delete(address) }
+        db.transaction.required(TransactionIsolationLevel.SERIALIZABLE) {
+            val address = db.select<Address>(sql).first()
+            db.delete(address)
+        }
+        db.transaction.required {
+            val address = db.select<Address>(sql).firstOrNull()
+            assertNull(address)
+        }
     }
 
-    @Test
-    fun insert() {
-        val db = Db(config)
-        val address = Address(16, "STREET 16", 0)
-        db.insert(address)
-        val address2 = db.select<Address>("select * from address where address_id = 16").firstOrNull()
-        assertEquals(address, address2)
-    }
 
     @Test
-    fun insert_UniqueConstraintException() {
-        val db = Db(config)
-        val address = Address(1, "STREET 1", 0)
-        assertThrows<UniqueConstraintException> { db.insert(address) }
-    }
-
-    @Test
-    fun update() {
+    fun required_required() {
         val sql = "select * from address where address_id = 15"
         val db = Db(config)
-        val address = db.select<Address>(sql).first()
-        val newAddress = address.copy(street = "NY street")
-        db.update(newAddress)
-        val address2 = db.select<Address>(sql).firstOrNull()
-        assertEquals(Address(15, "NY street", 2), address2)
+        db.transaction.required {
+            val address = db.select<Address>(sql).first()
+            db.delete(address)
+            required {
+                val address2 = db.select<Address>(sql).firstOrNull()
+                assertNull(address2)
+            }
+        }
+        db.transaction.required {
+            val address = db.select<Address>(sql).firstOrNull()
+            assertNull(address)
+        }
     }
 
     @Test
-    fun update_UniqueConstraintException() {
+    fun requiresNew() {
         val sql = "select * from address where address_id = 15"
         val db = Db(config)
-        val address = Address(1, "STREET 2", 1)
-        assertThrows<UniqueConstraintException> { db.update(address) }
+        db.transaction.requiresNew {
+            val address = db.select<Address>(sql).first()
+            db.delete(address)
+            val address2 = db.select<Address>(sql).firstOrNull()
+            assertNull(address2)
+        }
+        db.transaction.required {
+            val address = db.select<Address>(sql).firstOrNull()
+            assertNull(address)
+        }
     }
 
     @Test
-    fun update_OptimisticLockException() {
+    fun required_requiresNew() {
         val sql = "select * from address where address_id = 15"
         val db = Db(config)
-        val address = db.select<Address>(sql).first()
-        db.update(address)
-        assertThrows<OptimisticLockException> { db.update(address) }
+        db.transaction.required {
+            val address = db.select<Address>(sql).first()
+            db.delete(address)
+            requiresNew {
+                val address2 = db.select<Address>(sql).firstOrNull()
+                assertNotNull(address2)
+            }
+        }
+        db.transaction.required {
+            val address = db.select<Address>(sql).firstOrNull()
+            assertNull(address)
+        }
     }
 
+    @Test
+    fun `specify useTransaction`() {
+        val config = DbConfig(
+            dataSource = simpleDataSource,
+            dialect = H2Dialect(),
+            logger = { println(it()) }
+        )
+        val db = Db(config)
+        val exception =
+            org.junit.jupiter.api.assertThrows<DbConfigException> { db.transaction }
+        println(exception)
+    }
 }
