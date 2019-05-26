@@ -389,4 +389,17 @@ internal class DbTest {
         val address = db.select<Address>("select * from address where address_id = 15").firstOrNull()
         assertEquals(Address(15, "NY street", 1), address)
     }
+
+    @Test
+    fun execute() {
+        val db = Db(config)
+        db.execute(
+            """
+            create table execute_table(value varchar(20));
+            insert into execute_table(value) values('test');
+        """.trimIndent()
+        )
+        val value = db.selectOneColumn<String>("select value from execute_table").firstOrNull()
+        assertEquals("test", value)
+    }
 }

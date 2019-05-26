@@ -158,7 +158,7 @@ class Db(val config: DbConfig) {
         var stream: Stream<T>? = null
         val con = config.dataSource.connection
         try {
-            config.logger { sql.log }
+            log(sql)
             val stmt = con.prepareStatement(sql.text)
             try {
                 bindValues(stmt, sql.values)
@@ -264,12 +264,16 @@ class Db(val config: DbConfig) {
         return executeUpdate(sql)
     }
 
+    fun execute(statements: CharSequence) {
+        executeUpdate(Sql(statements.toString(), emptyList(), null))
+    }
+
     @PublishedApi
     internal fun accessExecuteUpdate(sql: Sql) = executeUpdate(sql)
 
     private fun executeUpdate(sql: Sql): Int {
         return config.dataSource.connection.use { con ->
-            config.logger { sql.log }
+            log(sql)
             con.prepareStatement(sql.text).use { stmt ->
                 bindValues(stmt, sql.values)
                 stmt.executeUpdate()
@@ -281,6 +285,10 @@ class Db(val config: DbConfig) {
         values.forEachIndexed { index, (value, valueType) ->
             config.dialect.setValue(stmt, index + 1, value, valueType)
         }
+    }
+
+    private fun log(sql: Sql) {
+        sql.log?.let { log -> config.logger { log } }
     }
 
 }
