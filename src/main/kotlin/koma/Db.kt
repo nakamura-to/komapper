@@ -15,12 +15,49 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.jvm.jvmErasure
 import kotlin.streams.asSequence
+import kotlin.streams.toList
 
 open class Db(protected val config: DbConfig) {
     protected val dataSource = config.dataSource
     protected val dialect = config.dialect
     protected val logger = config.logger
     val transaction: TransactionScope by lazy { config.transactionScope }
+
+    inline fun <reified T : Any> findById(id: Any, version: Any? = null): T? {
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        val meta = getEntityMeta(T::class)
+        val sql = meta.buildFindByIdSql(id, version)
+        return stream(sql, T::class).toList().firstOrNull()
+    }
+
+    protected fun <T : Any> stream(
+        sql: Sql,
+        clazz: KClass<T>
+    ): Stream<T> {
+        require(clazz.isData) { "The clazz must be a data class." }
+        require(!clazz.isAbstract) { "The clazz must not be abstract." }
+        val meta = getEntityMeta(clazz)
+        return executeQuery(sql) { rs ->
+            val paramMap = mutableMapOf<Int, KParameter>()
+            val metaData = rs.metaData
+            val count = metaData.columnCount
+            for (i in 1..count) {
+                val label = metaData.getColumnLabel(i).toLowerCase()
+                val param = meta.consParamMap[label] ?: continue
+                paramMap[i] = param
+            }
+            stream(rs) {
+                val row = mutableMapOf<KParameter, Any?>()
+                for ((index, param) in paramMap) {
+                    val value = dialect.getValue(it, index, param.type.jvmErasure)
+                    row[param] = value
+                }
+                meta.new(row)
+            }
+        }
+    }
+
 
     inline fun <reified T : Any> select(
         template: CharSequence,
@@ -160,6 +197,13 @@ open class Db(protected val config: DbConfig) {
     ): Stream<T> {
         val ctx = toMap(condition)
         val sql = SqlBuilder().build(template, ctx)
+        return executeQuery(sql, handler)
+    }
+
+    protected fun <T : Any?> executeQuery(
+        sql: Sql,
+        handler: (rs: ResultSet) -> Stream<T>
+    ): Stream<T> {
         var stream: Stream<T>? = null
         val con = dataSource.connection
         try {

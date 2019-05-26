@@ -91,6 +91,39 @@ class EntityMeta<T>(
         return value.copy(v)
     }
 
+    fun buildFindByIdSql(id: Any, version: Any?): Sql {
+        val buf = Buffer()
+        buf.append("select ")
+        propMetaList.forEach { prop ->
+            buf.append("${prop.columnName}, ")
+        }
+        buf.cutBack(2)
+        buf.append(" from $tableName where ")
+        when (id) {
+            is Collection<*> -> {
+                require(id.size == idPropMetaList.size)
+                id.zip(idPropMetaList).forEach { (v, prop) ->
+                    buf.append("${prop.columnName} = ")
+                    buf.bind(v to prop.copyFunParam.type.jvmErasure)
+                    buf.append(" and ")
+                }
+            }
+            else -> {
+                require(idPropMetaList.size == 1)
+                buf.append("${idPropMetaList[0].columnName} = ")
+                buf.bind(id to idPropMetaList[0].copyFunParam.type.jvmErasure)
+                buf.append(" and ")
+            }
+        }
+        buf.cutBack(5)
+        if (version != null) {
+            requireNotNull(versionPropMeta)
+            buf.append(" and ")
+            buf.append("${versionPropMeta.columnName} = ")
+            buf.bind(version to versionPropMeta.copyFunParam.type.jvmErasure)
+        }
+        return Sql(buf.sql.toString(), buf.values, buf.log.toString())
+    }
 
     fun buildInsertSql(newEntity: T): Sql {
         val buf = Buffer()

@@ -19,6 +19,17 @@ internal class DbTest {
         val version: Int
     )
 
+    @Table(name = "COMP_KEY_ADDRESS")
+    data class CompositeKeyAddress(
+        @Id
+        val address_id1: Int,
+        @Id
+        val address_id2: Int,
+        val street: String,
+        @Version
+        val version: Int
+    )
+
     @Table(name = "SEQUENCE_STRATEGY")
     data class SequenceStrategy(
         @Id
@@ -169,6 +180,34 @@ internal class DbTest {
                 stmt.execute("DROP ALL OBJECTS")
             }
         }
+    }
+
+    @Test
+    fun findById() {
+        val db = Db(config)
+        val address = db.findById<Address>(2)
+        assertEquals(Address(2, "STREET 2", 1), address)
+    }
+
+    @Test
+    fun findByIdAndVersion() {
+        val db = Db(config)
+        val address = db.findById<Address>(2, 1)
+        assertEquals(Address(2, "STREET 2", 1), address)
+    }
+
+    @Test
+    fun findByIdList() {
+        val db = Db(config)
+        val address = db.findById<CompositeKeyAddress>(listOf(2, 2))
+        assertEquals(CompositeKeyAddress(2, 2,"STREET 2", 1), address)
+    }
+
+    @Test
+    fun findByIdListAndVersion() {
+        val db = Db(config)
+        val address = db.findById<CompositeKeyAddress>(listOf(2, 2), 1)
+        assertEquals(CompositeKeyAddress(2, 2,"STREET 2", 1), address)
     }
 
     @Test
