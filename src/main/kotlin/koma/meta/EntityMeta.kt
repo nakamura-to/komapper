@@ -173,7 +173,7 @@ class EntityMeta<T>(
 
 }
 
-val cache = ConcurrentHashMap<KClass<*>, EntityMeta<*>>()
+private val cache = ConcurrentHashMap<KClass<*>, EntityMeta<*>>()
 
 fun <T : Any> getEntityMeta(clazz: KClass<T>): EntityMeta<T> {
     return cache.computeIfAbsent(clazz) { makeEntityMeta(it) } as EntityMeta<T>

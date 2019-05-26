@@ -1,8 +1,6 @@
 package koma
 
-import koma.meta.EntityMeta
-import koma.meta.ObjectMeta
-import koma.meta.getEntityMeta
+import koma.meta.*
 import koma.sql.Sql
 import koma.sql.SqlBuilder
 import koma.tx.TransactionScope
@@ -26,7 +24,7 @@ open class Db(protected val config: DbConfig) {
 
     inline fun <reified T : Any> select(
         template: CharSequence,
-        condition: Any = object {}
+        condition: Any = emptyObject
     ): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
@@ -37,7 +35,7 @@ open class Db(protected val config: DbConfig) {
 
     inline fun <reified T : Any> iterate(
         template: CharSequence,
-        condition: Any = object {},
+        condition: Any = emptyObject,
         action: (T) -> Unit
     ) {
         require(T::class.isData) { "The T must be a data class." }
@@ -49,7 +47,7 @@ open class Db(protected val config: DbConfig) {
 
     inline fun <reified T : Any, R> sequence(
         template: CharSequence,
-        condition: Any = object {},
+        condition: Any = emptyObject,
         action: (Sequence<T>) -> R
     ): R {
         require(T::class.isData) { "The T must be a data class." }
@@ -65,7 +63,7 @@ open class Db(protected val config: DbConfig) {
 
     protected fun <T : Any> stream(
         template: CharSequence,
-        condition: Any = object {},
+        condition: Any = emptyObject,
         clazz: KClass<T>
     ): Stream<T> {
         require(clazz.isData) { "The clazz must be a data class." }
@@ -93,7 +91,7 @@ open class Db(protected val config: DbConfig) {
 
     inline fun <reified T : Any?> selectOneColumn(
         template: CharSequence,
-        condition: Any = object {}
+        condition: Any = emptyObject
     ): List<T> {
         return `access$streamOneColumn`<T>(template, condition, T::class).use {
             it.collect(Collectors.toList())
@@ -102,7 +100,7 @@ open class Db(protected val config: DbConfig) {
 
     inline fun <reified T : Any?> iterateOneColumn(
         template: CharSequence,
-        condition: Any = object {},
+        condition: Any = emptyObject,
         action: (T) -> Unit
     ) {
         `access$streamOneColumn`<T>(template, condition, T::class).use {
@@ -112,7 +110,7 @@ open class Db(protected val config: DbConfig) {
 
     inline fun <reified T : Any?, R> sequenceOneColumn(
         template: CharSequence,
-        condition: Any = object {},
+        condition: Any = emptyObject,
         action: (Sequence<T>) -> R
     ): R {
         return `access$streamOneColumn`<T>(template, condition, T::class).use {
@@ -127,7 +125,7 @@ open class Db(protected val config: DbConfig) {
     @Suppress("UNCHECKED_CAST")
     protected fun <T : Any?> streamOneColumn(
         template: CharSequence,
-        condition: Any = object {},
+        condition: Any = emptyObject,
         type: KClass<*>
     ): Stream<T> {
         return executeQuery(template.toString(), condition) { rs ->
@@ -160,8 +158,7 @@ open class Db(protected val config: DbConfig) {
         condition: Any,
         handler: (rs: ResultSet) -> Stream<T>
     ): Stream<T> {
-        val objectMeta = ObjectMeta(condition::class)
-        val ctx = objectMeta.toMap(condition)
+        val ctx = toMap(condition)
         val sql = SqlBuilder().build(template, ctx)
         var stream: Stream<T>? = null
         val con = dataSource.connection
@@ -181,6 +178,17 @@ open class Db(protected val config: DbConfig) {
             }
         } finally {
             stream.onClose(con)
+        }
+    }
+
+    private fun <T : Any?> Stream<T>?.onClose(closeable: AutoCloseable) {
+        if (this == null) {
+            try {
+                closeable.close()
+            } catch (ignored: Exception) {
+            }
+        } else {
+            onClose(closeable::close)
         }
     }
 
@@ -258,9 +266,8 @@ open class Db(protected val config: DbConfig) {
         }
     }
 
-    fun executeUpdate(template: CharSequence, condition: Any = object {}): Int {
-        val objectMeta = ObjectMeta(condition::class)
-        val ctx = objectMeta.toMap(condition)
+    fun executeUpdate(template: CharSequence, condition: Any = emptyObject): Int {
+        val ctx = toMap(condition)
         val sql = SqlBuilder().build(template.toString(), ctx)
         return executeUpdate(sql)
     }
@@ -278,17 +285,6 @@ open class Db(protected val config: DbConfig) {
     protected fun bindValues(stmt: PreparedStatement, values: List<Value>) {
         values.forEachIndexed { index, (value, valueType) ->
             dialect.setValue(stmt, index + 1, value, valueType)
-        }
-    }
-
-    private fun <T : Any?> Stream<T>?.onClose(closeable: AutoCloseable) {
-        if (this == null) {
-            try {
-                closeable.close()
-            } catch (ignored: Exception) {
-            }
-        } else {
-            onClose(closeable::close)
         }
     }
 }

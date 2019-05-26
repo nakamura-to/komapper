@@ -12,8 +12,7 @@ internal class ObjectMetaTest {
             val x = "a"
             val y = 1
         }
-        val meta = ObjectMeta(obj::class)
-        val map = meta.toMap(obj)
+        val map = toMap(obj)
         assertEquals(mapOf("x" to ("a" to String::class), "y" to (1 to Int::class)), map)
     }
 
@@ -23,8 +22,7 @@ internal class ObjectMetaTest {
             private val x = "a"
             val y = 1
         }
-        val meta = ObjectMeta(obj::class)
-        val map = meta.toMap(obj)
+        val map = toMap(obj)
         assertEquals(mapOf("y" to (1 to Int::class)), map)
     }
 }
