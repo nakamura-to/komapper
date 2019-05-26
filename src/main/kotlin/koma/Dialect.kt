@@ -16,6 +16,8 @@ interface Dialect {
     }
 
     fun isUniqueConstraintViolated(exception: SQLException): Boolean
+
+    fun getSequenceSql(sequenceName: String): String
 }
 
 abstract class AbstractDialect : Dialect {
@@ -40,5 +42,9 @@ class H2Dialect : AbstractDialect() {
     override fun isUniqueConstraintViolated(exception: SQLException): Boolean {
         val code = getErrorCode(exception)
         return UNIQUE_CONSTRAINT_VIOLATION_ERROR_CODE == code
+    }
+
+    override fun getSequenceSql(sequenceName: String): String {
+        return "call next value for $sequenceName"
     }
 }

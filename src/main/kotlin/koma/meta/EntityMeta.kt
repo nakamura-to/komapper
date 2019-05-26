@@ -6,6 +6,7 @@ import koma.sql.Buffer
 import koma.sql.Sql
 import java.math.BigDecimal
 import java.math.BigInteger
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
@@ -32,9 +33,36 @@ class EntityMeta<T>(
         return copyFun.callBy(args)
     }
 
-    // TODO
-    fun assignId(entity: T): T {
-        return entity
+    fun assignId(entity: T, key: String, callNextValue: (String) -> Long): T {
+        val idArgs = idPropMetaList
+            .map { it to it.kind }
+            .filter { (_, kind) -> kind is PropKind.Id.Sequence }
+            .map { (meta, kind) ->
+                meta.copyFunParam to when (kind) {
+                    is PropKind.Id.Sequence -> kind.next(key, callNextValue)
+                    else -> throw AssertionError("unreachable: $kind")
+                }
+            }.map(::convertType)
+        if (idArgs.isEmpty()) {
+            return entity
+        }
+        val receiverArg: Pair<KParameter, *> = copyFun.parameters[0] to entity
+        val args = mutableMapOf(receiverArg) + idArgs
+        return copy(args)
+    }
+
+    private fun convertType(pair: Pair<KParameter, Long>): Pair<KParameter, Any> {
+        val (param, long) = pair
+        return param to when (param.type.jvmErasure) {
+            Byte::class -> long.toByte()
+            Short::class -> long.toShort()
+            Int::class -> long.toInt()
+            Long::class -> long
+            BigInteger::class -> BigInteger.valueOf(long)
+            BigDecimal::class -> BigDecimal.valueOf(long)
+            String::class -> long.toString()
+            else -> TODO()
+        }
     }
 
     fun incrementVersion(entity: T): T {
@@ -114,7 +142,7 @@ class EntityMeta<T>(
         buf.append("update $tableName")
         buf.append(" set ")
         val propList = propMetaList
-        propList.filter { it.kind != PropKind.Id }.forEach { prop ->
+        propList.filter { it.kind !is PropKind.Id }.forEach { prop ->
             buf.append("${prop.columnName} = ")
             buf.bind(prop.getValue(newEntity))
             buf.append(", ")
@@ -145,7 +173,13 @@ class EntityMeta<T>(
 
 }
 
-fun <T : Any> makeEntityMeta(clazz: KClass<T>): EntityMeta<T> {
+val cache = ConcurrentHashMap<KClass<*>, EntityMeta<*>>()
+
+fun <T : Any> getEntityMeta(clazz: KClass<T>): EntityMeta<T> {
+    return cache.computeIfAbsent(clazz) { makeEntityMeta(it) } as EntityMeta<T>
+}
+
+private fun <T : Any> makeEntityMeta(clazz: KClass<T>): EntityMeta<T> {
     require(clazz.isData) { "The clazz must be a data class." }
     require(!clazz.isAbstract) { "The clazz must not be abstract." }
     val constructor = clazz.primaryConstructor ?: throw AssertionError()
@@ -165,7 +199,7 @@ fun <T : Any> makeEntityMeta(clazz: KClass<T>): EntityMeta<T> {
             } ?: TODO()
             makePropMeta(consParam, copyFunParam, prop)
         }
-    val idPropMetaList = propMetaList.filter { it.kind == PropKind.Id }
+    val idPropMetaList = propMetaList.filter { it.kind is PropKind.Id }
     val versionPropMeta = propMetaList.find { it.kind == PropKind.Version }
     return EntityMeta(constructor, copyFun, tableName, consParamMap, propMetaList, idPropMetaList, versionPropMeta)
 }

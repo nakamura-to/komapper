@@ -7,6 +7,9 @@ annotation class Table(val name: String)
 annotation class Id
 
 @Target(AnnotationTarget.VALUE_PARAMETER)
+annotation class SequenceGenerator(val name: String, val incrementBy: Int)
+
+@Target(AnnotationTarget.VALUE_PARAMETER)
 annotation class Version
 
 @Target(AnnotationTarget.VALUE_PARAMETER)

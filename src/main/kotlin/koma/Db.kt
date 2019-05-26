@@ -2,7 +2,7 @@ package koma
 
 import koma.meta.EntityMeta
 import koma.meta.ObjectMeta
-import koma.meta.makeEntityMeta
+import koma.meta.getEntityMeta
 import koma.sql.Sql
 import koma.sql.SqlBuilder
 import koma.tx.TransactionScope
@@ -18,7 +18,7 @@ import kotlin.reflect.KParameter
 import kotlin.reflect.jvm.jvmErasure
 import kotlin.streams.asSequence
 
-open class Db(config: DbConfig) {
+open class Db(protected val config: DbConfig) {
     protected val dataSource = config.dataSource
     protected val dialect = config.dialect
     protected val logger = config.logger
@@ -70,7 +70,7 @@ open class Db(config: DbConfig) {
     ): Stream<T> {
         require(clazz.isData) { "The clazz must be a data class." }
         require(!clazz.isAbstract) { "The clazz must not be abstract." }
-        val meta = makeEntityMeta(clazz)
+        val meta = getEntityMeta(clazz)
         return executeQuery(template.toString(), condition) { rs ->
             val paramMap = mutableMapOf<Int, KParameter>()
             val metaData = rs.metaData
@@ -187,7 +187,7 @@ open class Db(config: DbConfig) {
     inline fun <reified T : Any> insert(entity: T): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = makeEntityMeta(T::class)
+        val meta = getEntityMeta(T::class)
         return `access$insert`(entity, meta)
     }
 
@@ -195,7 +195,9 @@ open class Db(config: DbConfig) {
     internal fun <T : Any> `access$insert`(entity: T, meta: EntityMeta<T>) = insert(entity, meta)
 
     protected fun <T : Any> insert(entity: T, meta: EntityMeta<T>): T {
-        return meta.assignId(entity).also { newEntity ->
+        fun callNextValue(sequenceName: String): Long =
+            selectOneColumn<Long>(dialect.getSequenceSql(sequenceName)).first()
+        return meta.assignId(entity, config.name, ::callNextValue).also { newEntity ->
             val sql = meta.buildInsertSql(newEntity)
             val count = try {
                 executeUpdate(sql)
@@ -213,7 +215,7 @@ open class Db(config: DbConfig) {
     inline fun <reified T : Any> delete(entity: T) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = makeEntityMeta(T::class)
+        val meta = getEntityMeta(T::class)
         `access$delete`(entity, meta)
     }
 
@@ -231,7 +233,7 @@ open class Db(config: DbConfig) {
     inline fun <reified T : Any> update(entity: T): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = makeEntityMeta(T::class)
+        val meta = getEntityMeta(T::class)
         return `access$update`(entity, meta)
     }
 

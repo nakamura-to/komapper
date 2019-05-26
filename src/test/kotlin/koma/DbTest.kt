@@ -19,6 +19,24 @@ internal class DbTest {
         val version: Int
     )
 
+    @Table(name = "SEQUENCE_STRATEGY")
+    data class SequenceStrategy(
+        @Id
+        @SequenceGenerator(name = "SEQUENCE_STRATEGY_ID", incrementBy = 100)
+        val id: Int,
+        val value: String
+    )
+
+    @Table(name = "SEQUENCE_STRATEGY")
+    data class MultiSequenceStrategy(
+        @Id
+        @SequenceGenerator(name = "SEQUENCE_STRATEGY_ID", incrementBy = 100)
+        val id: Int,
+        @Id
+        @SequenceGenerator(name = "MY_SEQUENCE_STRATEGY_ID", incrementBy = 100)
+        val value: String
+    )
+
     val config = DbConfig(
         dataSource = SimpleDataSource("jdbc:h2:mem:koma;DB_CLOSE_DELAY=-1"),
         dialect = H2Dialect(),
@@ -272,6 +290,26 @@ internal class DbTest {
         val db = Db(config)
         val address = Address(1, "STREET 1", 0)
         assertThrows<UniqueConstraintException> { db.insert(address) }
+    }
+
+    @Test
+    fun insert_sequenceGenerator() {
+        val db = Db(config)
+        for (i in 1..201) {
+            val strategy = SequenceStrategy(0, "test")
+            val newStrategy = db.insert(strategy)
+            assertEquals(i, newStrategy.id)
+        }
+    }
+
+    @Test
+    fun insert_multiSequenceGenerator() {
+        val db = Db(config)
+        for (i in 1..201) {
+            val strategy = MultiSequenceStrategy(0, "")
+            val newStrategy = db.insert(strategy)
+            assertEquals(MultiSequenceStrategy(i, i.toString()), newStrategy)
+        }
     }
 
     @Test

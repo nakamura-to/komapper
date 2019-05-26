@@ -8,6 +8,7 @@ import javax.sql.DataSource
 class DbConfigException(message: String) : Exception(message)
 
 class DbConfig(
+    val name: String = "",
     dataSource: DataSource,
     val dialect: Dialect,
     val logger: Logger = {},
