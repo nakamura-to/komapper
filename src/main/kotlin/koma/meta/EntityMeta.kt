@@ -20,11 +20,12 @@ class EntityMeta<T>(
     val constructor: KFunction<T>,
     val copyFun: KFunction<T>,
     val tableName: String,
-    val consParamMap: Map<String, KParameter>,
     val propMetaList: List<PropMeta<T>>,
     val idPropMetaList: List<PropMeta<T>>,
     val versionPropMeta: PropMeta<T>?
 ) {
+    val propMetaMap = propMetaList.associateBy { it.columnName }
+
     fun new(args: Map<KParameter, Any?>): T {
         return constructor.callBy(args)
     }
@@ -219,7 +220,6 @@ private fun <T : Any> makeEntityMeta(clazz: KClass<T>): EntityMeta<T> {
     } ?: TODO()
     val table = clazz.findAnnotation<Table>()
     val tableName = table?.name ?: clazz.simpleName!!
-    val consParamMap = constructor.parameters.associateBy { it.name!! }
     val propMetaList = constructor.parameters
         .zip(copyFun.parameters.subList(1, copyFun.parameters.size))
         .map { (consParam, copyFunParam) ->
@@ -230,5 +230,5 @@ private fun <T : Any> makeEntityMeta(clazz: KClass<T>): EntityMeta<T> {
         }
     val idPropMetaList = propMetaList.filter { it.kind is PropKind.Id }
     val versionPropMeta = propMetaList.find { it.kind == PropKind.Version }
-    return EntityMeta(constructor, copyFun, tableName, consParamMap, propMetaList, idPropMetaList, versionPropMeta)
+    return EntityMeta(constructor, copyFun, tableName, propMetaList, idPropMetaList, versionPropMeta)
 }

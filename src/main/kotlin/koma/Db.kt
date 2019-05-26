@@ -1,9 +1,6 @@
 package koma
 
-import koma.meta.EntityMeta
-import koma.meta.emptyObject
-import koma.meta.getEntityMeta
-import koma.meta.toMap
+import koma.meta.*
 import koma.sql.Sql
 import koma.sql.SqlBuilder
 import koma.tx.TransactionScope
@@ -84,19 +81,19 @@ class Db(val config: DbConfig) {
         meta: EntityMeta<T>
     ): Stream<T> {
         return executeQuery(sql) { rs ->
-            val paramMap = mutableMapOf<Int, KParameter>()
+            val propMetaMap = mutableMapOf<Int, PropMeta<T>>()
             val metaData = rs.metaData
             val count = metaData.columnCount
             for (i in 1..count) {
                 val label = metaData.getColumnLabel(i).toLowerCase()
-                val param = meta.consParamMap[label] ?: continue
-                paramMap[i] = param
+                val propMeta = meta.propMetaMap[label] ?: continue
+                propMetaMap[i] = propMeta
             }
             fromResultSetToStream(rs) {
                 val row = mutableMapOf<KParameter, Any?>()
-                for ((index, param) in paramMap) {
-                    val value = config.dialect.getValue(it, index, param.type.jvmErasure)
-                    row[param] = value
+                for ((index, propMeta) in propMetaMap) {
+                    val value = config.dialect.getValue(it, index, propMeta.type)
+                    row[propMeta.consParam] = value
                 }
                 meta.new(row)
             }
