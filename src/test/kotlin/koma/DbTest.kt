@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import test.koma.jdbc.SimpleDataSource
+import koma.jdbc.SimpleDataSource
 
 @Suppress("UNUSED")
 internal class DbTest {

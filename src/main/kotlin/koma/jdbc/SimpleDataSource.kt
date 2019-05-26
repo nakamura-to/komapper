@@ -1,4 +1,4 @@
-package test.koma.jdbc
+package koma.jdbc
 
 import java.io.PrintWriter
 import java.sql.Connection
