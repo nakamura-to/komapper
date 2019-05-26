@@ -43,7 +43,7 @@ fun main() {
             println(addressB) // Address(id=1, street=street B, version=2)
         }
 
-        val addressB = db.select<Address>("select * from address where /*street*/'test'", object {
+        val addressB = db.select<Address>("select * from address where street = /*street*/'test'", object {
             val street = "street B"
         }).first()
         println(addressB) // Address(id=1, street=street B, version=2)
@@ -53,7 +53,7 @@ fun main() {
         val addressList = db.select<Address>("select * from address")
         println(addressList.size) // 0
 
-        val addressC = db.insert<Address>(Address(street = "street C"))
+        val addressC = db.insert(Address(street = "street C"))
         println(addressC) // Address(id=1, street=street C, version=0)
     }
 }
