@@ -2,8 +2,8 @@ package koma.meta
 
 import koma.Table
 import koma.Value
-import koma.sql.Buffer
 import koma.sql.Sql
+import koma.sql.SqlBuffer
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.util.concurrent.ConcurrentHashMap
@@ -92,26 +92,26 @@ class EntityMeta<T>(
     }
 
     fun buildFindByIdSql(id: Any, version: Any?): Sql {
-        val buf = Buffer()
+        val buf = SqlBuffer()
         buf.append("select ")
-        propMetaList.forEach { prop ->
-            buf.append("${prop.columnName}, ")
+        propMetaList.forEach { meta ->
+            buf.append("${meta.columnName}, ")
         }
         buf.cutBack(2)
         buf.append(" from $tableName where ")
         when (id) {
             is Collection<*> -> {
                 require(id.size == idPropMetaList.size)
-                id.zip(idPropMetaList).forEach { (v, prop) ->
-                    buf.append("${prop.columnName} = ")
-                    buf.bind(v to prop.copyFunParam.type.jvmErasure)
+                id.zip(idPropMetaList).forEach { (obj, meta) ->
+                    buf.append("${meta.columnName} = ")
+                    buf.bind(obj to meta.type)
                     buf.append(" and ")
                 }
             }
             else -> {
                 require(idPropMetaList.size == 1)
                 buf.append("${idPropMetaList[0].columnName} = ")
-                buf.bind(id to idPropMetaList[0].copyFunParam.type.jvmErasure)
+                buf.bind(id to idPropMetaList[0].type)
                 buf.append(" and ")
             }
         }
@@ -120,88 +120,82 @@ class EntityMeta<T>(
             requireNotNull(versionPropMeta)
             buf.append(" and ")
             buf.append("${versionPropMeta.columnName} = ")
-            buf.bind(version to versionPropMeta.copyFunParam.type.jvmErasure)
+            buf.bind(version to versionPropMeta.type)
         }
-        return Sql(buf.sql.toString(), buf.values, buf.log.toString())
+        return buf.toSql()
     }
 
     fun buildInsertSql(newEntity: T): Sql {
-        val buf = Buffer()
+        val buf = SqlBuffer()
         buf.append("insert into $tableName")
         buf.append(" (")
-        val propList = propMetaList
-        propList.forEach { prop ->
-            buf.append("${prop.columnName}, ")
+        propMetaList.forEach { meta ->
+            buf.append("${meta.columnName}, ")
         }
         buf.cutBack(2)
         buf.append(") values(")
-        propList.forEach { prop ->
-            buf.bind(prop.getValue(newEntity))
+        propMetaList.forEach { meta ->
+            buf.bind(meta.getValue(newEntity))
             buf.append(", ")
         }
         buf.cutBack(2)
         buf.append(")")
-        return Sql(buf.sql.toString(), buf.values, buf.log.toString())
+        return buf.toSql()
     }
 
     fun buildDeleteSql(entity: T): Sql {
-        val buf = Buffer()
+        val buf = SqlBuffer()
         buf.append("delete from $tableName")
-        val idPropList = idPropMetaList
-        if (idPropList.isNotEmpty()) {
+        if (idPropMetaList.isNotEmpty()) {
             buf.append(" where ")
-            idPropList.forEach {
-                buf.append("${it.columnName} = ")
-                buf.bind(it.getValue(entity))
+            idPropMetaList.forEach { meta ->
+                buf.append("${meta.columnName} = ")
+                buf.bind(meta.getValue(entity))
                 buf.append(" and ")
             }
             buf.cutBack(5)
         }
-        val versionProp = versionPropMeta
-        if (versionProp != null) {
-            if (idPropList.isEmpty()) {
+        if (versionPropMeta != null) {
+            if (idPropMetaList.isEmpty()) {
                 buf.append(" where ")
             } else {
                 buf.append(" and ")
             }
-            buf.append("${versionProp.columnName} = ")
-            buf.bind(versionProp.getValue(entity))
+            buf.append("${versionPropMeta.columnName} = ")
+            buf.bind(versionPropMeta.getValue(entity))
         }
-        return Sql(buf.sql.toString(), buf.values, buf.log.toString())
+        return buf.toSql()
     }
 
     fun buildUpdateSql(entity: T, newEntity: T): Sql {
-        val buf = Buffer()
+        val buf = SqlBuffer()
         buf.append("update $tableName")
         buf.append(" set ")
-        val propList = propMetaList
-        propList.filter { it.kind !is PropKind.Id }.forEach { prop ->
-            buf.append("${prop.columnName} = ")
-            buf.bind(prop.getValue(newEntity))
+        propMetaList.filter { it.kind !is PropKind.Id }.forEach { meta ->
+            buf.append("${meta.columnName} = ")
+            buf.bind(meta.getValue(newEntity))
             buf.append(", ")
         }
         buf.cutBack(2)
-        val idPropList = idPropMetaList
-        if (idPropList.isNotEmpty()) {
+        if (idPropMetaList.isNotEmpty()) {
             buf.append(" where ")
-            idPropList.forEach {
-                buf.append("${it.columnName} = ")
-                buf.bind(it.getValue(newEntity))
+            idPropMetaList.forEach { meta ->
+                buf.append("${meta.columnName} = ")
+                buf.bind(meta.getValue(newEntity))
                 buf.append(" and ")
             }
             buf.cutBack(5)
         }
-        val versionProp = versionPropMeta
-        if (versionProp != null) {
-            if (idPropList.isEmpty()) {
+        if (versionPropMeta != null) {
+            if (idPropMetaList.isEmpty()) {
                 buf.append(" where ")
             } else {
                 buf.append(" and ")
             }
-            buf.append("${versionProp.columnName} = ")
-            buf.bind(versionProp.getValue(entity))
+            buf.append("${versionPropMeta.columnName} = ")
+            buf.bind(versionPropMeta.getValue(entity))
         }
-        return Sql(buf.sql.toString(), buf.values, buf.log.toString())
+        return buf.toSql()
     }
 
 }
@@ -209,6 +203,7 @@ class EntityMeta<T>(
 private val cache = ConcurrentHashMap<KClass<*>, EntityMeta<*>>()
 
 fun <T : Any> getEntityMeta(clazz: KClass<T>): EntityMeta<T> {
+    @Suppress("UNCHECKED_CAST")
     return cache.computeIfAbsent(clazz) { makeEntityMeta(it) } as EntityMeta<T>
 }
 
@@ -219,6 +214,7 @@ private fun <T : Any> makeEntityMeta(clazz: KClass<T>): EntityMeta<T> {
     val copyFun = clazz.memberFunctions.find {
         it.name == "copy" && it.returnType.jvmErasure == clazz
     }?.let {
+        @Suppress("UNCHECKED_CAST")
         it as KFunction<T>
     } ?: TODO()
     val table = clazz.findAnnotation<Table>()

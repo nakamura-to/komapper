@@ -5,8 +5,6 @@ import koma.tx.TransactionManager
 import koma.tx.TransactionScope
 import javax.sql.DataSource
 
-class DbConfigException(message: String) : Exception(message)
-
 class DbConfig(
     val name: String = "",
     dataSource: DataSource,

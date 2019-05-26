@@ -200,14 +200,14 @@ internal class DbTest {
     fun findByIdList() {
         val db = Db(config)
         val address = db.findById<CompositeKeyAddress>(listOf(2, 2))
-        assertEquals(CompositeKeyAddress(2, 2,"STREET 2", 1), address)
+        assertEquals(CompositeKeyAddress(2, 2, "STREET 2", 1), address)
     }
 
     @Test
     fun findByIdListAndVersion() {
         val db = Db(config)
         val address = db.findById<CompositeKeyAddress>(listOf(2, 2), 1)
-        assertEquals(CompositeKeyAddress(2, 2,"STREET 2", 1), address)
+        assertEquals(CompositeKeyAddress(2, 2, "STREET 2", 1), address)
     }
 
     @Test
@@ -364,7 +364,6 @@ internal class DbTest {
 
     @Test
     fun update_UniqueConstraintException() {
-        val sql = "select * from address where address_id = 15"
         val db = Db(config)
         val address = Address(1, "STREET 2", 1)
         assertThrows<UniqueConstraintException> { db.update(address) }

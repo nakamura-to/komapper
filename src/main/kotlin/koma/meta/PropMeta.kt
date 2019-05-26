@@ -50,12 +50,14 @@ sealed class PropKind {
 data class PropMeta<T>(
     val consParam: KParameter,
     val copyFunParam: KParameter,
-    val kProperty: KProperty1<T, *>,
+    val prop: KProperty1<T, *>,
     val kind: PropKind,
     val columnName: String
 ) {
+    val type = prop.returnType.jvmErasure
+
     fun getValue(entity: T): Value {
-        return kProperty.call(entity) to kProperty.returnType.jvmErasure
+        return prop.call(entity) to type
     }
 }
 

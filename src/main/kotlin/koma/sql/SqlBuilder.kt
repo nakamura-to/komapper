@@ -5,12 +5,12 @@ import koma.expr.ExprEvaluator
 
 class SqlBuilder(private val evaluator: ExprEvaluator = ExprEvaluator()) {
 
-    fun build(template: String, ctx: Map<String, Value> = emptyMap()): Sql {
-        val parser = SqlParser(template)
+    fun build(template: CharSequence, ctx: Map<String, Value> = emptyMap()): Sql {
+        val parser = SqlParser(template.toString())
         val node = parser.parse()
         val state = visit(State(ctx), node)
         val buffer = state.getBuffer()
-        return Sql(buffer.sql.toString(), buffer.values, buffer.log.toString())
+        return buffer.toSql()
     }
 
     private fun visit(state: State, node: SqlNode): State = when (node) {
@@ -117,7 +117,7 @@ class SqlBuilder(private val evaluator: ExprEvaluator = ExprEvaluator()) {
                 ?: throw SqlException("The expression ${forDirective.expression} is not Iterable at ${forDirective.location}")
             val it = expression.iterator()
             var s = state
-            var preserved = s.ctx[id]
+            val preserved = s.ctx[id]
             var index = 0
             val idIndex = id + "_index"
             val idHasNext = id + "_has_next"
@@ -152,62 +152,29 @@ class SqlBuilder(private val evaluator: ExprEvaluator = ExprEvaluator()) {
         return if (value is CharSequence) "'$value'" else value.toString()
     }
 
+    class State(ctx: Map<String, Value>) {
+        var available: Boolean = false
+        val ctx: MutableMap<String, Value> = HashMap(ctx)
+        val buf = SqlBuffer()
+
+        constructor(state: State) : this(state.ctx)
+
+        fun append(state: State) {
+            buf.sql.append(state.buf.sql)
+            buf.log.append(state.buf.log)
+            buf.values.addAll(state.buf.values)
+        }
+
+        fun append(s: CharSequence) {
+            buf.append(s)
+        }
+
+        fun bind(value: Value) {
+            buf.bind(value)
+        }
+
+        fun getBuffer(): SqlBuffer {
+            return buf
+        }
+    }
 }
-
-class Buffer(capacity: Int = 200) {
-
-    val sql = StringBuilder(capacity)
-    val log = StringBuilder(capacity)
-    val values = ArrayList<Value>()
-
-    fun append(s: CharSequence) {
-        sql.append(s)
-        log.append(s)
-    }
-
-    fun bind(value: Value) {
-        sql.append("?")
-        log.append(toText(value))
-        values.add(value)
-    }
-
-    fun cutBack(length: Int) {
-        sql.setLength(sql.length - length)
-        log.setLength(log.length - length)
-    }
-
-}
-
-class State(ctx: Map<String, Value>) {
-    var available: Boolean = false
-    val ctx: MutableMap<String, Value> = HashMap(ctx)
-    val buf = Buffer()
-
-    constructor(state: State) : this(state.ctx)
-
-    fun append(state: State) {
-        buf.sql.append(state.buf.sql)
-        buf.log.append(state.buf.log)
-        buf.values.addAll(state.buf.values)
-    }
-
-    fun append(s: CharSequence) {
-        buf.append(s)
-    }
-
-    fun bind(value: Value) {
-        buf.bind(value)
-    }
-
-    fun getBuffer(): Buffer {
-        return buf
-    }
-
-}
-
-private fun toText(value: Value): String {
-    val (obj) = value
-    return if (obj is CharSequence) "'$obj'" else obj.toString()
-}
-
-data class Sql(val text: String, val values: List<Value>, val log: String)
