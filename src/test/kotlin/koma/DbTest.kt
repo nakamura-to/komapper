@@ -340,4 +340,15 @@ internal class DbTest {
         assertThrows<OptimisticLockException> { db.update(address) }
     }
 
+    @Test
+    fun executeUpdate() {
+        val db = Db(config)
+        val count = db.executeUpdate("update address set street = /*street*/'' where address_id = /*id*/0", object {
+            val id = 15
+            val street = "NY street"
+        })
+        assertEquals(1, count)
+        val address = db.select<Address>("select * from address where address_id = 15").firstOrNull()
+        assertEquals(Address(15, "NY street", 1), address)
+    }
 }

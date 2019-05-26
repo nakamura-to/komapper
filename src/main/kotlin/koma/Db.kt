@@ -258,6 +258,13 @@ open class Db(protected val config: DbConfig) {
         }
     }
 
+    fun executeUpdate(template: CharSequence, condition: Any = object {}): Int {
+        val objectMeta = ObjectMeta(condition::class)
+        val ctx = objectMeta.toMap(condition)
+        val sql = SqlBuilder().build(template.toString(), ctx)
+        return executeUpdate(sql)
+    }
+
     protected fun executeUpdate(sql: Sql): Int {
         return dataSource.connection.use { con ->
             con.prepareStatement(sql.text).use { stmt ->
