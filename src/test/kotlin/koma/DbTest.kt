@@ -1,12 +1,11 @@
 package koma
 
+import koma.jdbc.SimpleDataSource
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import koma.jdbc.SimpleDataSource
 
 @Suppress("UNUSED")
 internal class DbTest {
@@ -51,7 +50,8 @@ internal class DbTest {
     val config = DbConfig(
         dataSource = SimpleDataSource("jdbc:h2:mem:koma;DB_CLOSE_DELAY=-1"),
         dialect = H2Dialect(),
-        logger = { println(it()) }
+        logger = { println(it()) },
+        batchSize = 2
     )
 
     @BeforeEach
@@ -376,6 +376,96 @@ internal class DbTest {
         val address = db.select<Address>(sql).first()
         db.update(address)
         assertThrows<OptimisticLockException> { db.update(address) }
+    }
+
+    @Test
+    fun batchInsert() {
+        val db = Db(config)
+        val addressList = listOf(
+            Address(16, "STREET 16", 0),
+            Address(17, "STREET 17", 0),
+            Address(18, "STREET 18", 0)
+        )
+        db.batchInsert(addressList)
+        val list = db.select<Address>("select * from address where address_id in (16, 17, 18)")
+        assertEquals(addressList, list)
+    }
+
+    @Test
+    fun batchInsert_UniqueConstraintException() {
+        val db = Db(config)
+        assertThrows<UniqueConstraintException> {
+            db.batchInsert(
+                listOf(
+                    Address(16, "STREET 16", 0),
+                    Address(17, "STREET 17", 0),
+                    Address(18, "STREET 1", 0)
+                )
+            )
+        }
+    }
+
+    @Test
+    fun batchDelete() {
+        val db = Db(config)
+        val addressList = listOf(
+            Address(16, "STREET 16", 0),
+            Address(17, "STREET 17", 0),
+            Address(18, "STREET 18", 0)
+        )
+        db.batchInsert(addressList)
+        val sql = "select * from address where address_id in (16, 17, 18)"
+        assertEquals(addressList, db.select<Address>(sql))
+        db.batchDelete(addressList)
+        assertTrue(db.select<Address>(sql).isEmpty())
+    }
+
+    @Test
+    fun batchDelete_OptimisticLockException() {
+        val db = Db(config)
+        val addressList = listOf(
+            Address(16, "STREET 16", 0),
+            Address(17, "STREET 17", 0),
+            Address(18, "STREET 18", 0)
+        )
+        db.batchInsert(addressList)
+        assertThrows<OptimisticLockException> {
+            db.batchDelete(
+                listOf(
+                    addressList[0],
+                    addressList[1],
+                    addressList[2].copy(version = +1)
+                )
+            )
+        }
+    }
+
+    @Test
+    fun batchUpdate_UniqueConstraintException() {
+        val db = Db(config)
+        assertThrows<UniqueConstraintException> {
+            db.batchUpdate(
+                listOf(
+                    Address(1, "A", 1),
+                    Address(2, "B", 1),
+                    Address(3, "B", 1)
+                )
+            )
+        }
+    }
+
+    @Test
+    fun batchUpdate_OptimisticLockException() {
+        val db = Db(config)
+        assertThrows<OptimisticLockException> {
+            db.batchUpdate(
+                listOf(
+                    Address(1, "A", 1),
+                    Address(2, "B", 1),
+                    Address(3, "C", 2)
+                )
+            )
+        }
     }
 
     @Test

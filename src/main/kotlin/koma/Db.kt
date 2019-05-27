@@ -13,7 +13,6 @@ import java.util.stream.Stream
 import java.util.stream.StreamSupport
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
-import kotlin.reflect.jvm.jvmErasure
 import kotlin.streams.asSequence
 import kotlin.streams.toList
 
@@ -255,6 +254,87 @@ class Db(val config: DbConfig) {
         }
     }
 
+    inline fun <reified T : Any> batchInsert(entities: Collection<T>) {
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        if (entities.isEmpty()) return
+        val meta = getEntityMeta(T::class)
+        val sqls = entities.map { entity ->
+            meta.assignId(entity, config.name) { sequenceName ->
+                selectOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
+            }.let { newEntity ->
+                meta.buildInsertSql(newEntity)
+            }
+        }
+        try {
+            `access$batch`(sqls)
+        } catch (e: SQLException) {
+            if (config.dialect.isUniqueConstraintViolated(e)) {
+                throw UniqueConstraintException(e)
+            } else {
+                throw e
+            }
+        }
+    }
+
+    inline fun <reified T : Any> batchDelete(entities: Collection<T>) {
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        if (entities.isEmpty()) return
+        val meta = getEntityMeta(T::class)
+        val sqls = entities.map { meta.buildDeleteSql(it) }
+        val counts = `access$batch`(sqls)
+        if (meta.versionPropMeta != null && counts.any { it != 1 }) {
+            throw OptimisticLockException()
+        }
+    }
+
+    inline fun <reified T : Any> batchUpdate(entities: Collection<T>) {
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        if (entities.isEmpty()) return
+        val meta = getEntityMeta(T::class)
+        val sqls = entities.map { entity ->
+            meta.incrementVersion(entity).let { newEntity ->
+                meta.buildUpdateSql(entity, newEntity)
+            }
+        }
+        val counts = try {
+            `access$batch`(sqls)
+        } catch (e: SQLException) {
+            if (config.dialect.isUniqueConstraintViolated(e)) {
+                throw UniqueConstraintException(e)
+            } else {
+                throw e
+            }
+        }
+        if (meta.versionPropMeta != null && counts.any { it != 1 }) {
+            throw OptimisticLockException()
+        }
+
+    }
+
+    private fun batch(sqls: Collection<Sql>): IntArray {
+        return config.dataSource.connection.use { con ->
+            con.prepareStatement(sqls.first().text).use { stmt ->
+                val batchSize = config.batchSize
+                val allCounts = IntArray(sqls.size)
+                var offset = 0
+                for ((i, sql) in sqls.withIndex()) {
+                    log(sql)
+                    bindValues(stmt, sql.values)
+                    stmt.addBatch()
+                    if (i == sqls.size - 1 || batchSize > 0 && (i + 1) % batchSize == 0) {
+                        val counts = stmt.executeBatch()
+                        counts.copyInto(allCounts, offset)
+                        offset = i + 1
+                    }
+                }
+                allCounts
+            }
+        }
+    }
+
     fun executeUpdate(template: CharSequence, condition: Any = emptyObject): Int {
         val ctx = toMap(condition)
         val sql = SqlBuilder().build(template.toString(), ctx)
@@ -287,5 +367,9 @@ class Db(val config: DbConfig) {
     private fun log(sql: Sql) {
         sql.log?.let { log -> config.logger { log } }
     }
+
+    @PublishedApi
+    @Suppress("UNUSED", "FunctionName")
+    internal fun `access$batch`(sqls: Collection<Sql>) = batch(sqls)
 
 }

@@ -11,7 +11,8 @@ class DbConfig(
     val dialect: Dialect,
     val logger: Logger = {},
     val useTransaction: Boolean = false,
-    val defaultIsolationLevel: TransactionIsolationLevel? = null
+    val defaultIsolationLevel: TransactionIsolationLevel? = null,
+    val batchSize: Int = 10
 ) {
 
     private val transactionManager: TransactionManager by lazy {
