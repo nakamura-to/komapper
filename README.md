@@ -32,7 +32,7 @@ fun main() {
     )
 
     // set up data
-    db.transaction.required {
+    db.transaction {
         db.execute(
             """
             CREATE SEQUENCE ADDRESS_SEQ START WITH 1 INCREMENT BY 100;
@@ -43,7 +43,7 @@ fun main() {
     }
 
     // query
-    db.transaction.required {
+    db.transaction {
         val addressA = db.findById<Address>(1)
         println(addressA) // Address(id=1, street=street A, version=1)
 
