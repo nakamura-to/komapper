@@ -282,6 +282,21 @@ internal class DbTxTest {
     }
 
     @Test
+    fun invoke() {
+        val sql = "select * from address where address_id = 15"
+        val db = Db(config)
+        db.transaction {
+            val address = db.select<Address>(sql).first()
+            db.delete(address)
+        }
+        db.transaction {
+            val address = db.select<Address>(sql).firstOrNull()
+            assertNull(address)
+        }
+    }
+
+
+    @Test
     fun `specify useTransaction`() {
         val config = DbConfig(
             dataSource = simpleDataSource,
