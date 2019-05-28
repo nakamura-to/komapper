@@ -25,7 +25,7 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = getEntityMeta(T::class)
         val sql = meta.buildFindByIdSql(id, version)
-        return accessStream(sql, meta).toList().firstOrNull()
+        return `access$stream`(sql, meta).toList().firstOrNull()
     }
 
     inline fun <reified T : Any> select(
@@ -37,7 +37,7 @@ class Db(val config: DbConfig) {
         val meta = getEntityMeta(T::class)
         val ctx = toMap(condition)
         val sql = SqlBuilder().build(template, ctx)
-        return accessStream(sql, meta).use {
+        return `access$stream`(sql, meta).use {
             it.collect(Collectors.toList())
         }
     }
@@ -52,7 +52,7 @@ class Db(val config: DbConfig) {
         val meta = getEntityMeta(T::class)
         val ctx = toMap(condition)
         val sql = SqlBuilder().build(template, ctx)
-        return accessStream(sql, meta).use {
+        return `access$stream`(sql, meta).use {
             it.asSequence().forEach(action)
         }
     }
@@ -67,13 +67,10 @@ class Db(val config: DbConfig) {
         val meta = getEntityMeta(T::class)
         val ctx = toMap(condition)
         val sql = SqlBuilder().build(template, ctx)
-        return accessStream(sql, meta).use {
+        return `access$stream`(sql, meta).use {
             block(it.asSequence())
         }
     }
-
-    @PublishedApi
-    internal fun <T : Any> accessStream(sql: Sql, meta: EntityMeta<T>) = stream(sql, meta)
 
     private fun <T : Any> stream(
         sql: Sql,
@@ -103,7 +100,7 @@ class Db(val config: DbConfig) {
         template: CharSequence,
         condition: Any = emptyObject
     ): List<T> {
-        return accessStreamOneColumn<T>(template, condition, T::class).use {
+        return `access$streamOneColumn`<T>(template, condition, T::class).use {
             it.collect(Collectors.toList())
         }
     }
@@ -113,7 +110,7 @@ class Db(val config: DbConfig) {
         condition: Any = emptyObject,
         action: (T) -> Unit
     ) {
-        accessStreamOneColumn<T>(template, condition, T::class).use {
+        `access$streamOneColumn`<T>(template, condition, T::class).use {
             it.asSequence().forEach(action)
         }
     }
@@ -123,14 +120,10 @@ class Db(val config: DbConfig) {
         condition: Any = emptyObject,
         block: (Sequence<T>) -> R
     ): R {
-        return accessStreamOneColumn<T>(template, condition, T::class).use {
+        return `access$streamOneColumn`<T>(template, condition, T::class).use {
             block(it.asSequence())
         }
     }
-
-    @PublishedApi
-    internal fun <T> accessStreamOneColumn(template: CharSequence, condition: Any, type: KClass<*>) =
-        streamOneColumn<T>(template, condition, type)
 
     @Suppress("UNCHECKED_CAST")
     private fun <T : Any?> streamOneColumn(
@@ -210,7 +203,7 @@ class Db(val config: DbConfig) {
         }.also { newEntity ->
             val sql = meta.buildInsertSql(newEntity)
             val count = try {
-                accessExecuteUpdate(sql)
+                `access$executeUpdate`(sql)
             } catch (e: SQLException) {
                 if (config.dialect.isUniqueConstraintViolated(e)) {
                     throw UniqueConstraintException(e)
@@ -227,10 +220,11 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = getEntityMeta(T::class)
         val sql = meta.buildDeleteSql(entity)
-        val count = accessExecuteUpdate(sql)
-        if (count == 0 && meta.versionPropMeta != null) {
+        val count = `access$executeUpdate`(sql)
+        if (meta.versionPropMeta != null && count != 1) {
             throw OptimisticLockException()
         }
+        check(count == 1)
     }
 
     inline fun <reified T : Any> update(entity: T): T {
@@ -240,7 +234,7 @@ class Db(val config: DbConfig) {
         return meta.incrementVersion(entity).also { newEntity ->
             val sql = meta.buildUpdateSql(entity, newEntity)
             val count = try {
-                accessExecuteUpdate(sql)
+                `access$executeUpdate`(sql)
             } catch (e: SQLException) {
                 if (config.dialect.isUniqueConstraintViolated(e)) {
                     throw UniqueConstraintException(e)
@@ -248,8 +242,19 @@ class Db(val config: DbConfig) {
                     throw e
                 }
             }
-            if (count == 0 && meta.versionPropMeta != null) {
+            if (meta.versionPropMeta != null && count != 1) {
                 throw OptimisticLockException()
+            }
+            check(count == 1)
+        }
+    }
+
+    private fun executeUpdate(sql: Sql): Int {
+        return config.dataSource.connection.use { con ->
+            log(sql)
+            con.prepareStatement(sql.text).use { stmt ->
+                bindValues(stmt, sql.values)
+                stmt.executeUpdate()
             }
         }
     }
@@ -266,8 +271,8 @@ class Db(val config: DbConfig) {
                 meta.buildInsertSql(newEntity)
             }
         }
-        try {
-            `access$batch`(sqls)
+        val counts = try {
+            `access$executeBatch`(sqls)
         } catch (e: SQLException) {
             if (config.dialect.isUniqueConstraintViolated(e)) {
                 throw UniqueConstraintException(e)
@@ -275,6 +280,7 @@ class Db(val config: DbConfig) {
                 throw e
             }
         }
+        check(counts.all { it == 1 })
     }
 
     inline fun <reified T : Any> batchDelete(entities: Collection<T>) {
@@ -283,10 +289,11 @@ class Db(val config: DbConfig) {
         if (entities.isEmpty()) return
         val meta = getEntityMeta(T::class)
         val sqls = entities.map { meta.buildDeleteSql(it) }
-        val counts = `access$batch`(sqls)
+        val counts = `access$executeBatch`(sqls)
         if (meta.versionPropMeta != null && counts.any { it != 1 }) {
             throw OptimisticLockException()
         }
+        check(counts.all { it == 1 })
     }
 
     inline fun <reified T : Any> batchUpdate(entities: Collection<T>) {
@@ -300,7 +307,7 @@ class Db(val config: DbConfig) {
             }
         }
         val counts = try {
-            `access$batch`(sqls)
+            `access$executeBatch`(sqls)
         } catch (e: SQLException) {
             if (config.dialect.isUniqueConstraintViolated(e)) {
                 throw UniqueConstraintException(e)
@@ -311,10 +318,10 @@ class Db(val config: DbConfig) {
         if (meta.versionPropMeta != null && counts.any { it != 1 }) {
             throw OptimisticLockException()
         }
-
+        check(counts.all { it == 1 })
     }
 
-    private fun batch(sqls: Collection<Sql>): IntArray {
+    private fun executeBatch(sqls: Collection<Sql>): IntArray {
         return config.dataSource.connection.use { con ->
             con.prepareStatement(sqls.first().text).use { stmt ->
                 val batchSize = config.batchSize
@@ -345,19 +352,6 @@ class Db(val config: DbConfig) {
         executeUpdate(Sql(statements.toString(), emptyList(), null))
     }
 
-    @PublishedApi
-    internal fun accessExecuteUpdate(sql: Sql) = executeUpdate(sql)
-
-    private fun executeUpdate(sql: Sql): Int {
-        return config.dataSource.connection.use { con ->
-            log(sql)
-            con.prepareStatement(sql.text).use { stmt ->
-                bindValues(stmt, sql.values)
-                stmt.executeUpdate()
-            }
-        }
-    }
-
     private fun bindValues(stmt: PreparedStatement, values: List<Value>) {
         values.forEachIndexed { index, (value, valueType) ->
             config.dialect.setValue(stmt, index + 1, value, valueType)
@@ -370,6 +364,19 @@ class Db(val config: DbConfig) {
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
-    internal fun `access$batch`(sqls: Collection<Sql>) = batch(sqls)
+    internal fun <T : Any> `access$stream`(sql: Sql, meta: EntityMeta<T>) = stream(sql, meta)
+
+    @PublishedApi
+    @Suppress("UNUSED", "FunctionName")
+    internal fun <T> `access$streamOneColumn`(template: CharSequence, condition: Any, type: KClass<*>) =
+        streamOneColumn<T>(template, condition, type)
+
+    @PublishedApi
+    @Suppress("UNUSED", "FunctionName")
+    internal fun `access$executeUpdate`(sql: Sql) = executeUpdate(sql)
+
+    @PublishedApi
+    @Suppress("UNUSED", "FunctionName")
+    internal fun `access$executeBatch`(sqls: Collection<Sql>) = executeBatch(sqls)
 
 }
