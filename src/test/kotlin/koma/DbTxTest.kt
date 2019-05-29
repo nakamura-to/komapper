@@ -12,7 +12,7 @@ internal class DbTxTest {
 
     data class Address(
         @Id
-        val address_id: Int,
+        val addressId: Int,
         val street: String,
         @Version
         val version: Int

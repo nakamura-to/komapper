@@ -1,5 +1,6 @@
 package koma.meta
 
+import koma.NamingStrategy
 import koma.Table
 import koma.Value
 import koma.sql.Sql
@@ -22,7 +23,8 @@ class EntityMeta<T>(
     val tableName: String,
     val propMetaList: List<PropMeta<T>>,
     val idPropMetaList: List<PropMeta<T>>,
-    val versionPropMeta: PropMeta<T>?
+    val versionPropMeta: PropMeta<T>?,
+    val namingStrategy: NamingStrategy
 ) {
     val propMetaMap = propMetaList.associateBy { it.columnName }
 
@@ -203,12 +205,12 @@ class EntityMeta<T>(
 
 private val cache = ConcurrentHashMap<KClass<*>, EntityMeta<*>>()
 
-fun <T : Any> getEntityMeta(clazz: KClass<T>): EntityMeta<T> {
+fun <T : Any> getEntityMeta(clazz: KClass<T>, namingStrategy: NamingStrategy): EntityMeta<T> {
     @Suppress("UNCHECKED_CAST")
-    return cache.computeIfAbsent(clazz) { makeEntityMeta(it) } as EntityMeta<T>
+    return cache.computeIfAbsent(clazz) { makeEntityMeta(it, namingStrategy) } as EntityMeta<T>
 }
 
-private fun <T : Any> makeEntityMeta(clazz: KClass<T>): EntityMeta<T> {
+private fun <T : Any> makeEntityMeta(clazz: KClass<T>, namingStrategy: NamingStrategy): EntityMeta<T> {
     require(clazz.isData) { "The clazz must be a data class." }
     require(!clazz.isAbstract) { "The clazz must not be abstract." }
     val constructor = clazz.primaryConstructor ?: throw AssertionError()
@@ -219,16 +221,16 @@ private fun <T : Any> makeEntityMeta(clazz: KClass<T>): EntityMeta<T> {
         it as KFunction<T>
     } ?: TODO()
     val table = clazz.findAnnotation<Table>()
-    val tableName = table?.name ?: clazz.simpleName!!
+    val tableName = table?.name ?: namingStrategy.fromKotlinToDb(clazz.simpleName!!)
     val propMetaList = constructor.parameters
         .zip(copyFun.parameters.subList(1, copyFun.parameters.size))
         .map { (consParam, copyFunParam) ->
             val prop = clazz.memberProperties.find { prop ->
                 consParam.name!! == prop.name
             } ?: TODO()
-            makePropMeta(consParam, copyFunParam, prop)
+            makePropMeta(consParam, copyFunParam, prop, namingStrategy)
         }
     val idPropMetaList = propMetaList.filter { it.kind is PropKind.Id }
     val versionPropMeta = propMetaList.find { it.kind == PropKind.Version }
-    return EntityMeta(constructor, copyFun, tableName, propMetaList, idPropMetaList, versionPropMeta)
+    return EntityMeta(constructor, copyFun, tableName, propMetaList, idPropMetaList, versionPropMeta, namingStrategy)
 }

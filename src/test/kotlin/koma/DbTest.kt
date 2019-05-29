@@ -12,7 +12,7 @@ internal class DbTest {
 
     data class Address(
         @Id
-        val address_id: Int,
+        val addressId: Int,
         val street: String,
         @Version
         val version: Int
@@ -21,9 +21,9 @@ internal class DbTest {
     @Table(name = "COMP_KEY_ADDRESS")
     data class CompositeKeyAddress(
         @Id
-        val address_id1: Int,
+        val addressId1: Int,
         @Id
-        val address_id2: Int,
+        val addressId2: Int,
         val street: String,
         @Version
         val version: Int

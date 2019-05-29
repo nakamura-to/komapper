@@ -23,7 +23,7 @@ class Db(val config: DbConfig) {
     inline fun <reified T : Any> findById(id: Any, version: Any? = null): T? {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = getEntityMeta(T::class)
+        val meta = getEntityMeta(T::class, config.namingStrategy)
         val sql = meta.buildFindByIdSql(id, version)
         return `access$stream`(sql, meta).toList().firstOrNull()
     }
@@ -34,7 +34,7 @@ class Db(val config: DbConfig) {
     ): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = getEntityMeta(T::class)
+        val meta = getEntityMeta(T::class, config.namingStrategy)
         val ctx = toMap(condition)
         val sql = SqlBuilder().build(template, ctx)
         return `access$stream`(sql, meta).use {
@@ -49,7 +49,7 @@ class Db(val config: DbConfig) {
     ) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = getEntityMeta(T::class)
+        val meta = getEntityMeta(T::class, config.namingStrategy)
         val ctx = toMap(condition)
         val sql = SqlBuilder().build(template, ctx)
         return `access$stream`(sql, meta).use {
@@ -64,7 +64,7 @@ class Db(val config: DbConfig) {
     ): R {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = getEntityMeta(T::class)
+        val meta = getEntityMeta(T::class, config.namingStrategy)
         val ctx = toMap(condition)
         val sql = SqlBuilder().build(template, ctx)
         return `access$stream`(sql, meta).use {
@@ -197,7 +197,7 @@ class Db(val config: DbConfig) {
     inline fun <reified T : Any> insert(entity: T): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = getEntityMeta(T::class)
+        val meta = getEntityMeta(T::class, config.namingStrategy)
         return meta.assignId(entity, config.name) { sequenceName ->
             selectOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
         }.also { newEntity ->
@@ -218,7 +218,7 @@ class Db(val config: DbConfig) {
     inline fun <reified T : Any> delete(entity: T) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = getEntityMeta(T::class)
+        val meta = getEntityMeta(T::class, config.namingStrategy)
         val sql = meta.buildDeleteSql(entity)
         val count = `access$executeUpdate`(sql)
         if (meta.versionPropMeta != null && count != 1) {
@@ -230,7 +230,7 @@ class Db(val config: DbConfig) {
     inline fun <reified T : Any> update(entity: T): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = getEntityMeta(T::class)
+        val meta = getEntityMeta(T::class, config.namingStrategy)
         return meta.incrementVersion(entity).also { newEntity ->
             val sql = meta.buildUpdateSql(entity, newEntity)
             val count = try {
@@ -263,7 +263,7 @@ class Db(val config: DbConfig) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         if (entities.isEmpty()) return
-        val meta = getEntityMeta(T::class)
+        val meta = getEntityMeta(T::class, config.namingStrategy)
         val sqls = entities.map { entity ->
             meta.assignId(entity, config.name) { sequenceName ->
                 selectOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
@@ -287,7 +287,7 @@ class Db(val config: DbConfig) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         if (entities.isEmpty()) return
-        val meta = getEntityMeta(T::class)
+        val meta = getEntityMeta(T::class, config.namingStrategy)
         val sqls = entities.map { meta.buildDeleteSql(it) }
         val counts = `access$executeBatch`(sqls)
         if (meta.versionPropMeta != null && counts.any { it != 1 }) {
@@ -300,7 +300,7 @@ class Db(val config: DbConfig) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         if (entities.isEmpty()) return
-        val meta = getEntityMeta(T::class)
+        val meta = getEntityMeta(T::class, config.namingStrategy)
         val sqls = entities.map { entity ->
             meta.incrementVersion(entity).let { newEntity ->
                 meta.buildUpdateSql(entity, newEntity)

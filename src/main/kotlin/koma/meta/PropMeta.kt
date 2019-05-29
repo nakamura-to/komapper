@@ -61,7 +61,12 @@ data class PropMeta<T>(
     }
 }
 
-fun <T> makePropMeta(consParam: KParameter, copyFunParam: KParameter, kProperty: KProperty1<T, *>): PropMeta<T> {
+fun <T> makePropMeta(
+    consParam: KParameter,
+    copyFunParam: KParameter,
+    kProperty: KProperty1<T, *>,
+    namingStrategy: NamingStrategy
+): PropMeta<T> {
     val id = consParam.findAnnotation<Id>()
     val version = consParam.findAnnotation<Version>()
     val column = consParam.findAnnotation<Column>()
@@ -78,6 +83,6 @@ fun <T> makePropMeta(consParam: KParameter, copyFunParam: KParameter, kProperty:
         id == null && version != null -> PropKind.Version
         else -> PropKind.Basic
     }
-    val columnName = column?.name ?: consParam.name!!
+    val columnName = column?.name ?: namingStrategy.fromKotlinToDb(consParam.name!!)
     return PropMeta(consParam, copyFunParam, kProperty, kind, columnName)
 }

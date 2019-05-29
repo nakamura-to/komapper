@@ -9,6 +9,7 @@ class DbConfig(
     val name: String = "",
     dataSource: DataSource,
     val dialect: Dialect,
+    val namingStrategy: NamingStrategy = object : NamingStrategy {},
     val logger: Logger = {},
     val useTransaction: Boolean = false,
     val defaultIsolationLevel: TransactionIsolationLevel? = null,
