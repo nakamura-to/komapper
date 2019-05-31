@@ -5,7 +5,12 @@ import koma.tx.TransactionIsolationLevel
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import java.sql.Blob
+import java.sql.Clob
+import java.sql.NClob
+import java.sql.SQLXML
 
 @Suppress("UNUSED")
 internal class DbTxTest {
@@ -52,6 +57,12 @@ internal class DbTxTest {
                     CREATE TABLE OWNER_OF_NO_ID (ID INTEGER NOT NULL PRIMARY KEY, NO_ID_VALUE1 INTEGER);
                     CREATE TABLE CONSTRAINT_CHECKING (PRIMARY_KEY INTEGER PRIMARY KEY, UNIQUE_KEY INTEGER UNIQUE, FOREIGN_KEY INTEGER, CHECK_CONSTRAINT INTEGER, NOT_NULL INTEGER NOT NULL, CONSTRAINT CK_CONSTRAINT_CHECKING_1 CHECK (CHECK_CONSTRAINT > 0), CONSTRAINT FK_JOB_ID FOREIGN KEY (FOREIGN_KEY) REFERENCES JOB (ID));
                     CREATE TABLE PATTERN (VALUE VARCHAR(10));
+
+                    CREATE TABLE ARRAY_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE ARRAY);
+                    CREATE TABLE BLOB_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE BLOB);
+                    CREATE TABLE CLOB_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE CLOB);
+                    CREATE TABLE NCLOB_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE NCLOB);
+                    CREATE TABLE SQLXML_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE CLOB);
 
                     CREATE TABLE ID_GENERATOR(PK VARCHAR(20) NOT NULL PRIMARY KEY, VALUE INTEGER NOT NULL);
                     CREATE TABLE MY_ID_GENERATOR(MY_PK VARCHAR(20) NOT NULL PRIMARY KEY, MY_VALUE INTEGER NOT NULL);
@@ -295,7 +306,6 @@ internal class DbTxTest {
         }
     }
 
-
     @Test
     fun `specify useTransaction`() {
         val config = DbConfig(
@@ -307,5 +317,92 @@ internal class DbTxTest {
         val exception =
             org.junit.jupiter.api.assertThrows<DbConfigException> { db.transaction }
         println(exception)
+    }
+
+    @Nested
+    inner class JdbcType {
+
+        @Test
+        fun array() {
+            data class ArrayTest(@Id val id: Int, val value: java.sql.Array)
+
+            val db = Db(config)
+            db.transaction {
+                val array = db.createArrayOf("INTEGER", listOf(10, 20, 30))
+                val data = ArrayTest(1, array)
+                db.insert(data)
+                val data2 = db.findById<ArrayTest>(1)
+                assertEquals(data.id, data2!!.id)
+                assertArrayEquals(data.value.array as Array<*>, data2.value.array as Array<*>)
+            }
+        }
+
+        @Test
+        fun blob() {
+            data class BlobTest(@Id val id: Int, val value: Blob)
+
+            val db = Db(config)
+            db.transaction {
+                val blob = db.createBlob()
+                val bytes = byteArrayOf(10, 20, 30)
+                blob.setBytes(1, bytes)
+                val data = BlobTest(1, blob)
+                db.insert(data)
+                val data2 = db.findById<BlobTest>(1)
+                assertEquals(data.id, data2!!.id)
+                assertArrayEquals(data.value.getBytes(1, 3), data2.value.getBytes(1, 3))
+            }
+        }
+
+        @Test
+        fun clob() {
+            data class ClobTest(@Id val id: Int, val value: Clob)
+
+            val db = Db(config)
+            db.transaction {
+                val clob = db.createClob()
+                clob.setString(1, "ABC")
+                val data = ClobTest(1, clob)
+                db.insert(data)
+                val data2 = db.findById<ClobTest>(1)
+                assertEquals(data.id, data2!!.id)
+                assertEquals(data.value.getSubString(1, 3), data2.value.getSubString(1, 3))
+            }
+        }
+
+        @Test
+        fun nclob() {
+            @Table(name = "NCLOB_TEST")
+            data class NClobTest(@Id val id: Int, val value: NClob)
+
+            val db = Db(config)
+            db.transaction {
+                val nclob = db.createNClob()
+                nclob.setString(1, "ABC")
+                val data = NClobTest(1, nclob)
+                db.insert(data)
+                val data2 = db.findById<NClobTest>(1)
+                assertEquals(data.id, data2!!.id)
+                assertEquals(data.value.getSubString(1, 3), data2.value.getSubString(1, 3))
+            }
+        }
+
+        @Test
+        fun sqlXml() {
+            @Table(name = "SQLXML_TEST")
+            data class SqlXmlTest(@Id val id: Int, val value: SQLXML)
+
+            val db = Db(config)
+            db.transaction {
+                val sqlXml = db.createSQLXML()
+                sqlXml.string = """<xml a="v">Text</xml>"""
+                val data = SqlXmlTest(1, sqlXml)
+                db.insert(data)
+                val data2 = db.findById<SqlXmlTest>(1)
+                assertEquals(data.id, data2!!.id)
+                assertEquals(data.value.string, data2.value.string)
+            }
+        }
+
     }
 }

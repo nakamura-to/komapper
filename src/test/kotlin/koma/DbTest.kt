@@ -1,11 +1,14 @@
 package koma
 
 import koma.jdbc.SimpleDataSource
-import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
+import java.io.Serializable
+import java.math.BigDecimal
+import java.math.BigInteger
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 
 @Suppress("UNUSED")
 internal class DbTest {
@@ -46,6 +49,10 @@ internal class DbTest {
         @SequenceGenerator(name = "MY_SEQUENCE_STRATEGY_ID", incrementBy = 100)
         val value: String
     )
+
+    private enum class Direction {
+        NORTH, SOUTH, WEST, EAST
+    }
 
     val config = DbConfig(
         dataSource = SimpleDataSource("jdbc:h2:mem:koma;DB_CLOSE_DELAY=-1"),
@@ -88,6 +95,23 @@ internal class DbTest {
                     CREATE TABLE SEQUENCE_STRATEGY2(ID INTEGER NOT NULL PRIMARY KEY, VALUE VARCHAR(10));
                     CREATE TABLE TABLE_STRATEGY(ID INTEGER NOT NULL PRIMARY KEY, VALUE VARCHAR(10));
                     CREATE TABLE TABLE_STRATEGY2(ID INTEGER NOT NULL PRIMARY KEY, VALUE VARCHAR(10));
+
+                    CREATE TABLE ANY_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE OTHER);
+                    CREATE TABLE BIG_DECIMAL_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE BIGINT);
+                    CREATE TABLE BIG_INTEGER_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE BIGINT);
+                    CREATE TABLE BOOLEAN_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE BOOL);
+                    CREATE TABLE BYTE_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE TINYINT);
+                    CREATE TABLE BYTE_ARRAY_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE BINARY);
+                    CREATE TABLE DOUBLE_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE DOUBLE);
+                    CREATE TABLE ENUM_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE VARCHAR(20));
+                    CREATE TABLE FLOAT_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE FLOAT);
+                    CREATE TABLE INT_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE INTEGER);
+                    CREATE TABLE LOCAL_DATE_TIME_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE TIMESTAMP);
+                    CREATE TABLE LOCAL_DATE_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE DATE);
+                    CREATE TABLE LOCAL_TIME_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE TIME);
+                    CREATE TABLE LONG_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE BIGINT);
+                    CREATE TABLE SHORT_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE SMALLINT);
+                    CREATE TABLE STRING_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE VARCHAR(20));
 
                     INSERT INTO DEPARTMENT VALUES(1,10,'ACCOUNTING','NEW YORK',1);
                     INSERT INTO DEPARTMENT VALUES(2,20,'RESEARCH','DALLAS',1);
@@ -492,4 +516,190 @@ internal class DbTest {
         val value = db.selectOneColumn<String>("select value from execute_table").firstOrNull()
         assertEquals("test", value)
     }
+
+    @Nested
+    inner class JdbcType {
+
+        @Test
+        fun any() {
+            data class Person(val name: String) : Serializable
+            data class AnyTest(@Id val id: Int, val value: Any)
+
+            val db = Db(config)
+            val data = AnyTest(1, Person("ABC"))
+            db.insert(data)
+            val data2 = db.findById<AnyTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun bigDecimal() {
+            data class BigDecimalTest(@Id val id: Int, val value: BigDecimal)
+
+            val db = Db(config)
+            val data = BigDecimalTest(1, BigDecimal.TEN)
+            db.insert(data)
+            val data2 = db.findById<BigDecimalTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun bigInteger() {
+            data class BigIntegerTest(@Id val id: Int, val value: BigInteger)
+
+            val db = Db(config)
+            val data = BigIntegerTest(1, BigInteger.TEN)
+            db.insert(data)
+            val data2 = db.findById<BigIntegerTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun boolean() {
+            data class BooleanTest(@Id val id: Int, val value: Boolean)
+
+            val db = Db(config)
+            val data = BooleanTest(1, true)
+            db.insert(data)
+            val data2 = db.findById<BooleanTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun byte() {
+            data class ByteTest(@Id val id: Int, val value: Byte)
+
+            val db = Db(config)
+            val data = ByteTest(1, 10)
+            db.insert(data)
+            val data2 = db.findById<ByteTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun byteArray() {
+            @Suppress("ArrayInDataClass")
+            data class ByteArrayTest(@Id val id: Int, val value: ByteArray)
+
+            val db = Db(config)
+            val data = ByteArrayTest(1, byteArrayOf(10, 20, 30))
+            db.insert(data)
+            val data2 = db.findById<ByteArrayTest>(1)
+            assertEquals(data.id, data2!!.id)
+            assertArrayEquals(data.value, data2.value)
+        }
+
+        @Test
+        fun double() {
+            data class DoubleTest(@Id val id: Int, val value: Double)
+
+            val db = Db(config)
+            val data = DoubleTest(1, 10.0)
+            db.insert(data)
+            val data2 = db.findById<DoubleTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun enum() {
+            data class EnumTest(@Id val id: Int, val value: Direction)
+
+            val db = Db(config)
+            val data = EnumTest(1, Direction.EAST)
+            db.insert(data)
+            val data2 = db.findById<EnumTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun float() {
+            data class FloatTest(@Id val id: Int, val value: Float)
+
+            val db = Db(config)
+            val data = FloatTest(1, 10.0f)
+            db.insert(data)
+            val data2 = db.findById<FloatTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun int() {
+            data class IntTest(@Id val id: Int, val value: Int)
+
+            val db = Db(config)
+            val data = IntTest(1, 10)
+            db.insert(data)
+            val data2 = db.findById<IntTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun localDateTime() {
+            data class LocalDateTimeTest(@Id val id: Int, val value: LocalDateTime)
+
+            val db = Db(config)
+            val data = LocalDateTimeTest(1, LocalDateTime.of(2019, 6, 1, 12, 11, 10))
+            db.insert(data)
+            val data2 = db.findById<LocalDateTimeTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun localDate() {
+            data class LocalDateTest(@Id val id: Int, val value: LocalDate)
+
+            val db = Db(config)
+            val data = LocalDateTest(1, LocalDate.of(2019, 6, 1))
+            db.insert(data)
+            val data2 = db.findById<LocalDateTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun localTime() {
+            data class LocalTimeTest(@Id val id: Int, val value: LocalTime)
+
+            val db = Db(config)
+            val data = LocalTimeTest(1, LocalTime.of(12, 11, 10))
+            db.insert(data)
+            val data2 = db.findById<LocalTimeTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun long() {
+            data class LongTest(@Id val id: Int, val value: Long)
+
+            val db = Db(config)
+            val data = LongTest(1, 10L)
+            db.insert(data)
+            val data2 = db.findById<LongTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun short() {
+            data class ShortTest(@Id val id: Int, val value: Short)
+
+            val db = Db(config)
+            val data = ShortTest(1, 10)
+            db.insert(data)
+            val data2 = db.findById<ShortTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun string() {
+            data class StringTest(@Id val id: Int, val value: String)
+
+            val db = Db(config)
+            val data = StringTest(1, "ABC")
+            db.insert(data)
+            val data2 = db.findById<StringTest>(1)
+            assertEquals(data, data2)
+        }
+
+    }
+
+
 }

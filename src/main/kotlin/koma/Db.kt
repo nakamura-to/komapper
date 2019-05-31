@@ -4,9 +4,7 @@ import koma.meta.*
 import koma.sql.Sql
 import koma.sql.SqlBuilder
 import koma.tx.TransactionScope
-import java.sql.PreparedStatement
-import java.sql.ResultSet
-import java.sql.SQLException
+import java.sql.*
 import java.util.*
 import java.util.stream.Collectors
 import java.util.stream.Stream
@@ -350,6 +348,36 @@ class Db(val config: DbConfig) {
 
     fun execute(statements: CharSequence) {
         executeUpdate(Sql(statements.toString(), emptyList(), null))
+    }
+
+    fun createArrayOf(typeName: String, elements: List<*>): java.sql.Array {
+        return config.dataSource.connection.use {
+            it.createArrayOf(typeName, elements.toTypedArray())
+        }
+    }
+
+    fun createBlob(): Blob {
+        return config.dataSource.connection.use {
+            it.createBlob()
+        }
+    }
+
+    fun createClob(): Clob {
+        return config.dataSource.connection.use {
+            it.createClob()
+        }
+    }
+
+    fun createNClob(): NClob {
+        return config.dataSource.connection.use {
+            it.createNClob()
+        }
+    }
+
+    fun createSQLXML(): SQLXML {
+        return config.dataSource.connection.use {
+            it.createSQLXML()
+        }
     }
 
     private fun bindValues(stmt: PreparedStatement, values: List<Value>) {
