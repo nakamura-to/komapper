@@ -143,7 +143,7 @@ class Db(val config: DbConfig) {
         handler: (rs: ResultSet) -> Stream<T>
     ): Stream<T> {
         var stream: Stream<T>? = null
-        val con = config.dataSource.connection
+        val con = config.connectionProvider.connection
         try {
             log(sql)
             val stmt = con.prepareStatement(sql.text)
@@ -200,7 +200,9 @@ class Db(val config: DbConfig) {
             selectOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
         }.let { newEntity ->
             meta.assignTimestamp(newEntity)
-        }.also { newEntity ->
+        }.let { newEntity ->
+            config.listener.preInsert(newEntity, meta)
+        }.let { newEntity ->
             val sql = meta.buildInsertSql(newEntity)
             val count = try {
                 `access$executeUpdate`(sql)
@@ -212,19 +214,23 @@ class Db(val config: DbConfig) {
                 }
             }
             check(count == 1)
+            config.listener.postInsert(newEntity, meta)
         }
     }
 
-    inline fun <reified T : Any> delete(entity: T) {
+    inline fun <reified T : Any> delete(entity: T): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
-        val sql = meta.buildDeleteSql(entity)
-        val count = `access$executeUpdate`(sql)
-        if (meta.versionPropMeta != null && count != 1) {
-            throw OptimisticLockException()
+        return config.listener.preDelete(entity, meta).let { newEntity ->
+            val sql = meta.buildDeleteSql(newEntity)
+            val count = `access$executeUpdate`(sql)
+            if (meta.versionPropMeta != null && count != 1) {
+                throw OptimisticLockException()
+            }
+            check(count == 1)
+            config.listener.postDelete(newEntity, meta)
         }
-        check(count == 1)
     }
 
     inline fun <reified T : Any> update(entity: T): T {
@@ -233,7 +239,9 @@ class Db(val config: DbConfig) {
         val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
         return meta.incrementVersion(entity).let { newEntity ->
             meta.updateTimestamp(newEntity)
-        }.also { newEntity ->
+        }.let { newEntity ->
+            config.listener.preUpdate(newEntity, meta)
+        }.let { newEntity ->
             val sql = meta.buildUpdateSql(entity, newEntity)
             val count = try {
                 `access$executeUpdate`(sql)
@@ -248,11 +256,12 @@ class Db(val config: DbConfig) {
                 throw OptimisticLockException()
             }
             check(count == 1)
+            config.listener.postUpdate(newEntity, meta)
         }
     }
 
     private fun executeUpdate(sql: Sql): Int {
-        return config.dataSource.connection.use { con ->
+        return config.connectionProvider.connection.use { con ->
             log(sql)
             con.prepareStatement(sql.text).use { stmt ->
                 bindValues(stmt, sql.values)
@@ -261,19 +270,26 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified T : Any> batchInsert(entities: Collection<T>) {
+    inline fun <reified T : Any> batchInsert(entities: List<T>): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        if (entities.isEmpty()) return
+        if (entities.isEmpty()) return entities
         val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
-        val sqls = entities.map { entity ->
+        val size = entities.size
+        val (newEntities, sqls) = entities.map { entity ->
             meta.assignId(entity, config.name) { sequenceName ->
                 selectOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
             }.let { newEntity ->
                 meta.assignTimestamp(newEntity)
             }.let { newEntity ->
-                meta.buildInsertSql(newEntity)
+                config.listener.preInsert(newEntity, meta)
+            }.let { newEntity ->
+                newEntity to meta.buildInsertSql(newEntity)
             }
+        }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
+            acc.first.add(e)
+            acc.second.add(s)
+            acc
         }
         val counts = try {
             `access$executeBatch`(sqls)
@@ -285,32 +301,50 @@ class Db(val config: DbConfig) {
             }
         }
         check(counts.all { it == 1 })
+        return newEntities.map { config.listener.postInsert(it, meta) }
     }
 
-    inline fun <reified T : Any> batchDelete(entities: Collection<T>) {
+    inline fun <reified T : Any> batchDelete(entities: List<T>): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        if (entities.isEmpty()) return
+        if (entities.isEmpty()) return entities
         val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
-        val sqls = entities.map { meta.buildDeleteSql(it) }
+        val size = entities.size
+        val (newEntities, sqls) = entities.map { entity ->
+            config.listener.preDelete(entity, meta).let { newEntity ->
+                newEntity to meta.buildDeleteSql(newEntity)
+            }
+        }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
+            acc.first.add(e)
+            acc.second.add(s)
+            acc
+        }
         val counts = `access$executeBatch`(sqls)
         if (meta.versionPropMeta != null && counts.any { it != 1 }) {
             throw OptimisticLockException()
         }
         check(counts.all { it == 1 })
+        return newEntities.map { config.listener.postDelete(it, meta) }
     }
 
-    inline fun <reified T : Any> batchUpdate(entities: Collection<T>) {
+    inline fun <reified T : Any> batchUpdate(entities: List<T>): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        if (entities.isEmpty()) return
+        if (entities.isEmpty()) return entities
         val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
-        val sqls = entities.map { entity ->
+        val size = entities.size
+        val (newEntities, sqls) = entities.map { entity ->
             meta.incrementVersion(entity).let { newEntity ->
                 meta.updateTimestamp(newEntity)
             }.let { newEntity ->
-                meta.buildUpdateSql(entity, newEntity)
+                config.listener.preUpdate(newEntity, meta)
+            }.let { newEntity ->
+                newEntity to meta.buildUpdateSql(entity, newEntity)
             }
+        }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
+            acc.first.add(e)
+            acc.second.add(s)
+            acc
         }
         val counts = try {
             `access$executeBatch`(sqls)
@@ -325,10 +359,11 @@ class Db(val config: DbConfig) {
             throw OptimisticLockException()
         }
         check(counts.all { it == 1 })
+        return newEntities.map { config.listener.postUpdate(it, meta) }
     }
 
     private fun executeBatch(sqls: Collection<Sql>): IntArray {
-        return config.dataSource.connection.use { con ->
+        return config.connectionProvider.connection.use { con ->
             con.prepareStatement(sqls.first().text).use { stmt ->
                 val batchSize = config.batchSize
                 val allCounts = IntArray(sqls.size)
@@ -359,31 +394,31 @@ class Db(val config: DbConfig) {
     }
 
     fun createArrayOf(typeName: String, elements: List<*>): java.sql.Array {
-        return config.dataSource.connection.use {
+        return config.connectionProvider.connection.use {
             it.createArrayOf(typeName, elements.toTypedArray())
         }
     }
 
     fun createBlob(): Blob {
-        return config.dataSource.connection.use {
+        return config.connectionProvider.connection.use {
             it.createBlob()
         }
     }
 
     fun createClob(): Clob {
-        return config.dataSource.connection.use {
+        return config.connectionProvider.connection.use {
             it.createClob()
         }
     }
 
     fun createNClob(): NClob {
-        return config.dataSource.connection.use {
+        return config.connectionProvider.connection.use {
             it.createNClob()
         }
     }
 
     fun createSQLXML(): SQLXML {
-        return config.dataSource.connection.use {
+        return config.connectionProvider.connection.use {
             it.createSQLXML()
         }
     }

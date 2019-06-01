@@ -1,6 +1,8 @@
 package koma
 
 import koma.jdbc.SimpleDataSource
+import koma.meta.EntityListener
+import koma.meta.EntityMeta
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import java.io.Serializable
@@ -73,7 +75,7 @@ internal class DbTest {
 
     @BeforeEach
     fun before() {
-        config.dataSource.connection.use { con ->
+        config.connectionProvider.connection.use { con ->
             con.createStatement().use { stmt ->
                 stmt.execute(
                     """
@@ -210,7 +212,7 @@ internal class DbTest {
 
     @AfterEach
     fun after() {
-        config.dataSource.connection.use { con ->
+        config.connectionProvider.connection.use { con ->
             con.createStatement().use { stmt ->
                 stmt.execute("DROP ALL OBJECTS")
             }
@@ -341,6 +343,33 @@ internal class DbTest {
         assertNull(address2)
     }
 
+    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+    @Test
+    fun delete_listener() {
+        val db = Db(config.copy(listener = object : EntityListener {
+            override fun <T> preDelete(entity: T, meta: EntityMeta<T>): T {
+                return when (entity) {
+                    is Address -> entity.copy(street = "*${entity.street}")
+                    else -> entity
+                } as T
+            }
+
+            override fun <T> postDelete(entity: T, meta: EntityMeta<T>): T {
+                return when (entity) {
+                    is Address -> entity.copy(street = "${entity.street}*")
+                    else -> entity
+                } as T
+            }
+        }))
+
+        val sql = "select * from address where address_id = 15"
+        val address = db.select<Address>(sql).first()
+        val address2 = db.delete(address)
+        assertEquals(Address(15, "*STREET 15*", 1), address2)
+        val address3 = db.select<Address>(sql).firstOrNull()
+        assertNull(address3)
+    }
+
     @Test
     fun delete_OptimisticLockException() {
         val sql = "select * from address where address_id = 15"
@@ -357,6 +386,32 @@ internal class DbTest {
         db.insert(address)
         val address2 = db.select<Address>("select * from address where address_id = 16").firstOrNull()
         assertEquals(address, address2)
+    }
+
+    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+    @Test
+    fun insert_listener() {
+        val db = Db(config.copy(listener = object : EntityListener {
+            override fun <T> preInsert(entity: T, meta: EntityMeta<T>): T {
+                return when (entity) {
+                    is Address -> entity.copy(street = "*${entity.street}")
+                    else -> entity
+                } as T
+            }
+
+            override fun <T> postInsert(entity: T, meta: EntityMeta<T>): T {
+                return when (entity) {
+                    is Address -> entity.copy(street = "${entity.street}*")
+                    else -> entity
+                } as T
+            }
+        }))
+
+        val address = Address(16, "STREET 16", 0)
+        val address2 = db.insert(address)
+        assertEquals(Address(16, "*STREET 16*", 0), address2)
+        val address3 = db.select<Address>("select * from address where address_id = 16").firstOrNull()
+        assertEquals(Address(16, "*STREET 16", 0), address3)
     }
 
     @Test
@@ -417,6 +472,34 @@ internal class DbTest {
     }
 
     @Test
+    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+    fun update_listener() {
+        val db = Db(config.copy(listener = object : EntityListener {
+            override fun <T> preUpdate(entity: T, meta: EntityMeta<T>): T {
+                return when (entity) {
+                    is Address -> entity.copy(street = "*${entity.street}")
+                    else -> entity
+                } as T
+            }
+
+            override fun <T> postUpdate(entity: T, meta: EntityMeta<T>): T {
+                return when (entity) {
+                    is Address -> entity.copy(street = "${entity.street}*")
+                    else -> entity
+                } as T
+            }
+        }))
+
+        val sql = "select * from address where address_id = 15"
+        val address = db.select<Address>(sql).first()
+        val newAddress = address.copy(street = "NY street")
+        val address2 = db.update(newAddress)
+        assertEquals(Address(15, "*NY street*", 2), address2)
+        val address3 = db.select<Address>(sql).firstOrNull()
+        assertEquals(Address(15, "*NY street", 2), address3)
+    }
+
+    @Test
     fun update_UniqueConstraintException() {
         val db = Db(config)
         val address = Address(1, "STREET 2", 1)
@@ -443,6 +526,48 @@ internal class DbTest {
         db.batchInsert(addressList)
         val list = db.select<Address>("select * from address where address_id in (16, 17, 18)")
         assertEquals(addressList, list)
+    }
+
+    @Test
+    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+    fun batchInsert_listener() {
+        val db = Db(config.copy(listener = object : EntityListener {
+            override fun <T> preInsert(entity: T, meta: EntityMeta<T>): T {
+                return when (entity) {
+                    is Address -> entity.copy(street = "*${entity.street}")
+                    else -> entity
+                } as T
+            }
+
+            override fun <T> postInsert(entity: T, meta: EntityMeta<T>): T {
+                return when (entity) {
+                    is Address -> entity.copy(street = "${entity.street}*")
+                    else -> entity
+                } as T
+            }
+        }))
+
+        val addressList = listOf(
+            Address(16, "STREET 16", 0),
+            Address(17, "STREET 17", 0),
+            Address(18, "STREET 18", 0)
+        )
+        val list = db.batchInsert(addressList)
+        assertEquals(
+            listOf(
+                Address(16, "*STREET 16*", 0),
+                Address(17, "*STREET 17*", 0),
+                Address(18, "*STREET 18*", 0)
+            ), list
+        )
+        val list2 = db.select<Address>("select * from address where address_id in (16, 17, 18)")
+        assertEquals(
+            listOf(
+                Address(16, "*STREET 16", 0),
+                Address(17, "*STREET 17", 0),
+                Address(18, "*STREET 18", 0)
+            ), list2
+        )
     }
 
     @Test
@@ -488,6 +613,44 @@ internal class DbTest {
     }
 
     @Test
+    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+    fun batchDelete_listener() {
+        val db = Db(config.copy(listener = object : EntityListener {
+            override fun <T> preDelete(entity: T, meta: EntityMeta<T>): T {
+                return when (entity) {
+                    is Address -> entity.copy(street = "*${entity.street}")
+                    else -> entity
+                } as T
+            }
+
+            override fun <T> postDelete(entity: T, meta: EntityMeta<T>): T {
+                return when (entity) {
+                    is Address -> entity.copy(street = "${entity.street}*")
+                    else -> entity
+                } as T
+            }
+        }))
+
+        val addressList = listOf(
+            Address(16, "STREET 16", 0),
+            Address(17, "STREET 17", 0),
+            Address(18, "STREET 18", 0)
+        )
+        db.batchInsert(addressList)
+        val sql = "select * from address where address_id in (16, 17, 18)"
+        assertEquals(addressList, db.select<Address>(sql))
+        val list = db.batchDelete(addressList)
+        assertEquals(
+            listOf(
+                Address(16, "*STREET 16*", 0),
+                Address(17, "*STREET 17*", 0),
+                Address(18, "*STREET 18*", 0)
+            ), list
+        )
+        assertTrue(db.select<Address>(sql).isEmpty())
+    }
+
+    @Test
     fun batchDelete_OptimisticLockException() {
         val db = Db(config)
         val addressList = listOf(
@@ -505,6 +668,45 @@ internal class DbTest {
                 )
             )
         }
+    }
+
+    @Test
+    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+    fun batchUpdate_listener() {
+        val db = Db(config.copy(listener = object : EntityListener {
+            override fun <T> preUpdate(entity: T, meta: EntityMeta<T>): T {
+                return when (entity) {
+                    is Address -> entity.copy(street = "*${entity.street}")
+                    else -> entity
+                } as T
+            }
+
+            override fun <T> postUpdate(entity: T, meta: EntityMeta<T>): T {
+                return when (entity) {
+                    is Address -> entity.copy(street = "${entity.street}*")
+                    else -> entity
+                } as T
+            }
+        }))
+
+        val sql = "select * from address where address_id in (1,2,3)"
+        val addressList = db.select<Address>(sql)
+        val list = db.batchUpdate(addressList)
+        assertEquals(
+            listOf(
+                Address(1, "*STREET 1*", 2),
+                Address(2, "*STREET 2*", 2),
+                Address(3, "*STREET 3*", 2)
+            ), list
+        )
+        val list2 = db.select<Address>(sql)
+        assertEquals(
+            listOf(
+                Address(1, "*STREET 1", 2),
+                Address(2, "*STREET 2", 2),
+                Address(3, "*STREET 3", 2)
+            ), list2
+        )
     }
 
     @Test

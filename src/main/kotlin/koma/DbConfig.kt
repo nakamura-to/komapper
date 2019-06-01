@@ -1,15 +1,17 @@
 package koma
 
+import koma.meta.EntityListener
 import koma.tx.TransactionIsolationLevel
 import koma.tx.TransactionManager
 import koma.tx.TransactionScope
 import javax.sql.DataSource
 
-class DbConfig(
+data class DbConfig(
     val name: String = "",
-    dataSource: DataSource,
+    private val dataSource: DataSource,
     val dialect: Dialect,
     val namingStrategy: NamingStrategy = object : NamingStrategy {},
+    val listener: EntityListener = object : EntityListener {},
     val logger: Logger = {},
     val useTransaction: Boolean = false,
     val defaultIsolationLevel: TransactionIsolationLevel? = null,
@@ -29,7 +31,7 @@ class DbConfig(
         }
     }
 
-    val dataSource: DataSource =
+    val connectionProvider: DataSource =
         if (useTransaction)
             transactionManager.getDataSource()
         else
