@@ -10,6 +10,7 @@ Currently supported database is H2 Database only.
 package koma
 
 import koma.jdbc.SimpleDataSource
+import java.time.LocalDateTime
 
 data class Address(
     @Id
@@ -17,6 +18,10 @@ data class Address(
     @Column(name = "address_id")
     val id: Int = 0,
     val street: String,
+    @CreatedAt
+    val createdAt: LocalDateTime? = null,
+    @UpdatedAt
+    val updatedAt: LocalDateTime? = null,
     @Version
     val version: Int = 0
 )
@@ -31,39 +36,46 @@ fun main() {
         )
     )
 
-    // set up data
+    // set up schema
     db.transaction {
         db.execute(
             """
             CREATE SEQUENCE ADDRESS_SEQ START WITH 1 INCREMENT BY 100;
-            CREATE TABLE ADDRESS(ADDRESS_ID INTEGER NOT NULL PRIMARY KEY, STREET VARCHAR(20) UNIQUE, VERSION INTEGER);
-            INSERT INTO ADDRESS (ADDRESS_ID, STREET, VERSION) VALUES(1, 'street A', 1)
+            CREATE TABLE ADDRESS(
+                ADDRESS_ID INTEGER NOT NULL PRIMARY KEY,
+                STREET VARCHAR(20) UNIQUE,
+                CREATED_AT TIMESTAMP,
+                UPDATED_AT TIMESTAMP,
+                VERSION INTEGER
+            );
             """.trimIndent()
         )
     }
 
     // query
     db.transaction {
-        val addressA = db.findById<Address>(1)
-        println(addressA) // Address(id=1, street=street A, version=1)
+        val addressA = db.insert(Address(street = "street A"))
+        // Address(id=1, street=street A, createdAt=2019-06-01T22:10:28.229, updatedAt=null, version=0)
+        println(addressA)
 
-        addressA?.let {
-            val addressB = db.update(addressA.copy(street = "street B"))
-            println(addressB) // Address(id=1, street=street B, version=2)
-        }
+        val foundA = db.findById<Address>(1)
+        // Address(id=1, street=street A, createdAt=2019-06-01T22:10:28.229, updatedAt=null, version=0)
+        println(foundA)
 
-        val addressB = db.select<Address>("select * from address where street = /*street*/'test'", object {
+        val addressB = db.update(addressA.copy(street = "street B"))
+        // Address(id=1, street=street B, createdAt=2019-06-01T22:10:28.229, updatedAt=2019-06-01T22:10:28.291, version=1)
+        println(addressB)
+
+        val foundB = db.select<Address>("select * from address where street = /*street*/'test'", object {
             val street = "street B"
         }).first()
-        println(addressB) // Address(id=1, street=street B, version=2)
+        // Address(id=1, street=street B, createdAt=2019-06-01T22:10:28.229, updatedAt=2019-06-01T22:10:28.291, version=1)
+        println(foundB)
 
         db.delete(addressB)
-
         val addressList = db.select<Address>("select * from address")
-        println(addressList.size) // 0
-
-        val addressC = db.insert(Address(street = "street C"))
-        println(addressC) // Address(id=1, street=street C, version=0)
+        // 0
+        println(addressList.size)
     }
 }
 ```
