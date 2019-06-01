@@ -16,6 +16,8 @@ interface Dialect {
 
     fun setValue(stmt: PreparedStatement, index: Int, value: Any?, valueClass: KClass<*>)
 
+    fun formatValue(value: Any?, valueClass: KClass<*>): String
+
     fun isUniqueConstraintViolated(exception: SQLException): Boolean
 
     fun getSequenceSql(sequenceName: String): String
@@ -32,6 +34,12 @@ abstract class AbstractDialect : Dialect {
         @Suppress("UNCHECKED_CAST")
         val jdbcType = getJdbcType(valueClass) as JdbcType<Any>
         jdbcType.setValue(stmt, index, value)
+    }
+
+    override fun formatValue(value: Any?, valueClass: KClass<*>): String {
+        @Suppress("UNCHECKED_CAST")
+        val jdbcType = getJdbcType(valueClass) as JdbcType<Any>
+        return jdbcType.toString(value)
     }
 
     @Suppress("UNCHECKED_CAST")

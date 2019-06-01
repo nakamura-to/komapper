@@ -2,8 +2,16 @@ package koma.sql
 
 import koma.Value
 import koma.expr.ExprEvaluator
+import kotlin.reflect.KClass
 
-class SqlBuilder(private val evaluator: ExprEvaluator = ExprEvaluator()) {
+private fun format(value: Any?, valueClass: KClass<*>): String {
+    return value.toString()
+}
+
+class SqlBuilder(
+    private val formatter: (Any?, KClass<*>) -> String = ::format,
+    private val evaluator: ExprEvaluator = ExprEvaluator()
+) {
 
     fun build(template: CharSequence, ctx: Map<String, Value> = emptyMap()): Sql {
         val parser = SqlParser(template.toString())
@@ -152,10 +160,10 @@ class SqlBuilder(private val evaluator: ExprEvaluator = ExprEvaluator()) {
         return if (value is CharSequence) "'$value'" else value.toString()
     }
 
-    class State(ctx: Map<String, Value>) {
+    inner class State(ctx: Map<String, Value>) {
         var available: Boolean = false
         val ctx: MutableMap<String, Value> = HashMap(ctx)
-        val buf = SqlBuffer()
+        val buf = SqlBuffer(formatter)
 
         constructor(state: State) : this(state.ctx)
 

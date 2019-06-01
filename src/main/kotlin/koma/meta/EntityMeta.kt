@@ -1,5 +1,6 @@
 package koma.meta
 
+import koma.Dialect
 import koma.NamingStrategy
 import koma.Table
 import koma.Value
@@ -21,6 +22,7 @@ import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.jvmErasure
 
 class EntityMeta<T>(
+    val dialect: Dialect,
     val constructor: KFunction<T>,
     val copyFun: KFunction<T>,
     val tableName: String,
@@ -133,7 +135,7 @@ class EntityMeta<T>(
     }
 
     fun buildFindByIdSql(id: Any, version: Any?): Sql {
-        val buf = SqlBuffer()
+        val buf = SqlBuffer(dialect::formatValue)
         buf.append("select ")
         propMetaList.forEach { meta ->
             buf.append("${meta.columnName}, ")
@@ -167,7 +169,7 @@ class EntityMeta<T>(
     }
 
     fun buildInsertSql(newEntity: T): Sql {
-        val buf = SqlBuffer()
+        val buf = SqlBuffer(dialect::formatValue)
         buf.append("insert into $tableName")
         buf.append(" (")
         propMetaList.forEach { meta ->
@@ -185,7 +187,7 @@ class EntityMeta<T>(
     }
 
     fun buildDeleteSql(entity: T): Sql {
-        val buf = SqlBuffer()
+        val buf = SqlBuffer(dialect::formatValue)
         buf.append("delete from $tableName")
         if (idPropMetaList.isNotEmpty()) {
             buf.append(" where ")
@@ -209,7 +211,7 @@ class EntityMeta<T>(
     }
 
     fun buildUpdateSql(entity: T, newEntity: T): Sql {
-        val buf = SqlBuffer()
+        val buf = SqlBuffer(dialect::formatValue)
         buf.append("update $tableName")
         buf.append(" set ")
         propMetaList.filter { it.kind !is PropKind.Id }.forEach { meta ->
@@ -243,12 +245,16 @@ class EntityMeta<T>(
 
 private val cache = ConcurrentHashMap<KClass<*>, EntityMeta<*>>()
 
-fun <T : Any> getEntityMeta(clazz: KClass<T>, namingStrategy: NamingStrategy): EntityMeta<T> {
+fun <T : Any> getEntityMeta(clazz: KClass<T>, dialect: Dialect, namingStrategy: NamingStrategy): EntityMeta<T> {
     @Suppress("UNCHECKED_CAST")
-    return cache.computeIfAbsent(clazz) { makeEntityMeta(it, namingStrategy) } as EntityMeta<T>
+    return cache.computeIfAbsent(clazz) { makeEntityMeta(it, dialect, namingStrategy) } as EntityMeta<T>
 }
 
-private fun <T : Any> makeEntityMeta(clazz: KClass<T>, namingStrategy: NamingStrategy): EntityMeta<T> {
+private fun <T : Any> makeEntityMeta(
+    clazz: KClass<T>,
+    dialect: Dialect,
+    namingStrategy: NamingStrategy
+): EntityMeta<T> {
     require(clazz.isData) { "The clazz must be a data class." }
     require(!clazz.isAbstract) { "The clazz must not be abstract." }
     val constructor = clazz.primaryConstructor ?: throw AssertionError()
@@ -268,5 +274,5 @@ private fun <T : Any> makeEntityMeta(clazz: KClass<T>, namingStrategy: NamingStr
             } ?: TODO()
             makePropMeta(consParam, copyFunParam, prop, namingStrategy)
         }
-    return EntityMeta(constructor, copyFun, tableName, propMetaList)
+    return EntityMeta(dialect, constructor, copyFun, tableName, propMetaList)
 }

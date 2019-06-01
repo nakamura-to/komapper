@@ -1,8 +1,12 @@
 package koma.sql
 
 import koma.Value
+import kotlin.reflect.KClass
 
-class SqlBuffer(capacity: Int = 200) {
+class SqlBuffer(
+    val formatter: (Any?, KClass<*>) -> String,
+    capacity: Int = 200
+) {
     val sql = StringBuilder(capacity)
     val log = StringBuilder(capacity)
     val values = ArrayList<Value>()
@@ -14,7 +18,7 @@ class SqlBuffer(capacity: Int = 200) {
 
     fun bind(value: Value) {
         sql.append("?")
-        log.append(toText(value))
+        log.append(formatter(value.first, value.second))
         values.add(value)
     }
 
@@ -26,10 +30,4 @@ class SqlBuffer(capacity: Int = 200) {
     fun toSql(): Sql {
         return Sql(sql.toString(), values, log.toString())
     }
-
-    private fun toText(value: Value): String {
-        val (obj) = value
-        return if (obj is CharSequence) "'$obj'" else obj.toString()
-    }
-
 }
