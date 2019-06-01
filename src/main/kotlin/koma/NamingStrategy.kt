@@ -1,17 +1,26 @@
 package koma
 
+import java.nio.CharBuffer
+
 
 interface NamingStrategy {
 
     fun fromKotlinToDb(name: String): String {
-        val buf = StringBuilder()
-        for ((i, c) in name.withIndex()) {
-            if (i > 0 && c.isUpperCase()) {
-                buf.append('_')
+        val builder = StringBuilder()
+        val buf = CharBuffer.wrap(name)
+        while (buf.hasRemaining()) {
+            val c1 = buf.get()
+            builder.append(c1.toLowerCase())
+            buf.mark()
+            if (buf.hasRemaining()) {
+                val c2 = buf.get()
+                if (!c1.isUpperCase() && c2.isUpperCase()) {
+                    builder.append("_")
+                }
+                buf.reset()
             }
-            buf.append(c.toLowerCase())
         }
-        return buf.toString()
+        return builder.toString()
     }
 
 }

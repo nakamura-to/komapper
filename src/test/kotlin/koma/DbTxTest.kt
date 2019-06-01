@@ -62,7 +62,7 @@ internal class DbTxTest {
                     CREATE TABLE BLOB_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE BLOB);
                     CREATE TABLE CLOB_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE CLOB);
                     CREATE TABLE NCLOB_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE NCLOB);
-                    CREATE TABLE SQLXML_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE CLOB);
+                    CREATE TABLE SQL_XML_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE CLOB);
 
                     CREATE TABLE ID_GENERATOR(PK VARCHAR(20) NOT NULL PRIMARY KEY, VALUE INTEGER NOT NULL);
                     CREATE TABLE MY_ID_GENERATOR(MY_PK VARCHAR(20) NOT NULL PRIMARY KEY, MY_VALUE INTEGER NOT NULL);
@@ -372,7 +372,6 @@ internal class DbTxTest {
 
         @Test
         fun nclob() {
-            @Table(name = "NCLOB_TEST")
             data class NClobTest(@Id val id: Int, val value: NClob)
 
             val db = Db(config)
@@ -389,7 +388,6 @@ internal class DbTxTest {
 
         @Test
         fun sqlXml() {
-            @Table(name = "SQLXML_TEST")
             data class SqlXmlTest(@Id val id: Int, val value: SQLXML)
 
             val db = Db(config)
