@@ -15,7 +15,10 @@ data class DbConfig(
     val logger: Logger = {},
     val useTransaction: Boolean = false,
     val defaultIsolationLevel: TransactionIsolationLevel? = null,
-    val batchSize: Int = 10
+    val batchSize: Int = 10,
+    val fetchSize: Int? = null,
+    val maxRows: Int? = null,
+    val queryTimeout: Int? = null
 ) {
 
     private val transactionManager: TransactionManager by lazy {

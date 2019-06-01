@@ -145,18 +145,19 @@ class Db(val config: DbConfig) {
         var stream: Stream<T>? = null
         val con = config.connectionProvider.connection
         try {
-            log(sql)
-            val stmt = con.prepareStatement(sql.text)
+            val ps = con.prepareStatement(sql.text)
             try {
-                bindValues(stmt, sql.values)
-                val rs = stmt.executeQuery()
+                log(sql)
+                ps.setUp()
+                ps.bind(sql.values)
+                val rs = ps.executeQuery()
                 try {
                     return handler(rs).also { stream = it }
                 } finally {
                     stream.onClose(rs)
                 }
             } finally {
-                stream.onClose(stmt)
+                stream.onClose(ps)
             }
         } finally {
             stream.onClose(con)
@@ -262,10 +263,11 @@ class Db(val config: DbConfig) {
 
     private fun executeUpdate(sql: Sql): Int {
         return config.connectionProvider.connection.use { con ->
-            log(sql)
-            con.prepareStatement(sql.text).use { stmt ->
-                bindValues(stmt, sql.values)
-                stmt.executeUpdate()
+            con.prepareStatement(sql.text).use { ps ->
+                log(sql)
+                ps.setUp()
+                ps.bind(sql.values)
+                ps.executeUpdate()
             }
         }
     }
@@ -364,16 +366,17 @@ class Db(val config: DbConfig) {
 
     private fun executeBatch(sqls: Collection<Sql>): IntArray {
         return config.connectionProvider.connection.use { con ->
-            con.prepareStatement(sqls.first().text).use { stmt ->
+            con.prepareStatement(sqls.first().text).use { ps ->
                 val batchSize = config.batchSize
                 val allCounts = IntArray(sqls.size)
                 var offset = 0
                 for ((i, sql) in sqls.withIndex()) {
                     log(sql)
-                    bindValues(stmt, sql.values)
-                    stmt.addBatch()
+                    ps.setUp()
+                    ps.bind(sql.values)
+                    ps.addBatch()
                     if (i == sqls.size - 1 || batchSize > 0 && (i + 1) % batchSize == 0) {
-                        val counts = stmt.executeBatch()
+                        val counts = ps.executeBatch()
                         counts.copyInto(allCounts, offset)
                         offset = i + 1
                     }
@@ -423,9 +426,15 @@ class Db(val config: DbConfig) {
         }
     }
 
-    private fun bindValues(stmt: PreparedStatement, values: List<Value>) {
+    private fun PreparedStatement.setUp() {
+        config.fetchSize?.let { if (it > 0) this.fetchSize = it }
+        config.maxRows?.let { if (it > 0) this.maxRows = it }
+        config.queryTimeout?.let { if (it > 0) this.queryTimeout = it }
+    }
+
+    private fun PreparedStatement.bind(values: List<Value>) {
         values.forEachIndexed { index, (value, valueType) ->
-            config.dialect.setValue(stmt, index + 1, value, valueType)
+            config.dialect.setValue(this, index + 1, value, valueType)
         }
     }
 
