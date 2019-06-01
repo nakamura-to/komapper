@@ -1,5 +1,7 @@
 package koma
 
+import koma.criteria.CriteriaScope
+import koma.criteria.Terminal
 import koma.meta.*
 import koma.sql.Sql
 import koma.sql.SqlBuilder
@@ -17,6 +19,29 @@ import kotlin.streams.toList
 class Db(val config: DbConfig) {
     val transaction: TransactionScope
         get() = config.transactionScope
+
+    inline fun <reified T : Any> select(criteriaBlock: CriteriaScope<T>.() -> Terminal<T> = { where { } }): List<T> {
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        val criteria = criteriaBlock(CriteriaScope())()
+        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
+        val sql = meta.buildSelectSql(criteria)
+        return `access$stream`(sql, meta).toList()
+    }
+
+    inline fun <reified T : Any, R> sequence(
+        criteriaBlock: CriteriaScope<T>.() -> Terminal<T> = { where { } },
+        block: (Sequence<T>) -> R
+    ): R {
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        val criteria = criteriaBlock(CriteriaScope())()
+        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
+        val sql = meta.buildSelectSql(criteria)
+        return `access$stream`(sql, meta).use {
+            block(it.asSequence())
+        }
+    }
 
     inline fun <reified T : Any> findById(id: Any, version: Any? = null): T? {
         require(T::class.isData) { "The T must be a data class." }
@@ -80,7 +105,7 @@ class Db(val config: DbConfig) {
             val count = metaData.columnCount
             for (i in 1..count) {
                 val label = metaData.getColumnLabel(i).toLowerCase()
-                val propMeta = meta.propMetaMap[label] ?: continue
+                val propMeta = meta.columnNamePropMetaMap[label] ?: continue
                 propMetaMap[i] = propMeta
             }
             fromResultSetToStream(rs) {

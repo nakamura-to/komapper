@@ -4,6 +4,8 @@ import koma.Dialect
 import koma.NamingStrategy
 import koma.Table
 import koma.Value
+import koma.criteria.Criteria
+import koma.criteria.Criterion
 import koma.sql.Sql
 import koma.sql.SqlBuffer
 import java.math.BigDecimal
@@ -15,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
+import kotlin.reflect.KProperty1
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
@@ -28,7 +31,8 @@ class EntityMeta<T>(
     val tableName: String,
     val propMetaList: List<PropMeta<T>>
 ) {
-    val propMetaMap = propMetaList.associateBy { it.columnName }
+    val columnNamePropMetaMap = propMetaList.associateBy { it.columnName }
+    val propNamePropMetaMap = propMetaList.associateBy { it.prop.name }
     val idPropMetaList = propMetaList.filter { it.kind is PropKind.Id }
     val versionPropMeta = propMetaList.find { it.kind == PropKind.Version }
     val createdAtPropMeta = propMetaList.filter { it.kind is PropKind.CreatedAt }
@@ -133,6 +137,87 @@ class EntityMeta<T>(
         val args = mutableMapOf(receiverArg) + createdAtArgs
         return copy(args)
     }
+
+    fun buildSelectSql(criteria: Criteria<T>): Sql {
+        val buf = SqlBuffer(dialect::formatValue)
+        buf.append("select ")
+        propMetaList.forEach { meta ->
+            buf.append("${meta.columnName}, ")
+        }
+        buf.cutBack(2)
+        buf.append(" from $tableName")
+        with(criteria) {
+            if (whereScope.criterionList.isNotEmpty()) {
+                buf.append(" where ")
+                visit(buf, whereScope.criterionList)
+            }
+            if (orderByScope.items.isNotEmpty()) {
+                buf.append(" order by ")
+                orderByScope.items.forEach { (meta, sort) ->
+                    val propMeta = propNamePropMetaMap[meta.name] ?: TODO()
+                    buf.append(propMeta.columnName)
+                    buf.append(" $sort, ")
+                }
+                buf.cutBack(2)
+            }
+            limit?.let { buf.append(" limit $limit") }
+            offset?.let { buf.append(" offset $offset") }
+        }
+        return buf.toSql()
+
+    }
+
+    private fun visit(buf: SqlBuffer, criterionList: List<Criterion>) {
+        criterionList.forEachIndexed { index, criterion ->
+            when (criterion) {
+                is Criterion.Eq -> op(buf, "=", criterion.prop, criterion.value)
+                is Criterion.Ne -> op(buf, "<>", criterion.prop, criterion.value)
+                is Criterion.Gt -> op(buf, ">", criterion.prop, criterion.value)
+                is Criterion.Ge -> op(buf, ">=", criterion.prop, criterion.value)
+                is Criterion.Lt -> op(buf, "<", criterion.prop, criterion.value)
+                is Criterion.Le -> op(buf, "<=", criterion.prop, criterion.value)
+                is Criterion.And -> logicalOp(buf, "and", index, criterion.criterionList)
+                is Criterion.Or -> logicalOp(buf, "or", index, criterion.criterionList)
+                is Criterion.In -> inOp(buf, criterion.prop, criterion.values)
+            }
+            buf.append(" and ")
+        }
+        buf.cutBack(5)
+    }
+
+    private fun op(buf: SqlBuffer, op: String, prop: KProperty1<*, *>, value: Any?) {
+        val meta = propNamePropMetaMap[prop.name] ?: TODO()
+        buf.append(meta.columnName)
+        buf.append(" $op ")
+        buf.bind(value to prop.returnType.jvmErasure)
+    }
+
+    private fun logicalOp(buf: SqlBuffer, op: String, index: Int, criterionList: List<Criterion>) {
+        if (index > 0) {
+            buf.cutBack(5)
+            buf.append(" $op ")
+        }
+        buf.append("(")
+        visit(buf, criterionList)
+        buf.append(")")
+    }
+
+    private fun inOp(buf: SqlBuffer, prop: KProperty1<*, *>, values: Iterable<*>) {
+        val meta = propNamePropMetaMap[prop.name] ?: TODO()
+        buf.append(meta.columnName)
+        buf.append(" in (")
+        val type = prop.returnType.jvmErasure
+        var counter = 0
+        for (v in values) {
+            if (++counter > 1) buf.append(", ")
+            buf.bind(v to type)
+        }
+        if (counter == 0) {
+            buf.append("null")
+        }
+        buf.append(")")
+    }
+
 
     fun buildFindByIdSql(id: Any, version: Any?): Sql {
         val buf = SqlBuffer(dialect::formatValue)

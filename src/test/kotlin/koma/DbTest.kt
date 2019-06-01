@@ -220,6 +220,125 @@ internal class DbTest {
     }
 
     @Test
+    fun selectByCriteria() {
+        val db = Db(config)
+        val list = db.select<Address> {
+            where {
+                Address::addressId ge 1
+            }.orderBy {
+                Address::addressId.desc()
+            }.limit(2).offset(5)
+        }
+        assertEquals(
+            listOf(
+                Address(10, "STREET 10", 1),
+                Address(9, "STREET 9", 1)
+            ), list
+        )
+    }
+
+    @Test
+    fun selectByCriteria_noArg() {
+        val db = Db(config)
+        val list = db.select<Address>()
+        assertEquals(15, list.size)
+    }
+
+    @Test
+    fun selectByCriteria_and() {
+        val db = Db(config)
+        val list = db.select<Address> {
+            where {
+                Address::addressId ge 1
+                and {
+                    Address::addressId ge 1
+                }
+            }.orderBy {
+                Address::addressId.desc()
+            }.limit(2).offset(5)
+        }
+        assertEquals(
+            listOf(
+                Address(10, "STREET 10", 1),
+                Address(9, "STREET 9", 1)
+            ), list
+        )
+    }
+
+    @Test
+    fun selectByCriteria_or() {
+        val db = Db(config)
+        val list = db.select<Address> {
+            where {
+                Address::addressId ge 1
+                or {
+                    Address::addressId ge 1
+                    Address::addressId ge 1
+                }
+            }.orderBy {
+                Address::addressId.desc()
+            }.limit(2).offset(5)
+        }
+        assertEquals(
+            listOf(
+                Address(10, "STREET 10", 1),
+                Address(9, "STREET 9", 1)
+            ), list
+        )
+    }
+
+    @Test
+    fun selectByCriteria_in() {
+        val db = Db(config)
+        val list = db.select<Address> {
+            where {
+                Address::addressId in listOf(9, 10)
+            }.orderBy {
+                Address::addressId.desc()
+            }
+        }
+        assertEquals(
+            listOf(
+                Address(10, "STREET 10", 1),
+                Address(9, "STREET 9", 1)
+            ), list
+        )
+    }
+
+    @Test
+    fun selectByCriteria_in_empty() {
+        val db = Db(config)
+        val list = db.select<Address> {
+            where {
+                Address::addressId in emptyList<Int>()
+            }.orderBy {
+                Address::addressId.desc()
+            }
+        }
+        assertTrue(list.isEmpty())
+    }
+
+    @Test
+    fun sequenceByCriteria() {
+        val db = Db(config)
+        val list = db.sequence<Address, List<Address>>({
+            where {
+                Address::addressId ge 1
+            }.orderBy {
+                Address::addressId.desc()
+            }.limit(2).offset(5)
+        }) {
+            it.toList()
+        }
+        assertEquals(
+            listOf(
+                Address(10, "STREET 10", 1),
+                Address(9, "STREET 9", 1)
+            ), list
+        )
+    }
+
+    @Test
     fun findById() {
         val db = Db(config)
         val address = db.findById<Address>(2)
