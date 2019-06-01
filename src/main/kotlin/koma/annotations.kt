@@ -14,3 +14,9 @@ annotation class Version
 
 @Target(AnnotationTarget.VALUE_PARAMETER)
 annotation class Column(val name: String)
+
+@Target(AnnotationTarget.VALUE_PARAMETER)
+annotation class CreatedAt
+
+@Target(AnnotationTarget.VALUE_PARAMETER)
+annotation class UpdatedAt

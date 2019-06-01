@@ -7,6 +7,9 @@ import koma.sql.Sql
 import koma.sql.SqlBuffer
 import java.math.BigDecimal
 import java.math.BigInteger
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
@@ -21,12 +24,13 @@ class EntityMeta<T>(
     val constructor: KFunction<T>,
     val copyFun: KFunction<T>,
     val tableName: String,
-    val propMetaList: List<PropMeta<T>>,
-    val idPropMetaList: List<PropMeta<T>>,
-    val versionPropMeta: PropMeta<T>?,
-    val namingStrategy: NamingStrategy
+    val propMetaList: List<PropMeta<T>>
 ) {
     val propMetaMap = propMetaList.associateBy { it.columnName }
+    val idPropMetaList = propMetaList.filter { it.kind is PropKind.Id }
+    val versionPropMeta = propMetaList.find { it.kind == PropKind.Version }
+    val createdAtPropMeta = propMetaList.filter { it.kind is PropKind.CreatedAt }
+    val updatedAtPropMeta = propMetaList.filter { it.kind is PropKind.UpdatedAt }
 
     fun new(args: Map<KParameter, Any?>): T {
         return constructor.callBy(args)
@@ -51,6 +55,23 @@ class EntityMeta<T>(
         }
         val receiverArg: Pair<KParameter, *> = copyFun.parameters[0] to entity
         val args = mutableMapOf(receiverArg) + idArgs
+        return copy(args)
+    }
+
+    fun assignTimestamp(entity: T): T {
+        if (createdAtPropMeta.isEmpty()) {
+            return entity
+        }
+        val createdAtArgs = createdAtPropMeta.map {
+            it.copyFunParam to when (it.type) {
+                LocalDate::class -> LocalDate.now()
+                LocalDateTime::class -> LocalDateTime.now()
+                LocalTime::class -> LocalTime.now()
+                else -> TODO()
+            }
+        }
+        val receiverArg: Pair<KParameter, *> = copyFun.parameters[0] to entity
+        val args = mutableMapOf(receiverArg) + createdAtArgs
         return copy(args)
     }
 
@@ -92,6 +113,23 @@ class EntityMeta<T>(
             else -> TODO()
         }
         return value.copy(v)
+    }
+
+    fun updateTimestamp(entity: T): T {
+        if (updatedAtPropMeta.isEmpty()) {
+            return entity
+        }
+        val createdAtArgs = updatedAtPropMeta.map {
+            it.copyFunParam to when (it.type) {
+                LocalDate::class -> LocalDate.now()
+                LocalDateTime::class -> LocalDateTime.now()
+                LocalTime::class -> LocalTime.now()
+                else -> TODO()
+            }
+        }
+        val receiverArg: Pair<KParameter, *> = copyFun.parameters[0] to entity
+        val args = mutableMapOf(receiverArg) + createdAtArgs
+        return copy(args)
     }
 
     fun buildFindByIdSql(id: Any, version: Any?): Sql {
@@ -230,7 +268,5 @@ private fun <T : Any> makeEntityMeta(clazz: KClass<T>, namingStrategy: NamingStr
             } ?: TODO()
             makePropMeta(consParam, copyFunParam, prop, namingStrategy)
         }
-    val idPropMetaList = propMetaList.filter { it.kind is PropKind.Id }
-    val versionPropMeta = propMetaList.find { it.kind == PropKind.Version }
-    return EntityMeta(constructor, copyFun, tableName, propMetaList, idPropMetaList, versionPropMeta, namingStrategy)
+    return EntityMeta(constructor, copyFun, tableName, propMetaList)
 }

@@ -50,6 +50,16 @@ internal class DbTest {
         val value: String
     )
 
+    data class Person(
+        @Id
+        val personId: Int,
+        val name: String,
+        @CreatedAt
+        val createdAt: LocalDateTime = LocalDateTime.MIN,
+        @UpdatedAt
+        val updatedAt: LocalDateTime = LocalDateTime.MIN
+    )
+
     private enum class Direction {
         NORTH, SOUTH, WEST, EAST
     }
@@ -73,6 +83,7 @@ internal class DbTest {
                     CREATE TABLE DEPARTMENT(DEPARTMENT_ID INTEGER NOT NULL PRIMARY KEY, DEPARTMENT_NO INTEGER NOT NULL UNIQUE,DEPARTMENT_NAME VARCHAR(20),LOCATION VARCHAR(20) DEFAULT 'TOKYO', VERSION INTEGER);
                     CREATE TABLE ADDRESS(ADDRESS_ID INTEGER NOT NULL PRIMARY KEY, STREET VARCHAR(20) UNIQUE, VERSION INTEGER);
                     CREATE TABLE EMPLOYEE(EMPLOYEE_ID INTEGER NOT NULL PRIMARY KEY, EMPLOYEE_NO INTEGER NOT NULL ,EMPLOYEE_NAME VARCHAR(20),MANAGER_ID INTEGER,HIREDATE DATE,SALARY NUMERIC(7,2),DEPARTMENT_ID INTEGER,ADDRESS_ID INTEGER,VERSION INTEGER, CONSTRAINT FK_DEPARTMENT_ID FOREIGN KEY(DEPARTMENT_ID) REFERENCES DEPARTMENT(DEPARTMENT_ID), CONSTRAINT FK_ADDRESS_ID FOREIGN KEY(ADDRESS_ID) REFERENCES ADDRESS(ADDRESS_ID));
+                    CREATE TABLE PERSON(PERSON_ID INTEGER NOT NULL PRIMARY KEY, NAME VARCHAR(20), CREATED_AT TIMESTAMP, UPDATED_AT TIMESTAMP);
 
                     CREATE TABLE COMP_KEY_DEPARTMENT(DEPARTMENT_ID1 INTEGER NOT NULL, DEPARTMENT_ID2 INTEGER NOT NULL, DEPARTMENT_NO INTEGER NOT NULL UNIQUE,DEPARTMENT_NAME VARCHAR(20),LOCATION VARCHAR(20) DEFAULT 'TOKYO', VERSION INTEGER, CONSTRAINT PK_COMP_KEY_DEPARTMENT PRIMARY KEY(DEPARTMENT_ID1, DEPARTMENT_ID2));
                     CREATE TABLE COMP_KEY_ADDRESS(ADDRESS_ID1 INTEGER NOT NULL, ADDRESS_ID2 INTEGER NOT NULL, STREET VARCHAR(20), VERSION INTEGER, CONSTRAINT PK_COMP_KEY_ADDRESS PRIMARY KEY(ADDRESS_ID1, ADDRESS_ID2));
@@ -349,6 +360,15 @@ internal class DbTest {
     }
 
     @Test
+    fun insert_createdAt() {
+        val db = Db(config)
+        val person = Person(1, "ABC")
+        val newPerson = db.insert(person)
+        println(newPerson)
+        assertTrue(newPerson.createdAt > person.createdAt)
+    }
+
+    @Test
     fun insert_UniqueConstraintException() {
         val db = Db(config)
         val address = Address(1, "STREET 1", 0)
@@ -387,6 +407,16 @@ internal class DbTest {
     }
 
     @Test
+    fun update_updatedAt() {
+        val db = Db(config)
+        val person = Person(1, "ABC")
+        val newPerson = db.insert(person).let {
+            db.update(it)
+        }
+        assertTrue(newPerson.updatedAt > person.updatedAt)
+    }
+
+    @Test
     fun update_UniqueConstraintException() {
         val db = Db(config)
         val address = Address(1, "STREET 2", 1)
@@ -413,6 +443,19 @@ internal class DbTest {
         db.batchInsert(addressList)
         val list = db.select<Address>("select * from address where address_id in (16, 17, 18)")
         assertEquals(addressList, list)
+    }
+
+    @Test
+    fun batchInsert_createdAt() {
+        val db = Db(config)
+        val personList = listOf(
+            Person(1, "A"),
+            Person(2, "B"),
+            Person(3, "C")
+        )
+        db.batchInsert(personList)
+        val list = db.select<Person>("select * from person")
+        assertTrue(list.all { it.createdAt > LocalDateTime.MIN })
     }
 
     @Test
@@ -462,6 +505,22 @@ internal class DbTest {
                 )
             )
         }
+    }
+
+    @Test
+    fun batchUpdate_updatedAt() {
+        val db = Db(config)
+        val personList = listOf(
+            Person(1, "A"),
+            Person(2, "B"),
+            Person(3, "C")
+        )
+        db.batchInsert(personList)
+        db.select<Person>("select * from person").let {
+            db.batchUpdate(it)
+        }
+        val list = db.select<Person>("select * from person")
+        assertTrue(list.all { it.updatedAt > LocalDateTime.MIN })
     }
 
     @Test
@@ -700,6 +759,5 @@ internal class DbTest {
         }
 
     }
-
 
 }

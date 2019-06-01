@@ -198,6 +198,8 @@ class Db(val config: DbConfig) {
         val meta = getEntityMeta(T::class, config.namingStrategy)
         return meta.assignId(entity, config.name) { sequenceName ->
             selectOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
+        }.let { newEntity ->
+            meta.assignTimestamp(newEntity)
         }.also { newEntity ->
             val sql = meta.buildInsertSql(newEntity)
             val count = try {
@@ -229,7 +231,9 @@ class Db(val config: DbConfig) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = getEntityMeta(T::class, config.namingStrategy)
-        return meta.incrementVersion(entity).also { newEntity ->
+        return meta.incrementVersion(entity).let { newEntity ->
+            meta.updateTimestamp(newEntity)
+        }.also { newEntity ->
             val sql = meta.buildUpdateSql(entity, newEntity)
             val count = try {
                 `access$executeUpdate`(sql)
@@ -266,6 +270,8 @@ class Db(val config: DbConfig) {
             meta.assignId(entity, config.name) { sequenceName ->
                 selectOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
             }.let { newEntity ->
+                meta.assignTimestamp(newEntity)
+            }.let { newEntity ->
                 meta.buildInsertSql(newEntity)
             }
         }
@@ -301,6 +307,8 @@ class Db(val config: DbConfig) {
         val meta = getEntityMeta(T::class, config.namingStrategy)
         val sqls = entities.map { entity ->
             meta.incrementVersion(entity).let { newEntity ->
+                meta.updateTimestamp(newEntity)
+            }.let { newEntity ->
                 meta.buildUpdateSql(entity, newEntity)
             }
         }

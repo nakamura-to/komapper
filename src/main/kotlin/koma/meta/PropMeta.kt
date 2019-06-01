@@ -43,6 +43,8 @@ sealed class PropKind {
         }
     }
 
+    object CreatedAt : PropKind()
+    object UpdatedAt : PropKind()
     object Version : PropKind()
     object Basic : PropKind()
 }
@@ -69,10 +71,11 @@ fun <T> makePropMeta(
 ): PropMeta<T> {
     val id = consParam.findAnnotation<Id>()
     val version = consParam.findAnnotation<Version>()
-    val column = consParam.findAnnotation<Column>()
+    val createdAt = consParam.findAnnotation<CreatedAt>()
+    val updatedAt = consParam.findAnnotation<UpdatedAt>()
+    // TODO
     val kind = when {
-        id != null && version != null -> TODO()
-        id != null && version == null -> {
+        id != null -> {
             val generator = consParam.findAnnotation<SequenceGenerator>()
             if (generator != null) {
                 PropKind.Id.Sequence(generator)
@@ -80,9 +83,12 @@ fun <T> makePropMeta(
                 PropKind.Id.Assign
             }
         }
-        id == null && version != null -> PropKind.Version
+        version != null -> PropKind.Version
+        createdAt != null -> PropKind.CreatedAt
+        updatedAt != null -> PropKind.UpdatedAt
         else -> PropKind.Basic
     }
+    val column = consParam.findAnnotation<Column>()
     val columnName = column?.name ?: namingStrategy.fromKotlinToDb(consParam.name!!)
     return PropMeta(consParam, copyFunParam, kProperty, kind, columnName)
 }
