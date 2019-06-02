@@ -2,7 +2,7 @@ package test.koma
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.komapper.NamingStrategy
+import org.komapper.meta.NamingStrategy
 
 class NamingStrategyTest {
 

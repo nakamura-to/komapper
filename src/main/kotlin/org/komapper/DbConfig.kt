@@ -1,5 +1,8 @@
 package org.komapper
 
+import org.komapper.jdbc.Dialect
+import org.komapper.meta.EntityListener
+import org.komapper.meta.NamingStrategy
 import org.komapper.tx.TransactionIsolationLevel
 import org.komapper.tx.TransactionManager
 import org.komapper.tx.TransactionScope
@@ -10,7 +13,7 @@ data class DbConfig(
     private val dataSource: DataSource,
     val dialect: Dialect,
     val namingStrategy: NamingStrategy = object : NamingStrategy {},
-    val listener: org.komapper.meta.EntityListener = object : org.komapper.meta.EntityListener {},
+    val listener: EntityListener = object : EntityListener {},
     val logger: Logger = {},
     val useTransaction: Boolean = false,
     val defaultIsolationLevel: TransactionIsolationLevel? = null,

@@ -1,4 +1,4 @@
-package org.komapper
+package org.komapper.jdbc
 
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -31,39 +31,39 @@ abstract class AbstractDialect : Dialect {
 
     override fun setValue(stmt: PreparedStatement, index: Int, value: Any?, valueClass: KClass<*>) {
         @Suppress("UNCHECKED_CAST")
-        val jdbcType = getJdbcType(valueClass) as org.komapper.jdbc.JdbcType<Any>
+        val jdbcType = getJdbcType(valueClass) as JdbcType<Any>
         jdbcType.setValue(stmt, index, value)
     }
 
     override fun formatValue(value: Any?, valueClass: KClass<*>): String {
         @Suppress("UNCHECKED_CAST")
-        val jdbcType = getJdbcType(valueClass) as org.komapper.jdbc.JdbcType<Any>
+        val jdbcType = getJdbcType(valueClass) as JdbcType<Any>
         return jdbcType.toString(value)
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected open fun getJdbcType(type: KClass<*>): org.komapper.jdbc.JdbcType<*> = when {
-        type == Any::class -> org.komapper.jdbc.AnyType
-        type == java.sql.Array::class -> org.komapper.jdbc.ArrayType
-        type == BigDecimal::class -> org.komapper.jdbc.BigDecimalType
-        type == BigInteger::class -> org.komapper.jdbc.BigIntegerType
-        type == Blob::class -> org.komapper.jdbc.BlobType
-        type == Boolean::class -> org.komapper.jdbc.BooleanType
-        type == Byte::class -> org.komapper.jdbc.ByteType
-        type == ByteArray::class -> org.komapper.jdbc.ByteArrayType
-        type == Double::class -> org.komapper.jdbc.DoubleType
-        type == Clob::class -> org.komapper.jdbc.ClobType
-        type.isSubclassOf(Enum::class) -> org.komapper.jdbc.EnumType(type as KClass<Enum<*>>)
-        type == Float::class -> org.komapper.jdbc.FloatType
-        type == Int::class -> org.komapper.jdbc.IntType
-        type == LocalDateTime::class -> org.komapper.jdbc.LocalDateTimeType
-        type == LocalDate::class -> org.komapper.jdbc.LocalDateType
-        type == LocalTime::class -> org.komapper.jdbc.LocalTimeType
-        type == Long::class -> org.komapper.jdbc.LongType
-        type == NClob::class -> org.komapper.jdbc.NClobType
-        type == Short::class -> org.komapper.jdbc.ShortType
-        type == String::class -> org.komapper.jdbc.StringType
-        type == SQLXML::class -> org.komapper.jdbc.SQLXMLType
+    protected open fun getJdbcType(type: KClass<*>): JdbcType<*> = when {
+        type == Any::class -> AnyType
+        type == java.sql.Array::class -> ArrayType
+        type == BigDecimal::class -> BigDecimalType
+        type == BigInteger::class -> BigIntegerType
+        type == Blob::class -> BlobType
+        type == Boolean::class -> BooleanType
+        type == Byte::class -> ByteType
+        type == ByteArray::class -> ByteArrayType
+        type == Double::class -> DoubleType
+        type == Clob::class -> ClobType
+        type.isSubclassOf(Enum::class) -> EnumType(type as KClass<Enum<*>>)
+        type == Float::class -> FloatType
+        type == Int::class -> IntType
+        type == LocalDateTime::class -> LocalDateTimeType
+        type == LocalDate::class -> LocalDateType
+        type == LocalTime::class -> LocalTimeType
+        type == Long::class -> LongType
+        type == NClob::class -> NClobType
+        type == Short::class -> ShortType
+        type == String::class -> StringType
+        type == SQLXML::class -> SQLXMLType
         else -> error("""The jdbcType not found for the type "${type.qualifiedName}".""")
     }
 
@@ -77,7 +77,7 @@ abstract class AbstractDialect : Dialect {
     }
 }
 
-class H2Dialect : org.komapper.AbstractDialect() {
+class H2Dialect : AbstractDialect() {
 
     companion object {
         /** the error code that represents unique violation  */

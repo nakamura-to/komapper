@@ -2,6 +2,7 @@ package org.komapper
 
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import org.komapper.jdbc.H2Dialect
 import org.komapper.jdbc.SimpleDataSource
 import org.komapper.meta.EntityListener
 import org.komapper.meta.EntityMeta
@@ -222,7 +223,7 @@ internal class DbTest {
     @Test
     fun selectByCriteria() {
         val db = Db(config)
-        val list = db.select<Address> {
+        val list = db.selectByCriteria<Address> {
             where {
                 Address::addressId ge 1
             }.orderBy {
@@ -240,14 +241,14 @@ internal class DbTest {
     @Test
     fun selectByCriteria_noArg() {
         val db = Db(config)
-        val list = db.select<Address>()
+        val list = db.selectByCriteria<Address>()
         assertEquals(15, list.size)
     }
 
     @Test
     fun selectByCriteria_and() {
         val db = Db(config)
-        val list = db.select<Address> {
+        val list = db.selectByCriteria<Address> {
             where {
                 Address::addressId ge 1
                 and {
@@ -268,7 +269,7 @@ internal class DbTest {
     @Test
     fun selectByCriteria_or() {
         val db = Db(config)
-        val list = db.select<Address> {
+        val list = db.selectByCriteria<Address> {
             where {
                 Address::addressId ge 1
                 or {
@@ -290,7 +291,7 @@ internal class DbTest {
     @Test
     fun selectByCriteria_in() {
         val db = Db(config)
-        val list = db.select<Address> {
+        val list = db.selectByCriteria<Address> {
             where {
                 Address::addressId in listOf(9, 10)
             }.orderBy {
@@ -308,7 +309,7 @@ internal class DbTest {
     @Test
     fun selectByCriteria_in_empty() {
         val db = Db(config)
-        val list = db.select<Address> {
+        val list = db.selectByCriteria<Address> {
             where {
                 Address::addressId in emptyList<Int>()
             }.orderBy {
@@ -321,7 +322,7 @@ internal class DbTest {
     @Test
     fun sequenceByCriteria() {
         val db = Db(config)
-        val list = db.sequence<Address, List<Address>>({
+        val list = db.sequenceByCriteria<Address, List<Address>>({
             where {
                 Address::addressId ge 1
             }.orderBy {
@@ -375,17 +376,6 @@ internal class DbTest {
     }
 
     @Test
-    fun iterate() {
-        val db = Db(config)
-        val list = mutableListOf<Address>()
-        db.iterate<Address>("select * from address") {
-            list.add(it)
-        }
-        assertEquals(15, list.size)
-        assertEquals(Address(1, "STREET 1", 1), list[0])
-    }
-
-    @Test
     fun sequence() {
         val db = Db(config)
         val list = db.sequence<Address, List<Address>>("select * from address") {
@@ -399,17 +389,6 @@ internal class DbTest {
     fun selectOneColumn() {
         val db = Db(config)
         val list = db.selectOneColumn<String>("select street from address")
-        assertEquals(15, list.size)
-        assertEquals("STREET 1", list[0])
-    }
-
-    @Test
-    fun iterateOneColumn() {
-        val db = Db(config)
-        val list = mutableListOf<String?>()
-        db.iterateOneColumn<String?>("select street from address") {
-            list.add(it)
-        }
         assertEquals(15, list.size)
         assertEquals("STREET 1", list[0])
     }

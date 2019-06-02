@@ -45,7 +45,7 @@ abstract class AbstractJdbcType<T>(protected val sqlType: Int) : JdbcType<T> {
     }
 }
 
-object ArrayType : org.komapper.jdbc.AbstractJdbcType<java.sql.Array>(Types.ARRAY) {
+object ArrayType : AbstractJdbcType<java.sql.Array>(Types.ARRAY) {
 
     override fun doGetValue(rs: ResultSet, index: Int): java.sql.Array? {
         return rs.getArray(index)
@@ -56,7 +56,7 @@ object ArrayType : org.komapper.jdbc.AbstractJdbcType<java.sql.Array>(Types.ARRA
     }
 }
 
-object BigDecimalType : org.komapper.jdbc.AbstractJdbcType<BigDecimal>(Types.DECIMAL) {
+object BigDecimalType : AbstractJdbcType<BigDecimal>(Types.DECIMAL) {
 
     override fun doGetValue(rs: ResultSet, index: Int): BigDecimal? {
         return rs.getBigDecimal(index)
@@ -67,24 +67,24 @@ object BigDecimalType : org.komapper.jdbc.AbstractJdbcType<BigDecimal>(Types.DEC
     }
 }
 
-object BigIntegerType : org.komapper.jdbc.JdbcType<BigInteger> {
+object BigIntegerType : JdbcType<BigInteger> {
 
-    private val jdbcType = org.komapper.jdbc.BigDecimalType
+    private val jdbcType = BigDecimalType
 
     override fun getValue(rs: ResultSet, index: Int): BigInteger? {
-        return org.komapper.jdbc.BigIntegerType.jdbcType.getValue(rs, index)?.toBigInteger()
+        return jdbcType.getValue(rs, index)?.toBigInteger()
     }
 
     override fun setValue(ps: PreparedStatement, index: Int, value: BigInteger?) {
-        org.komapper.jdbc.BigIntegerType.jdbcType.setValue(ps, index, value?.toBigDecimal())
+        jdbcType.setValue(ps, index, value?.toBigDecimal())
     }
 
     override fun toString(value: BigInteger?): String {
-        return org.komapper.jdbc.BigIntegerType.jdbcType.toString(value?.toBigDecimal())
+        return jdbcType.toString(value?.toBigDecimal())
     }
 }
 
-object BlobType : org.komapper.jdbc.AbstractJdbcType<Blob>(Types.BLOB) {
+object BlobType : AbstractJdbcType<Blob>(Types.BLOB) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Blob? {
         return rs.getBlob(index)
@@ -95,7 +95,7 @@ object BlobType : org.komapper.jdbc.AbstractJdbcType<Blob>(Types.BLOB) {
     }
 }
 
-object BooleanType : org.komapper.jdbc.AbstractJdbcType<Boolean>(Types.BOOLEAN) {
+object BooleanType : AbstractJdbcType<Boolean>(Types.BOOLEAN) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Boolean? {
         return rs.getBoolean(index)
@@ -110,7 +110,7 @@ object BooleanType : org.komapper.jdbc.AbstractJdbcType<Boolean>(Types.BOOLEAN) 
     }
 }
 
-object ByteType : org.komapper.jdbc.AbstractJdbcType<Byte>(Types.SMALLINT) {
+object ByteType : AbstractJdbcType<Byte>(Types.SMALLINT) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Byte? {
         return rs.getByte(index)
@@ -121,7 +121,7 @@ object ByteType : org.komapper.jdbc.AbstractJdbcType<Byte>(Types.SMALLINT) {
     }
 }
 
-object ByteArrayType : org.komapper.jdbc.AbstractJdbcType<ByteArray>(Types.BINARY) {
+object ByteArrayType : AbstractJdbcType<ByteArray>(Types.BINARY) {
 
     override fun doGetValue(rs: ResultSet, index: Int): ByteArray? {
         return rs.getBytes(index)
@@ -132,7 +132,7 @@ object ByteArrayType : org.komapper.jdbc.AbstractJdbcType<ByteArray>(Types.BINAR
     }
 }
 
-object ClobType : org.komapper.jdbc.AbstractJdbcType<Clob>(Types.CLOB) {
+object ClobType : AbstractJdbcType<Clob>(Types.CLOB) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Clob? {
         return rs.getClob(index)
@@ -143,7 +143,7 @@ object ClobType : org.komapper.jdbc.AbstractJdbcType<Clob>(Types.CLOB) {
     }
 }
 
-object DoubleType : org.komapper.jdbc.AbstractJdbcType<Double>(Types.DOUBLE) {
+object DoubleType : AbstractJdbcType<Double>(Types.DOUBLE) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Double? {
         return rs.getDouble(index)
@@ -154,7 +154,7 @@ object DoubleType : org.komapper.jdbc.AbstractJdbcType<Double>(Types.DOUBLE) {
     }
 }
 
-private object DateType : org.komapper.jdbc.AbstractJdbcType<Date>(Types.DATE) {
+private object DateType : AbstractJdbcType<Date>(Types.DATE) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Date? {
         return rs.getDate(index)
@@ -169,9 +169,9 @@ private object DateType : org.komapper.jdbc.AbstractJdbcType<Date>(Types.DATE) {
     }
 }
 
-class EnumType(private val kClass: KClass<Enum<*>>) : org.komapper.jdbc.JdbcType<Enum<*>> {
+class EnumType(private val kClass: KClass<Enum<*>>) : JdbcType<Enum<*>> {
 
-    private val jdbcType = org.komapper.jdbc.StringType
+    private val jdbcType = StringType
 
     override fun getValue(rs: ResultSet, index: Int): Enum<*>? {
         val value = jdbcType.getValue(rs, index) ?: return null
@@ -191,7 +191,7 @@ class EnumType(private val kClass: KClass<Enum<*>>) : org.komapper.jdbc.JdbcType
     }
 }
 
-object FloatType : org.komapper.jdbc.AbstractJdbcType<Float>(Types.FLOAT) {
+object FloatType : AbstractJdbcType<Float>(Types.FLOAT) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Float? {
         return rs.getFloat(index)
@@ -202,7 +202,7 @@ object FloatType : org.komapper.jdbc.AbstractJdbcType<Float>(Types.FLOAT) {
     }
 }
 
-object IntType : org.komapper.jdbc.AbstractJdbcType<Int>(Types.INTEGER) {
+object IntType : AbstractJdbcType<Int>(Types.INTEGER) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Int? {
         return rs.getInt(index)
@@ -213,20 +213,20 @@ object IntType : org.komapper.jdbc.AbstractJdbcType<Int>(Types.INTEGER) {
     }
 }
 
-object LocalDateTimeType : org.komapper.jdbc.JdbcType<LocalDateTime> {
+object LocalDateTimeType : JdbcType<LocalDateTime> {
 
-    private val jdbcType = org.komapper.jdbc.TimestampType
+    private val jdbcType = TimestampType
 
     override fun getValue(rs: ResultSet, index: Int): LocalDateTime? {
-        return org.komapper.jdbc.LocalDateTimeType.jdbcType.getValue(rs, index)?.toLocalDateTime()
+        return jdbcType.getValue(rs, index)?.toLocalDateTime()
     }
 
     override fun setValue(ps: PreparedStatement, index: Int, value: LocalDateTime?) {
-        org.komapper.jdbc.LocalDateTimeType.jdbcType.setValue(ps, index, value?.toTimestamp())
+        jdbcType.setValue(ps, index, value?.toTimestamp())
     }
 
     override fun toString(value: LocalDateTime?): String {
-        return org.komapper.jdbc.LocalDateTimeType.jdbcType.toString(value?.toTimestamp())
+        return jdbcType.toString(value?.toTimestamp())
     }
 
     private fun LocalDateTime.toTimestamp(): Timestamp {
@@ -234,20 +234,20 @@ object LocalDateTimeType : org.komapper.jdbc.JdbcType<LocalDateTime> {
     }
 }
 
-object LocalDateType : org.komapper.jdbc.JdbcType<LocalDate> {
+object LocalDateType : JdbcType<LocalDate> {
 
-    private val jdbcType = org.komapper.jdbc.DateType
+    private val jdbcType = DateType
 
     override fun getValue(rs: ResultSet, index: Int): LocalDate? {
-        return org.komapper.jdbc.LocalDateType.jdbcType.getValue(rs, index)?.toLocalDate()
+        return jdbcType.getValue(rs, index)?.toLocalDate()
     }
 
     override fun setValue(ps: PreparedStatement, index: Int, value: LocalDate?) {
-        org.komapper.jdbc.LocalDateType.jdbcType.setValue(ps, index, value?.toDate())
+        jdbcType.setValue(ps, index, value?.toDate())
     }
 
     override fun toString(value: LocalDate?): String {
-        return org.komapper.jdbc.LocalDateType.jdbcType.toString(value?.toDate())
+        return jdbcType.toString(value?.toDate())
     }
 
     private fun LocalDate.toDate(): Date {
@@ -255,20 +255,20 @@ object LocalDateType : org.komapper.jdbc.JdbcType<LocalDate> {
     }
 }
 
-object LocalTimeType : org.komapper.jdbc.JdbcType<LocalTime> {
+object LocalTimeType : JdbcType<LocalTime> {
 
-    private val jdbcType = org.komapper.jdbc.TimeType
+    private val jdbcType = TimeType
 
     override fun getValue(rs: ResultSet, index: Int): LocalTime? {
-        return org.komapper.jdbc.LocalTimeType.jdbcType.getValue(rs, index)?.toLocalTime()
+        return jdbcType.getValue(rs, index)?.toLocalTime()
     }
 
     override fun setValue(ps: PreparedStatement, index: Int, value: LocalTime?) {
-        org.komapper.jdbc.LocalTimeType.jdbcType.setValue(ps, index, value?.toTime())
+        jdbcType.setValue(ps, index, value?.toTime())
     }
 
     override fun toString(value: LocalTime?): String {
-        return org.komapper.jdbc.LocalTimeType.jdbcType.toString(value?.toTime())
+        return jdbcType.toString(value?.toTime())
     }
 
     private fun LocalTime.toTime(): Time {
@@ -276,7 +276,7 @@ object LocalTimeType : org.komapper.jdbc.JdbcType<LocalTime> {
     }
 }
 
-object LongType : org.komapper.jdbc.AbstractJdbcType<Long>(Types.BIGINT) {
+object LongType : AbstractJdbcType<Long>(Types.BIGINT) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Long? {
         return rs.getLong(index)
@@ -287,7 +287,7 @@ object LongType : org.komapper.jdbc.AbstractJdbcType<Long>(Types.BIGINT) {
     }
 }
 
-object NClobType : org.komapper.jdbc.AbstractJdbcType<NClob>(Types.NCLOB) {
+object NClobType : AbstractJdbcType<NClob>(Types.NCLOB) {
 
     override fun doGetValue(rs: ResultSet, index: Int): NClob? {
         return rs.getNClob(index)
@@ -298,7 +298,7 @@ object NClobType : org.komapper.jdbc.AbstractJdbcType<NClob>(Types.NCLOB) {
     }
 }
 
-object AnyType : org.komapper.jdbc.AbstractJdbcType<Any>(Types.OTHER) {
+object AnyType : AbstractJdbcType<Any>(Types.OTHER) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Any? {
         return rs.getObject(index)
@@ -309,7 +309,7 @@ object AnyType : org.komapper.jdbc.AbstractJdbcType<Any>(Types.OTHER) {
     }
 }
 
-object ShortType : org.komapper.jdbc.AbstractJdbcType<Short>(Types.SMALLINT) {
+object ShortType : AbstractJdbcType<Short>(Types.SMALLINT) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Short? {
         return rs.getShort(index)
@@ -320,7 +320,7 @@ object ShortType : org.komapper.jdbc.AbstractJdbcType<Short>(Types.SMALLINT) {
     }
 }
 
-object StringType : org.komapper.jdbc.AbstractJdbcType<String>(Types.VARCHAR) {
+object StringType : AbstractJdbcType<String>(Types.VARCHAR) {
 
     override fun doGetValue(rs: ResultSet, index: Int): String? {
         return rs.getString(index)
@@ -335,7 +335,7 @@ object StringType : org.komapper.jdbc.AbstractJdbcType<String>(Types.VARCHAR) {
     }
 }
 
-object SQLXMLType : org.komapper.jdbc.AbstractJdbcType<SQLXML>(Types.SQLXML) {
+object SQLXMLType : AbstractJdbcType<SQLXML>(Types.SQLXML) {
 
     override fun doGetValue(rs: ResultSet, index: Int): SQLXML? {
         return rs.getSQLXML(index)
@@ -346,7 +346,7 @@ object SQLXMLType : org.komapper.jdbc.AbstractJdbcType<SQLXML>(Types.SQLXML) {
     }
 }
 
-private object TimeType : org.komapper.jdbc.AbstractJdbcType<Time>(Types.TIME) {
+private object TimeType : AbstractJdbcType<Time>(Types.TIME) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Time? {
         return rs.getTime(index)
@@ -361,7 +361,7 @@ private object TimeType : org.komapper.jdbc.AbstractJdbcType<Time>(Types.TIME) {
     }
 }
 
-private object TimestampType : org.komapper.jdbc.AbstractJdbcType<Timestamp>(Types.TIMESTAMP) {
+private object TimestampType : AbstractJdbcType<Timestamp>(Types.TIMESTAMP) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Timestamp? {
         return rs.getTimestamp(index)

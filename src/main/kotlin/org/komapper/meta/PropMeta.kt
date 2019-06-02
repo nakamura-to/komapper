@@ -67,7 +67,7 @@ fun <T> makePropMeta(
     consParam: KParameter,
     copyFunParam: KParameter,
     kProperty: KProperty1<T, *>,
-    namingStrategy: org.komapper.NamingStrategy
+    namingStrategy: NamingStrategy
 ): PropMeta<T> {
     val id = consParam.findAnnotation<org.komapper.Id>()
     val version = consParam.findAnnotation<org.komapper.Version>()

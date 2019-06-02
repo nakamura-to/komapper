@@ -1,7 +1,7 @@
 package org.komapper.meta
 
-import org.komapper.Dialect
 import org.komapper.Value
+import org.komapper.jdbc.Dialect
 import org.komapper.sql.Sql
 import org.komapper.sql.SqlBuffer
 import java.math.BigDecimal
@@ -334,7 +334,7 @@ private val cache = ConcurrentHashMap<KClass<*>, EntityMeta<*>>()
 fun <T : Any> getEntityMeta(
     clazz: KClass<T>,
     dialect: Dialect,
-    namingStrategy: org.komapper.NamingStrategy
+    namingStrategy: NamingStrategy
 ): EntityMeta<T> {
     @Suppress("UNCHECKED_CAST")
     return cache.computeIfAbsent(clazz) { makeEntityMeta(it, dialect, namingStrategy) } as EntityMeta<T>
@@ -343,7 +343,7 @@ fun <T : Any> getEntityMeta(
 private fun <T : Any> makeEntityMeta(
     clazz: KClass<T>,
     dialect: Dialect,
-    namingStrategy: org.komapper.NamingStrategy
+    namingStrategy: NamingStrategy
 ): EntityMeta<T> {
     require(clazz.isData) { "The clazz must be a data class." }
     require(!clazz.isAbstract) { "The clazz must not be abstract." }

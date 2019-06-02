@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.komapper.jdbc.H2Dialect
 import org.komapper.jdbc.SimpleDataSource
 import org.komapper.tx.TransactionIsolationLevel
 import java.sql.Blob

@@ -1,4 +1,4 @@
-package org.komapper
+package org.komapper.jdbc
 
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -7,9 +7,9 @@ import kotlin.reflect.KClass
 
 internal class AbstractDialectTest {
 
-    class MyDialect : org.komapper.AbstractDialect() {
+    class MyDialect : AbstractDialect() {
 
-        public override fun getJdbcType(type: KClass<*>): org.komapper.jdbc.JdbcType<*> {
+        public override fun getJdbcType(type: KClass<*>): JdbcType<*> {
             return super.getJdbcType(type)
         }
 
@@ -31,6 +31,6 @@ internal class AbstractDialectTest {
     @Test
     fun getJdbcType() {
         val jdbcType = dialect.getJdbcType(Direction::class)
-        assertTrue(org.komapper.jdbc.EnumType::class.isInstance(jdbcType))
+        assertTrue(EnumType::class.isInstance(jdbcType))
     }
 }

@@ -1,5 +1,6 @@
 package org.komapper
 
+import org.komapper.jdbc.H2Dialect
 import org.komapper.jdbc.SimpleDataSource
 import java.time.LocalDateTime
 

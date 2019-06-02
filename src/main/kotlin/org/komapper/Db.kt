@@ -1,5 +1,7 @@
 package org.komapper
 
+import org.komapper.criteria.CriteriaScope
+import org.komapper.criteria.Terminal
 import org.komapper.meta.*
 import org.komapper.sql.Sql
 import org.komapper.sql.SqlBuilder
@@ -15,31 +17,9 @@ import kotlin.streams.asSequence
 import kotlin.streams.toList
 
 class Db(val config: DbConfig) {
+
     val transaction: TransactionScope
         get() = config.transactionScope
-
-    inline fun <reified T : Any> select(criteriaBlock: org.komapper.criteria.CriteriaScope<T>.() -> org.komapper.criteria.Terminal<T> = { where { } }): List<T> {
-        require(T::class.isData) { "The T must be a data class." }
-        require(!T::class.isAbstract) { "The T must not be abstract." }
-        val criteria = criteriaBlock(org.komapper.criteria.CriteriaScope())()
-        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
-        val sql = meta.buildSelectSql(criteria)
-        return `access$stream`(sql, meta).toList()
-    }
-
-    inline fun <reified T : Any, R> sequence(
-        criteriaBlock: org.komapper.criteria.CriteriaScope<T>.() -> org.komapper.criteria.Terminal<T> = { where { } },
-        block: (Sequence<T>) -> R
-    ): R {
-        require(T::class.isData) { "The T must be a data class." }
-        require(!T::class.isAbstract) { "The T must not be abstract." }
-        val criteria = criteriaBlock(org.komapper.criteria.CriteriaScope())()
-        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
-        val sql = meta.buildSelectSql(criteria)
-        return `access$stream`(sql, meta).use {
-            block(it.asSequence())
-        }
-    }
 
     inline fun <reified T : Any> findById(id: Any, version: Any? = null): T? {
         require(T::class.isData) { "The T must be a data class." }
@@ -63,19 +43,24 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified T : Any> iterate(
+    inline fun <reified T : Any?> selectOneColumn(
         template: CharSequence,
-        condition: Any = emptyObject,
-        action: (T) -> Unit
-    ) {
+        condition: Any = emptyObject
+    ): List<T> {
+        return `access$streamOneColumn`<T>(template, condition, T::class).use {
+            it.collect(Collectors.toList())
+        }
+    }
+
+    inline fun <reified T : Any> selectByCriteria(
+        criteriaBlock: CriteriaScope<T>.() -> Terminal<T> = { where { } }
+    ): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
+        val criteria = criteriaBlock(CriteriaScope())()
         val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
-        val ctx = toMap(condition)
-        val sql = SqlBuilder(config.dialect::formatValue).build(template, ctx)
-        return `access$stream`(sql, meta).use {
-            it.asSequence().forEach(action)
-        }
+        val sql = meta.buildSelectSql(criteria)
+        return `access$stream`(sql, meta).toList()
     }
 
     inline fun <reified T : Any, R> sequence(
@@ -88,6 +73,30 @@ class Db(val config: DbConfig) {
         val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
         val ctx = toMap(condition)
         val sql = SqlBuilder(config.dialect::formatValue).build(template, ctx)
+        return `access$stream`(sql, meta).use {
+            block(it.asSequence())
+        }
+    }
+
+    inline fun <reified T : Any?, R> sequenceOneColumn(
+        template: CharSequence,
+        condition: Any = emptyObject,
+        block: (Sequence<T>) -> R
+    ): R {
+        return `access$streamOneColumn`<T>(template, condition, T::class).use {
+            block(it.asSequence())
+        }
+    }
+
+    inline fun <reified T : Any, R> sequenceByCriteria(
+        criteriaBlock: CriteriaScope<T>.() -> Terminal<T> = { where { } },
+        block: (Sequence<T>) -> R
+    ): R {
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        val criteria = criteriaBlock(CriteriaScope())()
+        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
+        val sql = meta.buildSelectSql(criteria)
         return `access$stream`(sql, meta).use {
             block(it.asSequence())
         }
@@ -114,35 +123,6 @@ class Db(val config: DbConfig) {
                 }
                 meta.new(row)
             }
-        }
-    }
-
-    inline fun <reified T : Any?> selectOneColumn(
-        template: CharSequence,
-        condition: Any = emptyObject
-    ): List<T> {
-        return `access$streamOneColumn`<T>(template, condition, T::class).use {
-            it.collect(Collectors.toList())
-        }
-    }
-
-    inline fun <reified T : Any?> iterateOneColumn(
-        template: CharSequence,
-        condition: Any = emptyObject,
-        action: (T) -> Unit
-    ) {
-        `access$streamOneColumn`<T>(template, condition, T::class).use {
-            it.asSequence().forEach(action)
-        }
-    }
-
-    inline fun <reified T : Any?, R> sequenceOneColumn(
-        template: CharSequence,
-        condition: Any = emptyObject,
-        block: (Sequence<T>) -> R
-    ): R {
-        return `access$streamOneColumn`<T>(template, condition, T::class).use {
-            block(it.asSequence())
         }
     }
 
@@ -203,17 +183,6 @@ class Db(val config: DbConfig) {
             Spliterator.ORDERED,
             false
         )
-    }
-
-    private fun <T : Any?> Stream<T>?.onClose(closeable: AutoCloseable) {
-        if (this == null) {
-            try {
-                closeable.close()
-            } catch (ignored: Exception) {
-            }
-        } else {
-            onClose(closeable::close)
-        }
     }
 
     inline fun <reified T : Any> insert(entity: T): T {
@@ -449,6 +418,10 @@ class Db(val config: DbConfig) {
         }
     }
 
+    private fun log(sql: Sql) {
+        sql.log?.let { log -> config.logger { log } }
+    }
+
     private fun PreparedStatement.setUp() {
         config.fetchSize?.let { if (it > 0) this.fetchSize = it }
         config.maxRows?.let { if (it > 0) this.maxRows = it }
@@ -461,8 +434,15 @@ class Db(val config: DbConfig) {
         }
     }
 
-    private fun log(sql: Sql) {
-        sql.log?.let { log -> config.logger { log } }
+    private fun <T : Any?> Stream<T>?.onClose(closeable: AutoCloseable) {
+        if (this == null) {
+            try {
+                closeable.close()
+            } catch (ignored: Exception) {
+            }
+        } else {
+            onClose(closeable::close)
+        }
     }
 
     @PublishedApi
