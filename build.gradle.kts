@@ -5,7 +5,7 @@ plugins {
     kotlin("jvm") version "1.3.31"
 }
 
-group = "koma"
+group = "org.komapper"
 version = "0.1-SNAPSHOT"
 
 repositories {
