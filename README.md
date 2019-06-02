@@ -7,8 +7,9 @@ Currently supported database is H2 Database only.
 ## Example
 
 ```kotlin
-package org.komapper
+package example
 
+import org.komapper.*
 import org.komapper.jdbc.H2Dialect
 import org.komapper.jdbc.SimpleDataSource
 import java.time.LocalDateTime
