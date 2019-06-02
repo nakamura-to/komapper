@@ -46,26 +46,40 @@ fun main() {
 
     // query
     db.transaction {
+        // insert into address (address_id, street, created_at, updated_at, version) values(1, 'street A', '2019-06-02 18:15:36.561', null, 0)
         val addressA = db.insert(Address(street = "street A"))
-        // Address(id=1, street=street A, createdAt=2019-06-01T22:10:28.229, updatedAt=null, version=0)
+
+        // Address(id=1, street=street A, createdAt=2019-06-02T18:15:36.561, updatedAt=null, version=0)
         println(addressA)
 
+        // select address_id, street, created_at, updated_at, version from address where address_id = 1
         val foundA = db.findById<Address>(1)
-        // Address(id=1, street=street A, createdAt=2019-06-01T22:10:28.229, updatedAt=null, version=0)
-        println(foundA)
 
+        // true
+        println(addressA == foundA)
+
+        // update address set street = 'street B', created_at = '2019-06-02 18:15:36.561', updated_at = '2019-06-02 18:15:36.601', version = 1 where address_id = 1 and version = 0
         val addressB = db.update(addressA.copy(street = "street B"))
-        // Address(id=1, street=street B, createdAt=2019-06-01T22:10:28.229, updatedAt=2019-06-01T22:10:28.291, version=1)
+
+        // Address(id=1, street=street B, createdAt=2019-06-02T18:15:36.561, updatedAt=2019-06-02T18:15:36.601, version=1)
         println(addressB)
 
-        val foundB = db.select<Address>("select * from address where street = /*street*/'test'", object {
-            val street = "street B"
-        }).first()
-        // Address(id=1, street=street B, createdAt=2019-06-01T22:10:28.229, updatedAt=2019-06-01T22:10:28.291, version=1)
-        println(foundB)
+        // select address_id, street, created_at, updated_at, version from address where street = 'street B'
+        val foundB = db.selectByCriteria<Address> {
+            where {
+                Address::street eq "street B"
+            }
+        }.first()
 
+        // true
+        println(addressB == foundB)
+
+        // delete from address where address_id = 1 and version = 1
         db.delete(addressB)
-        val addressList = db.select<Address>("select * from address")
+
+        // select address_id, street, created_at, updated_at, version from address
+        val addressList = db.selectByCriteria<Address>()
+
         // 0
         println(addressList.size)
     }
