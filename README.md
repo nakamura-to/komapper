@@ -1,6 +1,8 @@
 Komapper: Kotlin SQL Mapper
 ===========================
 
+[![Build Status](https://travis-ci.org/nakamura-to/komapper.svg?branch=master)](https://travis-ci.org/nakamura-to/komapper)
+
 Komapper is a prototype for a simple database access library for Kotlin.
 Currently supported database is H2 Database only.
 
