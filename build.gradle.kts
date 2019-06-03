@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "org.komapper"
-version = "0.2-SNAPSHOT"
+version = "0.1.1"
 
 repositories {
     mavenCentral()
