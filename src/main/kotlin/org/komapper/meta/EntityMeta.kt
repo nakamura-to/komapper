@@ -1,6 +1,8 @@
 package org.komapper.meta
 
 import org.komapper.Value
+import org.komapper.criteria.Criteria
+import org.komapper.criteria.Criterion
 import org.komapper.jdbc.Dialect
 import org.komapper.sql.Sql
 import org.komapper.sql.SqlBuffer
@@ -134,7 +136,7 @@ class EntityMeta<T>(
         return copy(args)
     }
 
-    fun buildSelectSql(criteria: org.komapper.criteria.Criteria<T>): Sql {
+    fun buildSelectSql(criteria: Criteria<T>): Sql {
         val buf = SqlBuffer(dialect::formatValue)
         buf.append("select ")
         propMetaList.forEach { meta ->
@@ -163,18 +165,18 @@ class EntityMeta<T>(
 
     }
 
-    private fun visit(buf: SqlBuffer, criterionList: List<org.komapper.criteria.Criterion>) {
+    private fun visit(buf: SqlBuffer, criterionList: List<Criterion>) {
         criterionList.forEachIndexed { index, criterion ->
             when (criterion) {
-                is org.komapper.criteria.Criterion.Eq -> op(buf, "=", criterion.prop, criterion.value)
-                is org.komapper.criteria.Criterion.Ne -> op(buf, "<>", criterion.prop, criterion.value)
-                is org.komapper.criteria.Criterion.Gt -> op(buf, ">", criterion.prop, criterion.value)
-                is org.komapper.criteria.Criterion.Ge -> op(buf, ">=", criterion.prop, criterion.value)
-                is org.komapper.criteria.Criterion.Lt -> op(buf, "<", criterion.prop, criterion.value)
-                is org.komapper.criteria.Criterion.Le -> op(buf, "<=", criterion.prop, criterion.value)
-                is org.komapper.criteria.Criterion.And -> logicalOp(buf, "and", index, criterion.criterionList)
-                is org.komapper.criteria.Criterion.Or -> logicalOp(buf, "or", index, criterion.criterionList)
-                is org.komapper.criteria.Criterion.In -> inOp(buf, criterion.prop, criterion.values)
+                is Criterion.Eq -> op(buf, "=", criterion.prop, criterion.value)
+                is Criterion.Ne -> op(buf, "<>", criterion.prop, criterion.value)
+                is Criterion.Gt -> op(buf, ">", criterion.prop, criterion.value)
+                is Criterion.Ge -> op(buf, ">=", criterion.prop, criterion.value)
+                is Criterion.Lt -> op(buf, "<", criterion.prop, criterion.value)
+                is Criterion.Le -> op(buf, "<=", criterion.prop, criterion.value)
+                is Criterion.And -> logicalOp(buf, "and", index, criterion.criterionList)
+                is Criterion.Or -> logicalOp(buf, "or", index, criterion.criterionList)
+                is Criterion.In -> inOp(buf, criterion.prop, criterion.values)
             }
             buf.append(" and ")
         }
@@ -192,7 +194,7 @@ class EntityMeta<T>(
         buf: SqlBuffer,
         op: String,
         index: Int,
-        criterionList: List<org.komapper.criteria.Criterion>
+        criterionList: List<Criterion>
     ) {
         if (index > 0) {
             buf.cutBack(5)

@@ -1,5 +1,6 @@
 package org.komapper.meta
 
+import org.komapper.SequenceGenerator
 import org.komapper.Value
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
@@ -9,7 +10,7 @@ import kotlin.reflect.KProperty1
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.jvm.jvmErasure
 
-class SequenceIdContext(annotation: org.komapper.SequenceGenerator, private val callNextValue: (String) -> Long) {
+class SequenceIdContext(annotation: SequenceGenerator, private val callNextValue: (String) -> Long) {
     private val name = annotation.name
     private val incrementBy = annotation.incrementBy
     private val lock = ReentrantLock()
@@ -33,7 +34,7 @@ class SequenceIdContext(annotation: org.komapper.SequenceGenerator, private val 
 sealed class PropKind {
     sealed class Id : PropKind() {
         object Assign : Id()
-        data class Sequence(private val annotation: org.komapper.SequenceGenerator) : Id() {
+        data class Sequence(private val annotation: SequenceGenerator) : Id() {
             private val cache = ConcurrentHashMap<String, SequenceIdContext>()
 
             fun next(key: String, callNextValue: (String) -> Long): Long {
@@ -76,7 +77,7 @@ fun <T> makePropMeta(
     // TODO
     val kind = when {
         id != null -> {
-            val generator = consParam.findAnnotation<org.komapper.SequenceGenerator>()
+            val generator = consParam.findAnnotation<SequenceGenerator>()
             if (generator != null) {
                 PropKind.Id.Sequence(generator)
             } else {
