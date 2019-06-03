@@ -12,6 +12,7 @@ Currently supported database is H2 Database only.
 
 ```groovy
 repositories {
+  mavenCentral()
   jcenter()
 }
 
