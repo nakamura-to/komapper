@@ -239,6 +239,32 @@ internal class DbTest {
     }
 
     @Test
+    fun selectByCriteria_like() {
+        val db = Db(config)
+        val idList = db.selectByCriteria<Address> {
+            where {
+                Address::street like "STREET 1_"
+            }.orderBy {
+                Address::addressId.asc()
+            }
+        }.map { it.addressId }
+        assertEquals((10..15).toList(), idList)
+    }
+
+    @Test
+    fun selectByCriteria_notLike() {
+        val db = Db(config)
+        val idList = db.selectByCriteria<Address> {
+            where {
+                Address::street notLike "STREET 1_"
+            }.orderBy {
+                Address::addressId.asc()
+            }
+        }.map { it.addressId }
+        assertEquals((1..9).toList(), idList)
+    }
+
+    @Test
     fun selectByCriteria_noArg() {
         val db = Db(config)
         val list = db.selectByCriteria<Address>()

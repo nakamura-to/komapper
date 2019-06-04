@@ -177,6 +177,8 @@ class EntityMeta<T>(
                 is Criterion.And -> logicalOp(buf, "and", index, criterion.criterionList)
                 is Criterion.Or -> logicalOp(buf, "or", index, criterion.criterionList)
                 is Criterion.In -> inOp(buf, criterion.prop, criterion.values)
+                is Criterion.Like -> op(buf, "like", criterion.prop, criterion.value)
+                is Criterion.NotLike -> op(buf, "not like", criterion.prop, criterion.value)
             }
             buf.append(" and ")
         }

@@ -11,6 +11,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import kotlin.reflect.KProperty1
 
+@Suppress("FunctionName")
 class WhereScope<T> {
 
     internal val criterionList = ArrayList<Criterion>()
@@ -163,6 +164,14 @@ class WhereScope<T> {
     infix fun KProperty1<T, SQLXML?>.le(value: SQLXML?) = _le(this, value)
     private fun _le(prop: KProperty1<*, *>, value: Any?) {
         criterionList.add(Criterion.Le(prop, value))
+    }
+
+    infix fun KProperty1<T, String?>.like(value: String?) {
+        criterionList.add(Criterion.Like(this, value))
+    }
+
+    infix fun KProperty1<T, String?>.notLike(value: String?) {
+        criterionList.add(Criterion.NotLike(this, value))
     }
 
     // in operator

@@ -12,4 +12,6 @@ sealed class Criterion {
     data class And(val criterionList: List<Criterion>) : Criterion()
     data class Or(val criterionList: List<Criterion>) : Criterion()
     data class In(val prop: KProperty1<*, *>, val values: Iterable<*>) : Criterion()
+    data class Like(val prop: KProperty1<*, *>, val value: String?) : Criterion()
+    data class NotLike(val prop: KProperty1<*, *>, val value: String?) : Criterion()
 }
