@@ -176,7 +176,8 @@ class EntityMeta<T>(
                 is Criterion.Le -> op(buf, "<=", criterion.prop, criterion.value)
                 is Criterion.And -> logicalOp(buf, "and", index, criterion.criterionList)
                 is Criterion.Or -> logicalOp(buf, "or", index, criterion.criterionList)
-                is Criterion.In -> inOp(buf, criterion.prop, criterion.values)
+                is Criterion.In -> listOp(buf, "in", criterion.prop, criterion.values)
+                is Criterion.NotIn -> listOp(buf, "not in", criterion.prop, criterion.values)
                 is Criterion.Like -> op(buf, "like", criterion.prop, criterion.value)
                 is Criterion.NotLike -> op(buf, "not like", criterion.prop, criterion.value)
             }
@@ -207,10 +208,10 @@ class EntityMeta<T>(
         buf.append(")")
     }
 
-    private fun inOp(buf: SqlBuffer, prop: KProperty1<*, *>, values: Iterable<*>) {
+    private fun listOp(buf: SqlBuffer, op: String, prop: KProperty1<*, *>, values: Iterable<*>) {
         val meta = propNamePropMetaMap[prop.name] ?: TODO()
         buf.append(meta.columnName)
-        buf.append(" in (")
+        buf.append(" $op (")
         val type = prop.returnType.jvmErasure
         var counter = 0
         for (v in values) {

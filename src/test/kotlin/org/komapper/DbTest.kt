@@ -319,7 +319,7 @@ internal class DbTest {
         val db = Db(config)
         val list = db.selectByCriteria<Address> {
             where {
-                Address::addressId in listOf(9, 10)
+                Address::addressId `in` listOf(9, 10)
             }.orderBy {
                 Address::addressId.desc()
             }
@@ -333,11 +333,24 @@ internal class DbTest {
     }
 
     @Test
+    fun selectByCriteria_notIn() {
+        val db = Db(config)
+        val idList = db.selectByCriteria<Address> {
+            where {
+                Address::addressId notIn (1..9).toList()
+            }.orderBy {
+                Address::addressId.asc()
+            }
+        }.map { it.addressId }
+        assertEquals((10..15).toList(), idList)
+    }
+
+    @Test
     fun selectByCriteria_in_empty() {
         val db = Db(config)
         val list = db.selectByCriteria<Address> {
             where {
-                Address::addressId in emptyList<Int>()
+                Address::addressId `in` emptyList()
             }.orderBy {
                 Address::addressId.desc()
             }

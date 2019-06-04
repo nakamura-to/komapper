@@ -174,9 +174,12 @@ class WhereScope<T> {
         criterionList.add(Criterion.NotLike(this, value))
     }
 
-    // in operator
-    operator fun <V> Iterable<V>.contains(prop: KProperty1<T, V>): Boolean {
-        return criterionList.add(Criterion.In(prop, this))
+    infix fun <V> KProperty1<*, V>.`in`(value: List<V>) {
+        criterionList.add(Criterion.In(this, value))
+    }
+
+    infix fun <V> KProperty1<*, V>.notIn(value: List<V>) {
+        criterionList.add(Criterion.NotIn(this, value))
     }
 
     fun and(block: WhereScope<T>.() -> Unit) {
