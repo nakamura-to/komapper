@@ -9,10 +9,11 @@ sealed class Criterion {
     data class Ge(val prop: KProperty1<*, *>, val value: Any?) : Criterion()
     data class Lt(val prop: KProperty1<*, *>, val value: Any?) : Criterion()
     data class Le(val prop: KProperty1<*, *>, val value: Any?) : Criterion()
-    data class And(val criterionList: List<Criterion>) : Criterion()
-    data class Or(val criterionList: List<Criterion>) : Criterion()
     data class In(val prop: KProperty1<*, *>, val values: List<*>) : Criterion()
     data class NotIn(val prop: KProperty1<*, *>, val values: List<*>) : Criterion()
     data class Like(val prop: KProperty1<*, *>, val value: String?) : Criterion()
     data class NotLike(val prop: KProperty1<*, *>, val value: String?) : Criterion()
+    data class Not(val criterionList: List<Criterion>) : Criterion()
+    data class And(val criterionList: List<Criterion>) : Criterion()
+    data class Or(val criterionList: List<Criterion>) : Criterion()
 }

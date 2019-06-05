@@ -182,6 +182,14 @@ class WhereScope<T> {
         criterionList.add(Criterion.NotIn(this, value))
     }
 
+    fun not(block: WhereScope<T>.() -> Unit) {
+        val scope = WhereScope<T>()
+        block(scope)
+        if (scope.criterionList.isNotEmpty()) {
+            criterionList.add(Criterion.Not(scope.criterionList))
+        }
+    }
+
     fun and(block: WhereScope<T>.() -> Unit) {
         val scope = WhereScope<T>()
         block(scope)

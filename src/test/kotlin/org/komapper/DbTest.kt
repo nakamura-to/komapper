@@ -272,6 +272,22 @@ internal class DbTest {
     }
 
     @Test
+    fun selectByCriteria_not() {
+        val db = Db(config)
+        val idList = db.selectByCriteria<Address> {
+            where {
+                Address::addressId gt 5
+                not {
+                    Address::addressId ge 10
+                }
+            }.orderBy {
+                Address::addressId.asc()
+            }
+        }.map { it.addressId }
+        assertEquals((6..9).toList(), idList)
+    }
+
+    @Test
     fun selectByCriteria_and() {
         val db = Db(config)
         val list = db.selectByCriteria<Address> {

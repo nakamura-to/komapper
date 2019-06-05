@@ -174,12 +174,13 @@ class EntityMeta<T>(
                 is Criterion.Ge -> op(buf, ">=", criterion.prop, criterion.value)
                 is Criterion.Lt -> op(buf, "<", criterion.prop, criterion.value)
                 is Criterion.Le -> op(buf, "<=", criterion.prop, criterion.value)
-                is Criterion.And -> logicalOp(buf, "and", index, criterion.criterionList)
-                is Criterion.Or -> logicalOp(buf, "or", index, criterion.criterionList)
                 is Criterion.In -> listOp(buf, "in", criterion.prop, criterion.values)
                 is Criterion.NotIn -> listOp(buf, "not in", criterion.prop, criterion.values)
                 is Criterion.Like -> op(buf, "like", criterion.prop, criterion.value)
                 is Criterion.NotLike -> op(buf, "not like", criterion.prop, criterion.value)
+                is Criterion.Not -> notOp(buf, criterion.criterionList)
+                is Criterion.And -> logicalOp(buf, "and", index, criterion.criterionList)
+                is Criterion.Or -> logicalOp(buf, "or", index, criterion.criterionList)
             }
             buf.append(" and ")
         }
@@ -191,6 +192,16 @@ class EntityMeta<T>(
         buf.append(meta.columnName)
         buf.append(" $op ")
         buf.bind(value to prop.returnType.jvmErasure)
+    }
+
+    private fun notOp(
+        buf: SqlBuffer,
+        criterionList: List<Criterion>
+    ) {
+        buf.append("not ")
+        buf.append("(")
+        visit(buf, criterionList)
+        buf.append(")")
     }
 
     private fun logicalOp(
