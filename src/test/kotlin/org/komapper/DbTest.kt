@@ -375,6 +375,19 @@ internal class DbTest {
     }
 
     @Test
+    fun selectByCriteria_between() {
+        val db = Db(config)
+        val idList = db.selectByCriteria<Address> {
+            where {
+                Address::addressId between (5 to 10)
+            }.orderBy {
+                Address::addressId.asc()
+            }
+        }.map { it.addressId }
+        assertEquals((5..10).toList(), idList)
+    }
+
+    @Test
     fun sequenceByCriteria() {
         val db = Db(config)
         val list = db.sequenceByCriteria<Address, List<Address>>({

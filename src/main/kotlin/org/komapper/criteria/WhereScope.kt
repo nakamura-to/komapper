@@ -182,6 +182,10 @@ class WhereScope<T> {
         criterionList.add(Criterion.NotIn(this, value))
     }
 
+    infix fun <V> KProperty1<*, V>.between(pair: Pair<V, V>) {
+        criterionList.add(Criterion.Between(this, pair))
+    }
+
     fun not(block: WhereScope<T>.() -> Unit) {
         val scope = WhereScope<T>()
         block(scope)

@@ -178,6 +178,14 @@ class EntityMeta<T>(
                 is Criterion.NotIn -> listOp(buf, "not in", criterion.prop, criterion.values)
                 is Criterion.Like -> op(buf, "like", criterion.prop, criterion.value)
                 is Criterion.NotLike -> op(buf, "not like", criterion.prop, criterion.value)
+                is Criterion.Between -> {
+                    val meta = propNamePropMetaMap[criterion.prop.name] ?: TODO()
+                    buf.append(meta.columnName)
+                    buf.append(" between ")
+                    buf.bind(criterion.range.first to criterion.prop.returnType.jvmErasure)
+                    buf.append(" and ")
+                    buf.bind(criterion.range.second to criterion.prop.returnType.jvmErasure)
+                }
                 is Criterion.Not -> notOp(buf, criterion.criterionList)
                 is Criterion.And -> logicalOp(buf, "and", index, criterion.criterionList)
                 is Criterion.Or -> logicalOp(buf, "or", index, criterion.criterionList)
