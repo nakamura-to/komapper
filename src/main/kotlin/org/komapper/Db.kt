@@ -12,7 +12,6 @@ import java.util.stream.Collectors
 import java.util.stream.Stream
 import java.util.stream.StreamSupport
 import kotlin.reflect.KClass
-import kotlin.reflect.KParameter
 import kotlin.streams.asSequence
 import kotlin.streams.toList
 
@@ -73,7 +72,7 @@ class Db(val config: DbConfig) {
     }
 
     inline fun <reified T : Any> selectByCriteria(
-        criteriaBlock: CriteriaScope<T>.() -> Terminal<T> = { where { } }
+        criteriaBlock: CriteriaScope.() -> Terminal = { where { } }
     ): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
@@ -129,7 +128,7 @@ class Db(val config: DbConfig) {
     }
 
     inline fun <reified T : Any, R> sequenceByCriteria(
-        criteriaBlock: CriteriaScope<T>.() -> Terminal<T> = { where { } },
+        criteriaBlock: CriteriaScope.() -> Terminal = { where { } },
         block: (Sequence<T>) -> R
     ): R {
         require(T::class.isData) { "The T must be a data class." }
@@ -147,7 +146,7 @@ class Db(val config: DbConfig) {
         meta: EntityMeta<T>
     ): Stream<T> {
         return executeQuery(sql) { rs ->
-            val propMetaMap = mutableMapOf<Int, PropMeta<T>>()
+            val propMetaMap = mutableMapOf<Int, PropMeta<*, *>>()
             val metaData = rs.metaData
             val count = metaData.columnCount
             for (i in 1..count) {
@@ -156,10 +155,10 @@ class Db(val config: DbConfig) {
                 propMetaMap[i] = propMeta
             }
             fromResultSetToStream(rs) {
-                val row = mutableMapOf<KParameter, Any?>()
+                val row = mutableMapOf<PropMeta<*, *>, Any?>()
                 for ((index, propMeta) in propMetaMap) {
                     val value = config.dialect.getValue(it, index, propMeta.type)
-                    row[propMeta.consParam] = value
+                    row[propMeta] = value
                 }
                 meta.new(row)
             }

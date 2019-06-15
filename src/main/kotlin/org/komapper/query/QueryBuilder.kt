@@ -3,12 +3,11 @@ package org.komapper.query
 import org.komapper.criteria.Criteria
 import org.komapper.jdbc.Dialect
 import org.komapper.meta.EntityMeta
-import org.komapper.meta.PropKind
 import org.komapper.sql.Sql
 import org.komapper.sql.SqlBuffer
 
 interface QueryBuilder {
-    fun <T> buildSelect(entityMeta: EntityMeta<T>, criteria: Criteria<T>): Sql
+    fun <T> buildSelect(entityMeta: EntityMeta<T>, criteria: Criteria): Sql
     fun <T> buildFindById(entityMeta: EntityMeta<T>, id: Any, versionValue: Any?): Sql
     fun <T> buildInsert(entityMeta: EntityMeta<T>, newEntity: T): Sql
     fun <T> buildDelete(entityMeta: EntityMeta<T>, entity: T): Sql
@@ -20,14 +19,14 @@ open class DefaultQueryBuilder(
     protected val dialect: Dialect
 ) : QueryBuilder {
 
-    override fun <T> buildSelect(entityMeta: EntityMeta<T>, criteria: Criteria<T>): Sql {
+    override fun <T> buildSelect(entityMeta: EntityMeta<T>, criteria: Criteria): Sql {
         val buf = newSqlBuffer()
         val traversal = CriteriaTraversal(entityMeta, buf)
         with(entityMeta) {
             buf.append("select ")
-            propMetaList.forEach { propMeta ->
-                buf.append("${propMeta.columnName}, ")
-            }
+            propMetaList
+                .flatMap { it.getColumnNames() }
+                .forEach { buf.append("$it, ") }
             buf.cutBack(2).append(" from $tableName")
             traversal.run(criteria)
             return buf.toSql()
@@ -37,9 +36,9 @@ open class DefaultQueryBuilder(
     override fun <T> buildFindById(entityMeta: EntityMeta<T>, id: Any, versionValue: Any?): Sql {
         with(entityMeta) {
             val buf = newSqlBuffer().append("select ")
-            propMetaList.forEach { meta ->
-                buf.append("${meta.columnName}, ")
-            }
+            propMetaList
+                .flatMap { it.getColumnNames() }
+                .forEach { buf.append("$it, ") }
             buf.cutBack(2).append(" from $tableName where ")
             when (id) {
                 is Collection<*> -> {
@@ -64,13 +63,13 @@ open class DefaultQueryBuilder(
     override fun <T> buildInsert(entityMeta: EntityMeta<T>, newEntity: T): Sql {
         with(entityMeta) {
             val buf = newSqlBuffer().append("insert into $tableName (")
-            propMetaList.forEach { meta ->
-                buf.append("${meta.columnName}, ")
-            }
+            propMetaList
+                .flatMap { it.getColumnNames() }
+                .forEach { buf.append("$it, ") }
             buf.cutBack(2).append(") values(")
-            propMetaList.forEach { propMeta ->
-                buf.bind(propMeta.getValue(newEntity)).append(", ")
-            }
+            propMetaList
+                .flatMap { it.getValues(newEntity) }
+                .forEach { buf.bind(it).append(", ") }
             buf.cutBack(2).append(")")
             return buf.toSql()
         }
@@ -88,9 +87,12 @@ open class DefaultQueryBuilder(
     override fun <T> buildUpdate(entityMeta: EntityMeta<T>, entity: T, newEntity: T): Sql {
         with(entityMeta) {
             val buf = newSqlBuffer().append("update $tableName set ")
-            propMetaList.filter { it.kind !is PropKind.Id }.forEach { propMeta ->
-                buf.append("${propMeta.columnName} = ").bind(propMeta.getValue(newEntity)).append(", ")
-            }
+            propMetaList
+                .minus(idList)
+                .flatMap { it.getColumnNames().zip(it.getValues(newEntity)) }
+                .forEach { (columnName, value) ->
+                    buf.append("$columnName = ").bind(value).append(", ")
+                }
             buf.cutBack(2)
             buildWhereClauseForIdAndVersion(entityMeta, entity, buf)
             return buf.toSql()
@@ -101,16 +103,17 @@ open class DefaultQueryBuilder(
         with(entityMeta) {
             if (idList.isNotEmpty()) {
                 buf.append(" where ")
-                idList.forEach { propMeta ->
-                    buf.append("${propMeta.columnName} = ").bind(propMeta.getValue(entity)).append(" and ")
-                }
+                idList
+                    .flatMap { it.getColumnNames().zip(it.getValues(entity)) }
+                    .forEach { (columnName, value) ->
+                        buf.append("$columnName = ").bind(value).append(" and ")
+                    }
                 buf.cutBack(5)
             }
             if (version != null) {
-                buf.append(" ")
-                    .append(if (idList.isEmpty()) "where" else "and")
-                    .append(" ${version.columnName} = ")
-                    .bind(version.getValue(entity))
+                buf.append(if (idList.isEmpty()) " where " else " and ")
+                version.getColumnNames().zip(version.getValues(entity))
+                    .forEach { (columnName, value) -> buf.append("$columnName = ").bind(value) }
             }
         }
     }

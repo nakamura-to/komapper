@@ -20,3 +20,6 @@ annotation class CreatedAt
 
 @Target(AnnotationTarget.VALUE_PARAMETER)
 annotation class UpdatedAt
+
+@Target(AnnotationTarget.VALUE_PARAMETER)
+annotation class Embedded

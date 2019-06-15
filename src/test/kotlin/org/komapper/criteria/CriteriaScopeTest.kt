@@ -17,7 +17,7 @@ internal class CriteriaScopeTest {
 
     @Test
     fun where() {
-        val scope = CriteriaScope<Address>()
+        val scope = CriteriaScope()
         scope.where {
             Address::aaa eq 1
             Address::bbb ne "B"
@@ -55,7 +55,7 @@ internal class CriteriaScopeTest {
 
     @Test
     fun orderBy() {
-        val scope = CriteriaScope<Address>()
+        val scope = CriteriaScope()
         scope.orderBy {
             Address::aaa.desc()
             Address::bbb.asc()
@@ -69,7 +69,7 @@ internal class CriteriaScopeTest {
 
     @Test
     fun limit() {
-        val scope = CriteriaScope<Address>()
+        val scope = CriteriaScope()
         scope.limit(10)
         val criteria = scope()
         assertEquals(10, criteria.limit)
@@ -77,7 +77,7 @@ internal class CriteriaScopeTest {
 
     @Test
     fun offset() {
-        val scope = CriteriaScope<Address>()
+        val scope = CriteriaScope()
         scope.offset(100)
         val criteria = scope()
         assertEquals(100, criteria.offset)
@@ -85,7 +85,7 @@ internal class CriteriaScopeTest {
 
     @Test
     fun where_orderBy_limit_offset() {
-        val scope = CriteriaScope<Address>()
+        val scope = CriteriaScope()
         scope.where {
             Address::aaa eq 1
         }.orderBy {

@@ -5,11 +5,12 @@ import org.komapper.criteria.Criterion
 import org.komapper.meta.EntityMeta
 import org.komapper.sql.SqlBuffer
 import kotlin.reflect.KProperty1
+import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.jvmErasure
 
 class CriteriaTraversal<T>(private val entityMeta: EntityMeta<T>, private val buf: SqlBuffer) {
 
-    fun run(criteria: Criteria<T>) {
+    fun run(criteria: Criteria) {
         with(criteria) {
             if (whereScope.criterionList.isNotEmpty()) {
                 buf.append(" where ")
@@ -94,7 +95,11 @@ class CriteriaTraversal<T>(private val entityMeta: EntityMeta<T>, private val bu
     }
 
     private fun resolveColumnName(prop: KProperty1<*, *>): String {
-        val propMeta = entityMeta.propNameMap[prop.name] ?: error("The propMeta \"${prop.name}\" not found.")
+        val propMeta = entityMeta.propMap[prop]
+            ?: error(
+                "The property \"${prop.name}\" is not found " +
+                        "in the class \"${prop.javaField?.declaringClass?.name}\"."
+            )
         return propMeta.columnName
     }
 

@@ -64,7 +64,10 @@ abstract class AbstractDialect : Dialect {
         type == Short::class -> ShortType
         type == String::class -> StringType
         type == SQLXML::class -> SQLXMLType
-        else -> error("""The jdbcType not found for the type "${type.qualifiedName}".""")
+        else -> error(
+            "The jdbcType is not found for the type \"${type.qualifiedName}\"." +
+                    "Are you forgetting to specify @Embedded to the property?"
+        )
     }
 
     protected fun getErrorCode(exception: SQLException): Int {

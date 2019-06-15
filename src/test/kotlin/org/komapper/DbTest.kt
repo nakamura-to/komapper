@@ -67,6 +67,48 @@ internal class DbTest {
         NORTH, SOUTH, WEST, EAST
     }
 
+    data class EmployeeDetail(
+        val hiredate: LocalDate,
+        val salary: BigDecimal
+    )
+
+    data class Employee(
+        @Id
+        val employeeId: Int,
+        val employeeNo: Int,
+        val employeeName: String,
+        val managerId: Int?,
+        @Embedded
+        val detail: EmployeeDetail,
+        val departmentId: Int,
+        val addressId: Int,
+        @Version
+        val version: Int
+    )
+
+    data class WorkerSalary(val salary: BigDecimal)
+
+    data class WorkerDetail(
+        val hiredate: LocalDate,
+        @Embedded
+        val salary: WorkerSalary
+    )
+
+    @Table(name = "employee")
+    data class Worker(
+        @Id
+        val employeeId: Int,
+        val employeeNo: Int,
+        val employeeName: String,
+        val managerId: Int?,
+        @Embedded
+        val detail: WorkerDetail,
+        val departmentId: Int,
+        val addressId: Int,
+        @Version
+        val version: Int
+    )
+
     val config = DbConfig(
         dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"),
         dialect = H2Dialect(),
@@ -218,6 +260,199 @@ internal class DbTest {
                 stmt.execute("DROP ALL OBJECTS")
             }
         }
+    }
+
+    @Test
+    fun select_Embedded() {
+        val db = Db(config)
+        val list =
+            db.select<Employee>(
+                """
+                select employee_id, employee_no, employee_name, manager_id,
+                hiredate, salary, department_id, address_id, version from employee
+            """.trimIndent()
+            )
+        assertEquals(14, list.size)
+    }
+
+    @Test
+    fun selectByCriteria_Embedded() {
+        val db = Db(config)
+        val list = db.selectByCriteria<Employee> {
+            where {
+                EmployeeDetail::salary ge BigDecimal("2000.00")
+            }
+        }
+        assertEquals(6, list.size)
+    }
+
+    @Test
+    fun findById_Embedded() {
+        val db = Db(config)
+        val employee = db.findById<Employee>(1)
+        assertNotNull(employee)
+    }
+
+    @Test
+    fun insert_Embedded() {
+        val db = Db(config)
+        val employee = Employee(
+            employeeId = 100,
+            employeeNo = 9999,
+            employeeName = "aaa",
+            managerId = null,
+            detail = EmployeeDetail(LocalDate.of(2019, 6, 15), BigDecimal("2000.00")),
+            departmentId = 1,
+            addressId = 1,
+            version = 1
+        )
+        db.insert(employee)
+        val employee2 = db.findById<Employee>(100)
+        assertEquals(employee, employee2)
+    }
+
+    @Test
+    fun delete_Embedded() {
+        val db = Db(config)
+        val employee = Employee(
+            employeeId = 100,
+            employeeNo = 9999,
+            employeeName = "aaa",
+            managerId = null,
+            detail = EmployeeDetail(LocalDate.of(2019, 6, 15), BigDecimal("2000.00")),
+            departmentId = 1,
+            addressId = 1,
+            version = 1
+        )
+        db.insert(employee)
+        val employee2 = db.findById<Employee>(100)
+        assertEquals(employee, employee2)
+        db.delete(employee)
+        val employee3 = db.findById<Employee>(100)
+        assertNull(employee3)
+    }
+
+    @Test
+    fun update_Embedded() {
+        val db = Db(config)
+        val employee = Employee(
+            employeeId = 100,
+            employeeNo = 9999,
+            employeeName = "aaa",
+            managerId = null,
+            detail = EmployeeDetail(LocalDate.of(2019, 6, 15), BigDecimal("2000.00")),
+            departmentId = 1,
+            addressId = 1,
+            version = 1
+        )
+        db.insert(employee)
+        val employee2 = db.findById<Employee>(100)
+        assertEquals(employee, employee2)
+
+        val employee3 = employee.copy(detail = employee.detail.copy(salary = BigDecimal("5000.00")))
+        val employee4 = db.update(employee3)
+        assertEquals(BigDecimal("5000.00"), employee4.detail.salary)
+
+        val employee5 = db.findById<Employee>(100)
+        assertEquals(BigDecimal("5000.00"), employee5?.detail?.salary)
+    }
+
+    @Test
+    fun select_NestedEmbedded() {
+        val db = Db(config)
+        val list =
+            db.select<Worker>(
+                """
+                select employee_id, employee_no, employee_name, manager_id,
+                hiredate, salary, department_id, address_id, version from employee
+            """.trimIndent()
+            )
+        assertEquals(14, list.size)
+    }
+
+    @Test
+    fun selectByCriteria_NestedEmbedded() {
+        val db = Db(config)
+        val list = db.selectByCriteria<Worker> {
+            where {
+                WorkerSalary::salary ge BigDecimal("2000.00")
+            }
+        }
+        assertEquals(6, list.size)
+    }
+
+    @Test
+    fun findById_NestedEmbedded() {
+        val db = Db(config)
+        val employee = db.findById<Worker>(1)
+        assertNotNull(employee)
+    }
+
+    @Test
+    fun insert_NestedEmbedded() {
+        val db = Db(config)
+        val salary = WorkerSalary(BigDecimal("2000.00"))
+        val worker = Worker(
+            employeeId = 100,
+            employeeNo = 9999,
+            employeeName = "aaa",
+            managerId = null,
+            detail = WorkerDetail(LocalDate.of(2019, 6, 15), salary),
+            departmentId = 1,
+            addressId = 1,
+            version = 1
+        )
+        db.insert(worker)
+        val worker2 = db.findById<Worker>(100)
+        assertEquals(worker, worker2)
+    }
+
+    @Test
+    fun delete_NestedEmbedded() {
+        val db = Db(config)
+        val salary = WorkerSalary(BigDecimal("2000.00"))
+        val worker = Worker(
+            employeeId = 100,
+            employeeNo = 9999,
+            employeeName = "aaa",
+            managerId = null,
+            detail = WorkerDetail(LocalDate.of(2019, 6, 15), salary),
+            departmentId = 1,
+            addressId = 1,
+            version = 1
+        )
+        db.insert(worker)
+        val worker2 = db.findById<Worker>(100)
+        assertEquals(worker, worker2)
+        db.delete(worker)
+        val worker3 = db.findById<Worker>(100)
+        assertNull(worker3)
+    }
+
+    @Test
+    fun update_NestedEmbedded() {
+        val db = Db(config)
+        val salary = WorkerSalary(BigDecimal("2000.00"))
+        val worker = Worker(
+            employeeId = 100,
+            employeeNo = 9999,
+            employeeName = "aaa",
+            managerId = null,
+            detail = WorkerDetail(LocalDate.of(2019, 6, 15), salary),
+            departmentId = 1,
+            addressId = 1,
+            version = 1
+        )
+        db.insert(worker)
+        val worker2 = db.findById<Worker>(100)
+        assertEquals(worker, worker2)
+
+        val worker3 = worker.copy(detail = worker.detail.copy(salary = WorkerSalary(BigDecimal("5000.00"))))
+        val worker4 = db.update(worker3)
+        assertEquals(WorkerSalary(BigDecimal("5000.00")), worker4.detail.salary)
+
+        val worker5 = db.findById<Worker>(100)
+        assertEquals(WorkerSalary(BigDecimal("5000.00")), worker5?.detail?.salary)
     }
 
     @Test

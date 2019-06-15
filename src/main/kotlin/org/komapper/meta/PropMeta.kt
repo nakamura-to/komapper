@@ -8,20 +8,36 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
 
-data class PropMeta<T>(
+data class PropMeta<T, R : Any?>(
     val type: KClass<*>,
     val consParam: KParameter,
     val copyParam: KParameter,
-    val prop: KProperty1<T, *>,
-    val kind: PropKind,
+    val prop: KProperty1<T, R>,
+    val kind: PropKind<R>,
     val columnName: String
 ) {
 
-    fun getValue(entity: T): Value {
-        return prop.call(entity) to type
+    fun getValues(entity: T): List<Value> {
+        val value = prop.call(entity)
+        return if (kind is PropKind.Embedded<R>) {
+            kind.meta.propMetaList.flatMap { propMeta ->
+                if (value == null) {
+                    listOf(null to propMeta.type)
+                } else {
+                    propMeta.getValues(value)
+                }
+            }
+        } else {
+            listOf(value to type)
+        }
     }
 
-    fun call(entity: T): Any? {
+    fun getColumnNames(): List<String> = when (kind) {
+        is PropKind.Embedded -> kind.meta.getLeafPropMetaList().flatMap { it.getColumnNames() }
+        else -> listOf(columnName)
+    }
+
+    fun call(entity: T): R {
         return prop.call(entity)
     }
 
@@ -30,30 +46,31 @@ data class PropMeta<T>(
         else -> error("illegal invocation: $kind")
     }
 
-    fun inc(value: Any?): Any? = when (kind) {
-        is PropKind.Version -> kind.inc(value)
+    @Suppress("UNCHECKED_CAST")
+    fun inc(value: Any?): R = when (kind) {
+        is PropKind.Version<R> -> kind.inc(value as R)
         else -> error("illegal invocation: $kind")
     }
 
-    fun now(): Any = when (kind) {
-        is PropKind.CreatedAt -> kind.now()
-        is PropKind.UpdatedAt -> kind.now()
+    fun now(): R = when (kind) {
+        is PropKind.CreatedAt<R> -> kind.now()
+        is PropKind.UpdatedAt<R> -> kind.now()
         else -> error("illegal invocation: $kind")
     }
 }
 
-sealed class PropKind {
-    sealed class Id : PropKind() {
-        object Assign : Id()
-        data class Sequence(
+sealed class PropKind<T> {
+    sealed class Id<T> : PropKind<T>() {
+        object Assign : Id<Any?>()
+        data class Sequence<T>(
             private val name: String,
             private val incrementBy: Int,
-            private val cast: (Long) -> Any
+            private val cast: (Long) -> T
         ) :
-            Id() {
+            Id<T>() {
             private val cache = ConcurrentHashMap<String, IdGenerator>()
 
-            fun next(key: String, callNextValue: (String) -> Long): Any {
+            fun next(key: String, callNextValue: (String) -> Long): T {
                 val generator = cache.computeIfAbsent(key) {
                     IdGenerator(incrementBy) { callNextValue(name) }
                 }
@@ -62,10 +79,11 @@ sealed class PropKind {
         }
     }
 
-    data class CreatedAt(val now: () -> Any) : PropKind()
-    data class UpdatedAt(val now: () -> Any) : PropKind()
-    data class Version(val inc: (Any?) -> Any?) : PropKind()
-    object Basic : PropKind()
+    data class CreatedAt<T>(val now: () -> T) : PropKind<T>()
+    data class UpdatedAt<T>(val now: () -> T) : PropKind<T>()
+    data class Version<T>(val inc: (T) -> T) : PropKind<T>()
+    data class Embedded<T>(val meta: EmbeddedMeta<T>) : PropKind<T>()
+    object Basic : PropKind<Any?>()
 }
 
 private class IdGenerator(private val incrementBy: Int, private val callNextValue: () -> Long) {
