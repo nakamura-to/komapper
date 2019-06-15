@@ -4,7 +4,9 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 @Suppress("UNUSED")
-internal class ObjectMetaTest {
+internal class DefaultObjectMetaFactoryTest {
+
+    private val objectMetaFactory = DefaultObjectMetaFactory()
 
     @Test
     fun toMap() {
@@ -12,7 +14,7 @@ internal class ObjectMetaTest {
             val x = "a"
             val y = 1
         }
-        val map = toMap(obj)
+        val map = objectMetaFactory.toMap(obj)
         assertEquals(mapOf("x" to ("a" to String::class), "y" to (1 to Int::class)), map)
     }
 
@@ -22,7 +24,7 @@ internal class ObjectMetaTest {
             private val x = "a"
             val y = 1
         }
-        val map = toMap(obj)
+        val map = objectMetaFactory.toMap(obj)
         assertEquals(mapOf("y" to (1 to Int::class)), map)
     }
 }

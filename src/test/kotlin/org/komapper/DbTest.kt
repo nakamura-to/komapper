@@ -50,7 +50,7 @@ internal class DbTest {
         val id: Int,
         @Id
         @SequenceGenerator(name = "MY_SEQUENCE_STRATEGY_ID", incrementBy = 100)
-        val value: String
+        val value: Long
     )
 
     data class Person(
@@ -610,9 +610,9 @@ internal class DbTest {
     fun insert_multiSequenceGenerator() {
         val db = Db(config)
         for (i in 1..201) {
-            val strategy = MultiSequenceStrategy(0, "")
+            val strategy = MultiSequenceStrategy(0, 0L)
             val newStrategy = db.insert(strategy)
-            assertEquals(MultiSequenceStrategy(i, i.toString()), newStrategy)
+            assertEquals(MultiSequenceStrategy(i, i.toLong()), newStrategy)
         }
     }
 

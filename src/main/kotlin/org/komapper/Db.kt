@@ -2,7 +2,8 @@ package org.komapper
 
 import org.komapper.criteria.CriteriaScope
 import org.komapper.criteria.Terminal
-import org.komapper.meta.*
+import org.komapper.meta.EntityMeta
+import org.komapper.meta.PropMeta
 import org.komapper.sql.Sql
 import org.komapper.sql.SqlBuilder
 import org.komapper.tx.TransactionScope
@@ -18,25 +19,27 @@ import kotlin.streams.toList
 
 class Db(val config: DbConfig) {
 
+    val empty = object {}
+
     val transaction: TransactionScope
         get() = config.transactionScope
 
     inline fun <reified T : Any> findById(id: Any, version: Any? = null): T? {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
+        val meta = config.entityMetaFactory.get(T::class)
         val sql = meta.buildFindByIdSql(id, version)
         return `access$stream`(sql, meta).toList().firstOrNull()
     }
 
     inline fun <reified T : Any> select(
         template: CharSequence,
-        condition: Any = emptyObject
+        condition: Any = empty
     ): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
-        val ctx = toMap(condition)
+        val meta = config.entityMetaFactory.get(T::class)
+        val ctx = config.objectMetaFactory.toMap(condition)
         val sql = SqlBuilder(config.dialect::formatValue).build(template, ctx)
         return `access$stream`(sql, meta).use {
             it.collect(Collectors.toList())
@@ -45,7 +48,7 @@ class Db(val config: DbConfig) {
 
     inline fun <reified T : Any?> selectOneColumn(
         template: CharSequence,
-        condition: Any = emptyObject
+        condition: Any = empty
     ): List<T> {
         return `access$streamOneColumn`<T>(template, condition, T::class).use {
             it.collect(Collectors.toList())
@@ -58,20 +61,20 @@ class Db(val config: DbConfig) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val criteria = criteriaBlock(CriteriaScope())()
-        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
+        val meta = config.entityMetaFactory.get(T::class)
         val sql = meta.buildSelectSql(criteria)
         return `access$stream`(sql, meta).toList()
     }
 
     inline fun <reified T : Any, R> sequence(
         template: CharSequence,
-        condition: Any = emptyObject,
+        condition: Any = empty,
         block: (Sequence<T>) -> R
     ): R {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
-        val ctx = toMap(condition)
+        val meta = config.entityMetaFactory.get(T::class)
+        val ctx = config.objectMetaFactory.toMap(condition)
         val sql = SqlBuilder(config.dialect::formatValue).build(template, ctx)
         return `access$stream`(sql, meta).use {
             block(it.asSequence())
@@ -80,7 +83,7 @@ class Db(val config: DbConfig) {
 
     inline fun <reified T : Any?, R> sequenceOneColumn(
         template: CharSequence,
-        condition: Any = emptyObject,
+        condition: Any = empty,
         block: (Sequence<T>) -> R
     ): R {
         return `access$streamOneColumn`<T>(template, condition, T::class).use {
@@ -95,7 +98,7 @@ class Db(val config: DbConfig) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val criteria = criteriaBlock(CriteriaScope())()
-        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
+        val meta = config.entityMetaFactory.get(T::class)
         val sql = meta.buildSelectSql(criteria)
         return `access$stream`(sql, meta).use {
             block(it.asSequence())
@@ -112,7 +115,7 @@ class Db(val config: DbConfig) {
             val count = metaData.columnCount
             for (i in 1..count) {
                 val label = metaData.getColumnLabel(i).toLowerCase()
-                val propMeta = meta.columnNamePropMetaMap[label] ?: continue
+                val propMeta = meta.columnNameMap[label] ?: continue
                 propMetaMap[i] = propMeta
             }
             fromResultSetToStream(rs) {
@@ -129,10 +132,10 @@ class Db(val config: DbConfig) {
     @Suppress("UNCHECKED_CAST")
     private fun <T : Any?> streamOneColumn(
         template: CharSequence,
-        condition: Any = emptyObject,
+        condition: Any = empty,
         type: KClass<*>
     ): Stream<T> {
-        val ctx = toMap(condition)
+        val ctx = config.objectMetaFactory.toMap(condition)
         val sql = SqlBuilder(config.dialect::formatValue).build(template.toString(), ctx)
         return executeQuery(sql) { rs ->
             fromResultSetToStream(rs) {
@@ -188,7 +191,7 @@ class Db(val config: DbConfig) {
     inline fun <reified T : Any> insert(entity: T): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
+        val meta = config.entityMetaFactory.get(T::class)
         return meta.assignId(entity, config.name) { sequenceName ->
             selectOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
         }.let { newEntity ->
@@ -214,11 +217,11 @@ class Db(val config: DbConfig) {
     inline fun <reified T : Any> delete(entity: T): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
+        val meta = config.entityMetaFactory.get(T::class)
         return config.listener.preDelete(entity, meta).let { newEntity ->
             val sql = meta.buildDeleteSql(newEntity)
             val count = `access$executeUpdate`(sql)
-            if (meta.versionPropMeta != null && count != 1) {
+            if (meta.version != null && count != 1) {
                 throw OptimisticLockException()
             }
             check(count == 1)
@@ -229,7 +232,7 @@ class Db(val config: DbConfig) {
     inline fun <reified T : Any> update(entity: T): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
+        val meta = config.entityMetaFactory.get(T::class)
         return meta.incrementVersion(entity).let { newEntity ->
             meta.updateTimestamp(newEntity)
         }.let { newEntity ->
@@ -245,7 +248,7 @@ class Db(val config: DbConfig) {
                     throw e
                 }
             }
-            if (meta.versionPropMeta != null && count != 1) {
+            if (meta.version != null && count != 1) {
                 throw OptimisticLockException()
             }
             check(count == 1)
@@ -268,7 +271,7 @@ class Db(val config: DbConfig) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         if (entities.isEmpty()) return entities
-        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
+        val meta = config.entityMetaFactory.get(T::class)
         val size = entities.size
         val (newEntities, sqls) = entities.map { entity ->
             meta.assignId(entity, config.name) { sequenceName ->
@@ -302,7 +305,7 @@ class Db(val config: DbConfig) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         if (entities.isEmpty()) return entities
-        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
+        val meta = config.entityMetaFactory.get(T::class)
         val size = entities.size
         val (newEntities, sqls) = entities.map { entity ->
             config.listener.preDelete(entity, meta).let { newEntity ->
@@ -314,7 +317,7 @@ class Db(val config: DbConfig) {
             acc
         }
         val counts = `access$executeBatch`(sqls)
-        if (meta.versionPropMeta != null && counts.any { it != 1 }) {
+        if (meta.version != null && counts.any { it != 1 }) {
             throw OptimisticLockException()
         }
         check(counts.all { it == 1 })
@@ -325,7 +328,7 @@ class Db(val config: DbConfig) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         if (entities.isEmpty()) return entities
-        val meta = getEntityMeta(T::class, config.dialect, config.namingStrategy)
+        val meta = config.entityMetaFactory.get(T::class)
         val size = entities.size
         val (newEntities, sqls) = entities.map { entity ->
             meta.incrementVersion(entity).let { newEntity ->
@@ -349,7 +352,7 @@ class Db(val config: DbConfig) {
                 throw e
             }
         }
-        if (meta.versionPropMeta != null && counts.any { it != 1 }) {
+        if (meta.version != null && counts.any { it != 1 }) {
             throw OptimisticLockException()
         }
         check(counts.all { it == 1 })
@@ -378,8 +381,8 @@ class Db(val config: DbConfig) {
         }
     }
 
-    fun executeUpdate(template: CharSequence, condition: Any = emptyObject): Int {
-        val ctx = toMap(condition)
+    fun executeUpdate(template: CharSequence, condition: Any = empty): Int {
+        val ctx = config.objectMetaFactory.toMap(condition)
         val sql = SqlBuilder(config.dialect::formatValue).build(template.toString(), ctx)
         return executeUpdate(sql)
     }

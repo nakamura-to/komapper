@@ -1,95 +1,88 @@
 package org.komapper.meta
 
-import org.komapper.SequenceGenerator
 import org.komapper.Value
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
+import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.jvm.jvmErasure
 
-class SequenceIdContext(annotation: SequenceGenerator, private val callNextValue: (String) -> Long) {
-    private val name = annotation.name
-    private val incrementBy = annotation.incrementBy
-    private val lock = ReentrantLock()
-    private var base = 0L
-    private var step = Long.MAX_VALUE
+data class PropMeta<T>(
+    val type: KClass<*>,
+    val consParam: KParameter,
+    val copyParam: KParameter,
+    val prop: KProperty1<T, *>,
+    val kind: PropKind,
+    val columnName: String
+) {
 
-    fun get(): Long {
-        return lock.withLock {
-            if (step < incrementBy) {
-                base + step++
-            } else {
-                callNextValue(name).also {
-                    base = it
-                    step = 1
-                }
-            }
-        }
+    fun getValue(entity: T): Value {
+        return prop.call(entity) to type
+    }
+
+    fun call(entity: T): Any? {
+        return prop.call(entity)
+    }
+
+    fun next(key: String, callNextValue: (String) -> Long): Any? = when (kind) {
+        is PropKind.Id.Sequence -> kind.next(key, callNextValue)
+        else -> error("illegal invocation: $kind")
+    }
+
+    fun inc(value: Any?): Any? = when (kind) {
+        is PropKind.Version -> kind.inc(value)
+        else -> error("illegal invocation: $kind")
+    }
+
+    fun now(): Any = when (kind) {
+        is PropKind.CreatedAt -> kind.now()
+        is PropKind.UpdatedAt -> kind.now()
+        else -> error("illegal invocation: $kind")
     }
 }
 
 sealed class PropKind {
     sealed class Id : PropKind() {
         object Assign : Id()
-        data class Sequence(private val annotation: SequenceGenerator) : Id() {
-            private val cache = ConcurrentHashMap<String, SequenceIdContext>()
+        data class Sequence(
+            private val name: String,
+            private val incrementBy: Int,
+            private val cast: (Long) -> Any
+        ) :
+            Id() {
+            private val cache = ConcurrentHashMap<String, IdGenerator>()
 
-            fun next(key: String, callNextValue: (String) -> Long): Long {
-                val idHolder = cache.computeIfAbsent(key) { SequenceIdContext(annotation, callNextValue) }
-                return idHolder.get()
+            fun next(key: String, callNextValue: (String) -> Long): Any {
+                val generator = cache.computeIfAbsent(key) {
+                    IdGenerator(incrementBy) { callNextValue(name) }
+                }
+                return generator.next().let(cast)
             }
         }
     }
 
-    object CreatedAt : PropKind()
-    object UpdatedAt : PropKind()
-    object Version : PropKind()
+    data class CreatedAt(val now: () -> Any) : PropKind()
+    data class UpdatedAt(val now: () -> Any) : PropKind()
+    data class Version(val inc: (Any?) -> Any?) : PropKind()
     object Basic : PropKind()
 }
 
-data class PropMeta<T>(
-    val consParam: KParameter,
-    val copyFunParam: KParameter,
-    val prop: KProperty1<T, *>,
-    val kind: PropKind,
-    val columnName: String
-) {
-    val type = prop.returnType.jvmErasure
+private class IdGenerator(private val incrementBy: Int, private val callNextValue: () -> Long) {
+    private val lock = ReentrantLock()
+    private var base = 0L
+    private var step = Long.MAX_VALUE
 
-    fun getValue(entity: T): Value {
-        return prop.call(entity) to type
-    }
-}
-
-fun <T> makePropMeta(
-    consParam: KParameter,
-    copyFunParam: KParameter,
-    kProperty: KProperty1<T, *>,
-    namingStrategy: NamingStrategy
-): PropMeta<T> {
-    val id = consParam.findAnnotation<org.komapper.Id>()
-    val version = consParam.findAnnotation<org.komapper.Version>()
-    val createdAt = consParam.findAnnotation<org.komapper.CreatedAt>()
-    val updatedAt = consParam.findAnnotation<org.komapper.UpdatedAt>()
-    // TODO
-    val kind = when {
-        id != null -> {
-            val generator = consParam.findAnnotation<SequenceGenerator>()
-            if (generator != null) {
-                PropKind.Id.Sequence(generator)
+    fun next(): Long {
+        return lock.withLock {
+            if (step < incrementBy) {
+                base + step++
             } else {
-                PropKind.Id.Assign
+                callNextValue().also {
+                    base = it
+                    step = 1
+                }
             }
         }
-        version != null -> PropKind.Version
-        createdAt != null -> PropKind.CreatedAt
-        updatedAt != null -> PropKind.UpdatedAt
-        else -> PropKind.Basic
     }
-    val column = consParam.findAnnotation<org.komapper.Column>()
-    val columnName = column?.name ?: namingStrategy.fromKotlinToDb(consParam.name!!)
-    return PropMeta(consParam, copyFunParam, kProperty, kind, columnName)
 }

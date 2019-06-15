@@ -2,11 +2,11 @@ package test.koma
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.komapper.meta.NamingStrategy
+import org.komapper.meta.CamelToSnake
 
-class NamingStrategyTest {
+class CamelToSnakeTest {
 
-    private val strategy = object : NamingStrategy {}
+    private val strategy = CamelToSnake()
 
     @Test
     fun fromKotlinToDb() {

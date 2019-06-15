@@ -2,10 +2,13 @@ package org.komapper.meta
 
 import java.nio.CharBuffer
 
-
 interface NamingStrategy {
+    fun fromKotlinToDb(name: String): String
+}
 
-    fun fromKotlinToDb(name: String): String {
+open class CamelToSnake : NamingStrategy {
+
+    override fun fromKotlinToDb(name: String): String {
         val builder = StringBuilder()
         val buf = CharBuffer.wrap(name)
         while (buf.hasRemaining()) {
@@ -22,5 +25,4 @@ interface NamingStrategy {
         }
         return builder.toString()
     }
-
 }

@@ -1,139 +1,75 @@
 package org.komapper.meta
 
-import org.komapper.Value
 import org.komapper.criteria.Criteria
 import org.komapper.criteria.Criterion
 import org.komapper.jdbc.Dialect
 import org.komapper.sql.Sql
 import org.komapper.sql.SqlBuffer
-import java.math.BigDecimal
-import java.math.BigInteger
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.memberFunctions
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.jvmErasure
 
 class EntityMeta<T>(
     val dialect: Dialect,
-    val constructor: KFunction<T>,
-    val copyFun: KFunction<T>,
+    val cons: KFunction<T>,
+    val copy: KFunction<T>,
     val tableName: String,
     val propMetaList: List<PropMeta<T>>
 ) {
-    val columnNamePropMetaMap = propMetaList.associateBy { it.columnName }
-    val propNamePropMetaMap = propMetaList.associateBy { it.prop.name }
-    val idPropMetaList = propMetaList.filter { it.kind is PropKind.Id }
-    val versionPropMeta = propMetaList.find { it.kind == PropKind.Version }
-    val createdAtPropMeta = propMetaList.filter { it.kind is PropKind.CreatedAt }
-    val updatedAtPropMeta = propMetaList.filter { it.kind is PropKind.UpdatedAt }
+    val columnNameMap = propMetaList.associateBy { it.columnName }
+    val propNameMap = propMetaList.associateBy { it.prop.name }
+    val idList = propMetaList.filter { it.kind is PropKind.Id }
+    val version = propMetaList.find { it.kind is PropKind.Version }
+    val createdAt = propMetaList.find { it.kind is PropKind.CreatedAt }
+    val updatedAt = propMetaList.find { it.kind is PropKind.UpdatedAt }
 
     fun new(args: Map<KParameter, Any?>): T {
-        return constructor.callBy(args)
-    }
-
-    fun copy(args: Map<KParameter, Any?>): T {
-        return copyFun.callBy(args)
+        return cons.callBy(args)
     }
 
     fun assignId(entity: T, key: String, callNextValue: (String) -> Long): T {
-        val idArgs = idPropMetaList
-            .map { it to it.kind }
-            .filter { (_, kind) -> kind is PropKind.Id.Sequence }
-            .map { (meta, kind) ->
-                meta.copyFunParam to when (kind) {
-                    is PropKind.Id.Sequence -> kind.next(key, callNextValue)
-                    else -> throw AssertionError("unreachable: $kind")
-                }
-            }.map(::convertType)
+        val idArgs = idList
+            .filter { it.kind is PropKind.Id.Sequence }
+            .map { it.copyParam to it.next(key, callNextValue) }
+            .filter { (_, value) -> value != null }
         if (idArgs.isEmpty()) {
             return entity
         }
-        val receiverArg: Pair<KParameter, *> = copyFun.parameters[0] to entity
+        val receiverArg: Pair<KParameter, *> = copy.parameters[0] to entity
         val args = mutableMapOf(receiverArg) + idArgs
         return copy(args)
     }
 
-    fun assignTimestamp(entity: T): T {
-        if (createdAtPropMeta.isEmpty()) {
-            return entity
-        }
-        val createdAtArgs = createdAtPropMeta.map {
-            it.copyFunParam to when (it.type) {
-                LocalDate::class -> LocalDate.now()
-                LocalDateTime::class -> LocalDateTime.now()
-                LocalTime::class -> LocalTime.now()
-                else -> TODO()
-            }
-        }
-        val receiverArg: Pair<KParameter, *> = copyFun.parameters[0] to entity
-        val args = mutableMapOf(receiverArg) + createdAtArgs
-        return copy(args)
-    }
-
-    private fun convertType(pair: Pair<KParameter, Long>): Pair<KParameter, Any> {
-        val (param, long) = pair
-        return param to when (param.type.jvmErasure) {
-            Byte::class -> long.toByte()
-            Short::class -> long.toShort()
-            Int::class -> long.toInt()
-            Long::class -> long
-            BigInteger::class -> BigInteger.valueOf(long)
-            BigDecimal::class -> BigDecimal.valueOf(long)
-            String::class -> long.toString()
-            else -> TODO()
-        }
-    }
-
     fun incrementVersion(entity: T): T {
-        if (versionPropMeta == null) {
+        if (version == null) {
             return entity
         }
-        val version = versionPropMeta.getValue(entity)
-        val (newVersion) = increment(version)
-        val receiverArg = copyFun.parameters[0] to entity
-        val versionArg = versionPropMeta.copyFunParam to newVersion
+        val receiverArg = copy.parameters[0] to entity
+        val versionArg = version.copyParam to version.call(entity).let(version::inc)
         return copy(mapOf(receiverArg, versionArg))
     }
 
-    @Suppress("IMPLICIT_CAST_TO_ANY")
-    fun increment(value: Value): Value {
-        val (first) = value
-        val v = when (first) {
-            is Byte -> first.inc()
-            is Short -> first.inc()
-            is Int -> first.inc()
-            is Long -> first.inc()
-            is BigDecimal -> first.inc()
-            is BigInteger -> first.inc()
-            else -> TODO()
+    fun assignTimestamp(entity: T): T {
+        if (createdAt == null) {
+            return entity
         }
-        return value.copy(v)
+        val receiverArg: Pair<KParameter, *> = copy.parameters[0] to entity
+        val createdAtArg = createdAt.copyParam to createdAt.now()
+        return copy(mapOf(receiverArg, createdAtArg))
     }
 
     fun updateTimestamp(entity: T): T {
-        if (updatedAtPropMeta.isEmpty()) {
+        if (updatedAt == null) {
             return entity
         }
-        val createdAtArgs = updatedAtPropMeta.map {
-            it.copyFunParam to when (it.type) {
-                LocalDate::class -> LocalDate.now()
-                LocalDateTime::class -> LocalDateTime.now()
-                LocalTime::class -> LocalTime.now()
-                else -> TODO()
-            }
-        }
-        val receiverArg: Pair<KParameter, *> = copyFun.parameters[0] to entity
-        val args = mutableMapOf(receiverArg) + createdAtArgs
-        return copy(args)
+        val receiverArg: Pair<KParameter, *> = copy.parameters[0] to entity
+        val updatedAtArg = updatedAt.copyParam to updatedAt.now()
+        return copy(mapOf(receiverArg, updatedAtArg))
+    }
+
+    private fun copy(args: Map<KParameter, Any?>): T {
+        return copy.callBy(args)
     }
 
     fun buildSelectSql(criteria: Criteria<T>): Sql {
@@ -152,7 +88,7 @@ class EntityMeta<T>(
             if (orderByScope.items.isNotEmpty()) {
                 buf.append(" order by ")
                 orderByScope.items.forEach { (meta, sort) ->
-                    val propMeta = propNamePropMetaMap[meta.name] ?: TODO()
+                    val propMeta = propNameMap[meta.name] ?: TODO()
                     buf.append(propMeta.columnName)
                     buf.append(" $sort, ")
                 }
@@ -179,7 +115,7 @@ class EntityMeta<T>(
                 is Criterion.Like -> op(buf, "like", criterion.prop, criterion.value)
                 is Criterion.NotLike -> op(buf, "not like", criterion.prop, criterion.value)
                 is Criterion.Between -> {
-                    val meta = propNamePropMetaMap[criterion.prop.name] ?: TODO()
+                    val meta = propNameMap[criterion.prop.name] ?: TODO()
                     buf.append(meta.columnName)
                     buf.append(" between ")
                     buf.bind(criterion.range.first to criterion.prop.returnType.jvmErasure)
@@ -196,7 +132,7 @@ class EntityMeta<T>(
     }
 
     private fun op(buf: SqlBuffer, op: String, prop: KProperty1<*, *>, value: Any?) {
-        val meta = propNamePropMetaMap[prop.name] ?: TODO()
+        val meta = propNameMap[prop.name] ?: TODO()
         buf.append(meta.columnName)
         buf.append(" $op ")
         buf.bind(value to prop.returnType.jvmErasure)
@@ -228,7 +164,7 @@ class EntityMeta<T>(
     }
 
     private fun listOp(buf: SqlBuffer, op: String, prop: KProperty1<*, *>, values: Iterable<*>) {
-        val meta = propNamePropMetaMap[prop.name] ?: TODO()
+        val meta = propNameMap[prop.name] ?: TODO()
         buf.append(meta.columnName)
         buf.append(" $op (")
         val type = prop.returnType.jvmErasure
@@ -243,7 +179,6 @@ class EntityMeta<T>(
         buf.append(")")
     }
 
-
     fun buildFindByIdSql(id: Any, version: Any?): Sql {
         val buf = SqlBuffer(dialect::formatValue)
         buf.append("select ")
@@ -254,26 +189,26 @@ class EntityMeta<T>(
         buf.append(" from $tableName where ")
         when (id) {
             is Collection<*> -> {
-                require(id.size == idPropMetaList.size)
-                id.zip(idPropMetaList).forEach { (obj, meta) ->
+                require(id.size == idList.size)
+                id.zip(idList).forEach { (obj, meta) ->
                     buf.append("${meta.columnName} = ")
                     buf.bind(obj to meta.type)
                     buf.append(" and ")
                 }
             }
             else -> {
-                require(idPropMetaList.size == 1)
-                buf.append("${idPropMetaList[0].columnName} = ")
-                buf.bind(id to idPropMetaList[0].type)
+                require(idList.size == 1)
+                buf.append("${idList[0].columnName} = ")
+                buf.bind(id to idList[0].type)
                 buf.append(" and ")
             }
         }
         buf.cutBack(5)
         if (version != null) {
-            requireNotNull(versionPropMeta)
+            requireNotNull(this.version)
             buf.append(" and ")
-            buf.append("${versionPropMeta.columnName} = ")
-            buf.bind(version to versionPropMeta.type)
+            buf.append("${this.version.columnName} = ")
+            buf.bind(version to this.version.type)
         }
         return buf.toSql()
     }
@@ -299,23 +234,23 @@ class EntityMeta<T>(
     fun buildDeleteSql(entity: T): Sql {
         val buf = SqlBuffer(dialect::formatValue)
         buf.append("delete from $tableName")
-        if (idPropMetaList.isNotEmpty()) {
+        if (idList.isNotEmpty()) {
             buf.append(" where ")
-            idPropMetaList.forEach { meta ->
+            idList.forEach { meta ->
                 buf.append("${meta.columnName} = ")
                 buf.bind(meta.getValue(entity))
                 buf.append(" and ")
             }
             buf.cutBack(5)
         }
-        if (versionPropMeta != null) {
-            if (idPropMetaList.isEmpty()) {
+        if (version != null) {
+            if (idList.isEmpty()) {
                 buf.append(" where ")
             } else {
                 buf.append(" and ")
             }
-            buf.append("${versionPropMeta.columnName} = ")
-            buf.bind(versionPropMeta.getValue(entity))
+            buf.append("${version.columnName} = ")
+            buf.bind(version.getValue(entity))
         }
         return buf.toSql()
     }
@@ -330,63 +265,25 @@ class EntityMeta<T>(
             buf.append(", ")
         }
         buf.cutBack(2)
-        if (idPropMetaList.isNotEmpty()) {
+        if (idList.isNotEmpty()) {
             buf.append(" where ")
-            idPropMetaList.forEach { meta ->
+            idList.forEach { meta ->
                 buf.append("${meta.columnName} = ")
                 buf.bind(meta.getValue(newEntity))
                 buf.append(" and ")
             }
             buf.cutBack(5)
         }
-        if (versionPropMeta != null) {
-            if (idPropMetaList.isEmpty()) {
+        if (version != null) {
+            if (idList.isEmpty()) {
                 buf.append(" where ")
             } else {
                 buf.append(" and ")
             }
-            buf.append("${versionPropMeta.columnName} = ")
-            buf.bind(versionPropMeta.getValue(entity))
+            buf.append("${version.columnName} = ")
+            buf.bind(version.getValue(entity))
         }
         return buf.toSql()
     }
 
-}
-
-private val cache = ConcurrentHashMap<KClass<*>, EntityMeta<*>>()
-
-fun <T : Any> getEntityMeta(
-    clazz: KClass<T>,
-    dialect: Dialect,
-    namingStrategy: NamingStrategy
-): EntityMeta<T> {
-    @Suppress("UNCHECKED_CAST")
-    return cache.computeIfAbsent(clazz) { makeEntityMeta(it, dialect, namingStrategy) } as EntityMeta<T>
-}
-
-private fun <T : Any> makeEntityMeta(
-    clazz: KClass<T>,
-    dialect: Dialect,
-    namingStrategy: NamingStrategy
-): EntityMeta<T> {
-    require(clazz.isData) { "The clazz must be a data class." }
-    require(!clazz.isAbstract) { "The clazz must not be abstract." }
-    val constructor = clazz.primaryConstructor ?: throw AssertionError()
-    val copyFun = clazz.memberFunctions.find {
-        it.name == "copy" && it.returnType.jvmErasure == clazz
-    }?.let {
-        @Suppress("UNCHECKED_CAST")
-        it as KFunction<T>
-    } ?: TODO()
-    val table = clazz.findAnnotation<org.komapper.Table>()
-    val tableName = table?.name ?: namingStrategy.fromKotlinToDb(clazz.simpleName!!)
-    val propMetaList = constructor.parameters
-        .zip(copyFun.parameters.subList(1, copyFun.parameters.size))
-        .map { (consParam, copyFunParam) ->
-            val prop = clazz.memberProperties.find { prop ->
-                consParam.name!! == prop.name
-            } ?: TODO()
-            makePropMeta(consParam, copyFunParam, prop, namingStrategy)
-        }
-    return EntityMeta(dialect, constructor, copyFun, tableName, propMetaList)
 }
