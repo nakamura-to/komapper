@@ -5,7 +5,6 @@ import org.komapper.criteria.Terminal
 import org.komapper.meta.EntityMeta
 import org.komapper.meta.PropMeta
 import org.komapper.sql.Sql
-import org.komapper.sql.SqlBuilder
 import org.komapper.tx.TransactionScope
 import java.sql.*
 import java.util.*
@@ -40,7 +39,7 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
         val ctx = config.objectMetaFactory.toMap(condition)
-        val sql = SqlBuilder(config.dialect::formatValue).build(template, ctx)
+        val sql = config.sqlBuilder.build(template, ctx)
         return `access$stream`(sql, meta).use {
             it.collect(Collectors.toList())
         }
@@ -75,7 +74,7 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
         val ctx = config.objectMetaFactory.toMap(condition)
-        val sql = SqlBuilder(config.dialect::formatValue).build(template, ctx)
+        val sql = config.sqlBuilder.build(template, ctx)
         return `access$stream`(sql, meta).use {
             block(it.asSequence())
         }
@@ -136,7 +135,7 @@ class Db(val config: DbConfig) {
         type: KClass<*>
     ): Stream<T> {
         val ctx = config.objectMetaFactory.toMap(condition)
-        val sql = SqlBuilder(config.dialect::formatValue).build(template.toString(), ctx)
+        val sql = config.sqlBuilder.build(template, ctx)
         return executeQuery(sql) { rs ->
             fromResultSetToStream(rs) {
                 config.dialect.getValue(it, 1, type) as T
@@ -383,7 +382,7 @@ class Db(val config: DbConfig) {
 
     fun executeUpdate(template: CharSequence, condition: Any = empty): Int {
         val ctx = config.objectMetaFactory.toMap(condition)
-        val sql = SqlBuilder(config.dialect::formatValue).build(template.toString(), ctx)
+        val sql = config.sqlBuilder.build(template, ctx)
         return executeUpdate(sql)
     }
 

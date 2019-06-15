@@ -1,20 +1,32 @@
 package org.komapper.sql
 
 import org.komapper.Value
+import org.komapper.expr.ExprEvaluator
+import org.komapper.jdbc.Dialect
 import kotlin.reflect.KClass
 
 private fun format(value: Any?, valueClass: KClass<*>): String {
     return value.toString()
 }
 
-class SqlBuilder(
-    private val formatter: (Any?, KClass<*>) -> String = ::format,
-    private val evaluator: org.komapper.expr.ExprEvaluator = org.komapper.expr.ExprEvaluator()
-) {
+interface SqlBuilder {
+    fun build(template: CharSequence, ctx: Map<String, Value> = emptyMap()): Sql
+}
 
-    fun build(template: CharSequence, ctx: Map<String, Value> = emptyMap()): Sql {
-        val parser = SqlParser(template.toString())
-        val node = parser.parse()
+open class DefaultSqlBuilder internal constructor(
+    private val formatter: (Any?, KClass<*>) -> String = ::format,
+    private val sqlNodeFactory: SqlNodeFactory = NoCacheSqlNodeFactory(),
+    private val evaluator: ExprEvaluator = ExprEvaluator()
+): SqlBuilder {
+
+    constructor(
+        dialect: Dialect,
+        sqlNodeFactory: SqlNodeFactory,
+        exprEvaluator: ExprEvaluator
+    ) : this(dialect::formatValue, sqlNodeFactory, exprEvaluator)
+
+    override fun build(template: CharSequence, ctx: Map<String, Value>): Sql {
+        val node = sqlNodeFactory.get(template)
         val state = visit(State(ctx), node)
         val buffer = state.getBuffer()
         return buffer.toSql()

@@ -1,9 +1,14 @@
 package org.komapper
 
+import org.komapper.expr.ExprEvaluator
 import org.komapper.jdbc.Dialect
 import org.komapper.meta.*
 import org.komapper.query.DefaultQueryBuilder
 import org.komapper.query.QueryBuilder
+import org.komapper.sql.CacheSqlNodeFactory
+import org.komapper.sql.DefaultSqlBuilder
+import org.komapper.sql.SqlBuilder
+import org.komapper.sql.SqlNodeFactory
 import org.komapper.tx.TransactionIsolationLevel
 import org.komapper.tx.TransactionManager
 import org.komapper.tx.TransactionScope
@@ -19,6 +24,9 @@ data class DbConfig(
     val entityMetaFactory: EntityMetaFactory = DefaultEntityMetaFactory(namingStrategy, propMetaFactory),
     val listener: EntityListener = DefaultEntityListener(),
     val queryBuilder: QueryBuilder = DefaultQueryBuilder(dialect),
+    val sqlNodeFactory: SqlNodeFactory = CacheSqlNodeFactory(),
+    val exprEvaluator: ExprEvaluator = ExprEvaluator(),
+    val sqlBuilder: SqlBuilder = DefaultSqlBuilder(dialect, sqlNodeFactory, exprEvaluator),
     val logger: Logger = {},
     val useTransaction: Boolean = false,
     val isolationLevel: TransactionIsolationLevel? = null,
