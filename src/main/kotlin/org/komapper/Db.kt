@@ -54,6 +54,24 @@ class Db(val config: DbConfig) {
         }
     }
 
+    inline fun <reified A : Any?, reified B : Any?> selectTwoColumns(
+        template: CharSequence,
+        condition: Any = empty
+    ): List<Pair<A, B>> {
+        return `access$streamTwoColumns`<A, B>(template, condition, A::class, B::class).use {
+            it.collect(Collectors.toList())
+        }
+    }
+
+    inline fun <reified A : Any?, reified B : Any?, reified C : Any?> selectThreeColumns(
+        template: CharSequence,
+        condition: Any = empty
+    ): List<Triple<A, B, C>> {
+        return `access$streamThreeColumns`<A, B, C>(template, condition, A::class, B::class, C::class).use {
+            it.collect(Collectors.toList())
+        }
+    }
+
     inline fun <reified T : Any> selectByCriteria(
         criteriaBlock: CriteriaScope<T>.() -> Terminal<T> = { where { } }
     ): List<T> {
@@ -86,6 +104,26 @@ class Db(val config: DbConfig) {
         block: (Sequence<T>) -> R
     ): R {
         return `access$streamOneColumn`<T>(template, condition, T::class).use {
+            block(it.asSequence())
+        }
+    }
+
+    inline fun <reified A : Any?, reified B : Any?, R> sequenceTwoColumns(
+        template: CharSequence,
+        condition: Any = empty,
+        block: (Sequence<Pair<A, B>>) -> R
+    ): R {
+        return `access$streamTwoColumns`<A, B>(template, condition, A::class, B::class).use {
+            block(it.asSequence())
+        }
+    }
+
+    inline fun <reified A : Any?, reified B : Any?, reified C : Any?, R> sequenceThreeColumns(
+        template: CharSequence,
+        condition: Any = empty,
+        block: (Sequence<Triple<A, B, C>>) -> R
+    ): R {
+        return `access$streamThreeColumns`<A, B, C>(template, condition, A::class, B::class, C::class).use {
             block(it.asSequence())
         }
     }
@@ -139,6 +177,44 @@ class Db(val config: DbConfig) {
         return executeQuery(sql) { rs ->
             fromResultSetToStream(rs) {
                 config.dialect.getValue(it, 1, type) as T
+            }
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <A : Any?, B : Any?> streamTwoColumns(
+        template: CharSequence,
+        condition: Any = empty,
+        firstType: KClass<*>,
+        secondType: KClass<*>
+    ): Stream<Pair<A, B>> {
+        val ctx = config.objectMetaFactory.toMap(condition)
+        val sql = config.sqlBuilder.build(template, ctx)
+        return executeQuery(sql) { rs ->
+            fromResultSetToStream(rs) {
+                val first = config.dialect.getValue(it, 1, firstType) as A
+                val second = config.dialect.getValue(it, 2, secondType) as B
+                first to second
+            }
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <A : Any?, B : Any?, C : Any?> streamThreeColumns(
+        template: CharSequence,
+        condition: Any = empty,
+        firstType: KClass<*>,
+        secondType: KClass<*>,
+        thirdType: KClass<*>
+    ): Stream<Triple<A, B, C>> {
+        val ctx = config.objectMetaFactory.toMap(condition)
+        val sql = config.sqlBuilder.build(template, ctx)
+        return executeQuery(sql) { rs ->
+            fromResultSetToStream(rs) {
+                val first = config.dialect.getValue(it, 1, firstType) as A
+                val second = config.dialect.getValue(it, 2, secondType) as B
+                val third = config.dialect.getValue(it, 3, thirdType) as C
+                Triple(first, second, third)
             }
         }
     }
@@ -453,8 +529,29 @@ class Db(val config: DbConfig) {
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
-    internal fun <T> `access$streamOneColumn`(template: CharSequence, condition: Any, type: KClass<*>) =
+    internal fun <T : Any?> `access$streamOneColumn`(template: CharSequence, condition: Any, type: KClass<*>) =
         streamOneColumn<T>(template, condition, type)
+
+    @PublishedApi
+    @Suppress("UNUSED", "FunctionName")
+    internal fun <A : Any?, B : Any?> `access$streamTwoColumns`(
+        template: CharSequence,
+        condition: Any,
+        firstType: KClass<*>,
+        secondType: KClass<*>
+    ) =
+        streamTwoColumns<A, B>(template, condition, firstType, secondType)
+
+    @PublishedApi
+    @Suppress("UNUSED", "FunctionName")
+    internal fun <A : Any?, B : Any?, C : Any?> `access$streamThreeColumns`(
+        template: CharSequence,
+        condition: Any,
+        firstType: KClass<*>,
+        secondType: KClass<*>,
+        thirdType: KClass<*>
+    ) =
+        streamThreeColumns<A, B, C>(template, condition, firstType, secondType, thirdType)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")

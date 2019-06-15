@@ -462,6 +462,25 @@ internal class DbTest {
     }
 
     @Test
+    fun selectTwoColumns() {
+        val db = Db(config)
+        val list = db.selectTwoColumns<Int, String>("select address_id, street from address")
+        assertEquals(15, list.size)
+        assertEquals(1, list[0].first)
+        assertEquals("STREET 1", list[0].second)
+    }
+
+    @Test
+    fun selectThreeColumns() {
+        val db = Db(config)
+        val list = db.selectThreeColumns<Int, String, Int>("select address_id, street, version from address")
+        assertEquals(15, list.size)
+        assertEquals(15, list[14].first)
+        assertEquals("STREET 15", list[14].second)
+        assertEquals(1, list[0].third)
+    }
+
+    @Test
     fun sequenceOneColumn() {
         val db = Db(config)
         val list = db.sequenceOneColumn<String?, List<String?>>("select street from address") {
@@ -469,6 +488,29 @@ internal class DbTest {
         }
         assertEquals(15, list.size)
         assertEquals("STREET 1", list[0])
+    }
+
+    @Test
+    fun sequenceTwoColumns() {
+        val db = Db(config)
+        val list = db.sequenceTwoColumns<Int, String?, List<Pair<Int, String?>>>(
+            "select address_id, street from address"
+        ) { it.toList() }
+        assertEquals(15, list.size)
+        assertEquals(1, list[0].first)
+        assertEquals("STREET 1", list[0].second)
+    }
+
+    @Test
+    fun sequenceThreeColumns() {
+        val db = Db(config)
+        val list = db.sequenceThreeColumns<Int, String?, Int, List<Triple<Int, String?, Int>>>(
+            "select address_id, street, version from address"
+        ) { it.toList() }
+        assertEquals(15, list.size)
+        assertEquals(15, list[14].first)
+        assertEquals("STREET 15", list[14].second)
+        assertEquals(1, list[14].third)
     }
 
     @Test
