@@ -9,7 +9,14 @@ import kotlin.reflect.full.valueParameters
 import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.jvmErasure
 
-class ExprEvaluator(private val extensions: List<KCallable<Any?>> = emptyList()) {
+interface ExprEvaluator {
+    fun eval(expression: String, ctx: Map<String, Value> = emptyMap()): Value
+}
+
+class DefaultExprEvaluator(
+    private val exprNodeFactory: ExprNodeFactory,
+    private val extensions: List<KCallable<Any?>> = emptyList()
+) : ExprEvaluator {
 
     init {
         extensions.forEach { it.isAccessible = true }
@@ -18,8 +25,8 @@ class ExprEvaluator(private val extensions: List<KCallable<Any?>> = emptyList())
     // used to distinguish multiple arguments from a single List
     class ArgList : ArrayList<Any?>()
 
-    fun eval(expression: String, ctx: Map<String, Value> = emptyMap()): Value {
-        val node = org.komapper.expr.ExprParser(expression).parse()
+    override fun eval(expression: String, ctx: Map<String, Value>): Value {
+        val node = exprNodeFactory.get(expression)
         return visit(node, ctx)
     }
 

@@ -7,12 +7,12 @@ interface SqlNodeFactory {
     fun clear()
 }
 
-open class CacheSqlNodeFactory: SqlNodeFactory {
+open class CacheSqlNodeFactory : SqlNodeFactory {
 
     private val cache = ConcurrentHashMap<String, SqlNode>()
 
     override fun get(template: CharSequence): SqlNode {
-        return cache.computeIfAbsent(template.toString()) { SqlParser(it).parse()}
+        return cache.computeIfAbsent(template.toString()) { SqlParser(it).parse() }
     }
 
     override fun clear() {
@@ -20,7 +20,7 @@ open class CacheSqlNodeFactory: SqlNodeFactory {
     }
 }
 
-open class NoCacheSqlNodeFactory: SqlNodeFactory {
+open class NoCacheSqlNodeFactory : SqlNodeFactory {
 
     override fun get(template: CharSequence): SqlNode {
         return SqlParser(template.toString()).parse()

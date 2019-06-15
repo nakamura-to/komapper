@@ -1,7 +1,6 @@
 package org.komapper.meta
 
 import org.komapper.Table
-import org.komapper.jdbc.Dialect
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction

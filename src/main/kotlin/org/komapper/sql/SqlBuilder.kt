@@ -2,28 +2,17 @@ package org.komapper.sql
 
 import org.komapper.Value
 import org.komapper.expr.ExprEvaluator
-import org.komapper.jdbc.Dialect
 import kotlin.reflect.KClass
-
-private fun format(value: Any?, valueClass: KClass<*>): String {
-    return value.toString()
-}
 
 interface SqlBuilder {
     fun build(template: CharSequence, ctx: Map<String, Value> = emptyMap()): Sql
 }
 
-open class DefaultSqlBuilder internal constructor(
-    private val formatter: (Any?, KClass<*>) -> String = ::format,
-    private val sqlNodeFactory: SqlNodeFactory = NoCacheSqlNodeFactory(),
-    private val evaluator: ExprEvaluator = ExprEvaluator()
-): SqlBuilder {
-
-    constructor(
-        dialect: Dialect,
-        sqlNodeFactory: SqlNodeFactory,
-        exprEvaluator: ExprEvaluator
-    ) : this(dialect::formatValue, sqlNodeFactory, exprEvaluator)
+open class DefaultSqlBuilder(
+    private val formatter: (Any?, KClass<*>) -> String,
+    private val sqlNodeFactory: SqlNodeFactory,
+    private val exprEvaluator: ExprEvaluator
+) : SqlBuilder {
 
     override fun build(template: CharSequence, ctx: Map<String, Value>): Sql {
         val node = sqlNodeFactory.get(template)
@@ -164,7 +153,7 @@ open class DefaultSqlBuilder internal constructor(
     }
 
     private fun eval(expression: String, ctx: Map<String, Value>): Value {
-        return evaluator.eval(expression, ctx)
+        return exprEvaluator.eval(expression, ctx)
     }
 
     private fun toText(value: Any?): String {
