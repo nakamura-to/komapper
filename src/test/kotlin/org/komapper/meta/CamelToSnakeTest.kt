@@ -1,4 +1,4 @@
-package test.koma
+package org.komapper.meta
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
