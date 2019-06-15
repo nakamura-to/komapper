@@ -3,27 +3,27 @@ package org.komapper.jdbc
 import java.io.PrintWriter
 import java.sql.Connection
 import java.sql.DriverManager
+import java.sql.SQLFeatureNotSupportedException
 import java.util.logging.Logger
 import javax.sql.DataSource
 
-
+@Suppress("MemberVisibilityCanBePrivate")
 class SimpleDataSource(val url: String, val user: String = "", val password: String = "") : DataSource {
 
-
     override fun setLogWriter(out: PrintWriter?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        throw SQLFeatureNotSupportedException()
     }
 
     override fun setLoginTimeout(seconds: Int) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        throw SQLFeatureNotSupportedException()
     }
 
     override fun isWrapperFor(iface: Class<*>?): Boolean {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        throw SQLFeatureNotSupportedException()
     }
 
     override fun <T : Any?> unwrap(iface: Class<T>?): T {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        throw SQLFeatureNotSupportedException()
     }
 
     override fun getConnection(): Connection {
@@ -31,20 +31,18 @@ class SimpleDataSource(val url: String, val user: String = "", val password: Str
     }
 
     override fun getConnection(username: String?, password: String?): Connection {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        throw SQLFeatureNotSupportedException()
     }
 
     override fun getParentLogger(): Logger {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        throw SQLFeatureNotSupportedException()
     }
 
     override fun getLogWriter(): PrintWriter {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        throw SQLFeatureNotSupportedException()
     }
 
     override fun getLoginTimeout(): Int {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        throw SQLFeatureNotSupportedException()
     }
-
-
 }
