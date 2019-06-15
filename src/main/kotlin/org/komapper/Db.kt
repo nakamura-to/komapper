@@ -28,7 +28,7 @@ class Db(val config: DbConfig) {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
-        val sql = meta.buildFindByIdSql(id, version)
+        val sql = config.queryBuilder.buildFindById(meta, id, version)
         return `access$stream`(sql, meta).toList().firstOrNull()
     }
 
@@ -62,7 +62,7 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val criteria = criteriaBlock(CriteriaScope())()
         val meta = config.entityMetaFactory.get(T::class)
-        val sql = meta.buildSelectSql(criteria)
+        val sql = config.queryBuilder.buildSelect(meta, criteria)
         return `access$stream`(sql, meta).toList()
     }
 
@@ -99,7 +99,7 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val criteria = criteriaBlock(CriteriaScope())()
         val meta = config.entityMetaFactory.get(T::class)
-        val sql = meta.buildSelectSql(criteria)
+        val sql = config.queryBuilder.buildSelect(meta, criteria)
         return `access$stream`(sql, meta).use {
             block(it.asSequence())
         }
@@ -199,7 +199,7 @@ class Db(val config: DbConfig) {
         }.let { newEntity ->
             config.listener.preInsert(newEntity, meta)
         }.let { newEntity ->
-            val sql = meta.buildInsertSql(newEntity)
+            val sql = config.queryBuilder.buildInsert(meta, newEntity)
             val count = try {
                 `access$executeUpdate`(sql)
             } catch (e: SQLException) {
@@ -219,7 +219,7 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
         return config.listener.preDelete(entity, meta).let { newEntity ->
-            val sql = meta.buildDeleteSql(newEntity)
+            val sql = config.queryBuilder.buildDelete(meta, newEntity)
             val count = `access$executeUpdate`(sql)
             if (meta.version != null && count != 1) {
                 throw OptimisticLockException()
@@ -238,7 +238,7 @@ class Db(val config: DbConfig) {
         }.let { newEntity ->
             config.listener.preUpdate(newEntity, meta)
         }.let { newEntity ->
-            val sql = meta.buildUpdateSql(entity, newEntity)
+            val sql = config.queryBuilder.buildUpdate(meta, entity, newEntity)
             val count = try {
                 `access$executeUpdate`(sql)
             } catch (e: SQLException) {
@@ -281,7 +281,7 @@ class Db(val config: DbConfig) {
             }.let { newEntity ->
                 config.listener.preInsert(newEntity, meta)
             }.let { newEntity ->
-                newEntity to meta.buildInsertSql(newEntity)
+                newEntity to config.queryBuilder.buildInsert(meta, newEntity)
             }
         }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
             acc.first.add(e)
@@ -309,7 +309,7 @@ class Db(val config: DbConfig) {
         val size = entities.size
         val (newEntities, sqls) = entities.map { entity ->
             config.listener.preDelete(entity, meta).let { newEntity ->
-                newEntity to meta.buildDeleteSql(newEntity)
+                newEntity to config.queryBuilder.buildDelete(meta, newEntity)
             }
         }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
             acc.first.add(e)
@@ -336,7 +336,7 @@ class Db(val config: DbConfig) {
             }.let { newEntity ->
                 config.listener.preUpdate(newEntity, meta)
             }.let { newEntity ->
-                newEntity to meta.buildUpdateSql(entity, newEntity)
+                newEntity to config.queryBuilder.buildUpdate(meta, entity, newEntity)
             }
         }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
             acc.first.add(e)

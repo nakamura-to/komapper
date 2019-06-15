@@ -16,7 +16,6 @@ interface EntityMetaFactory {
 }
 
 open class DefaultEntityMetaFactory(
-    private val dialect: Dialect,
     private val namingStrategy: NamingStrategy,
     private val propMetaFactory: PropMetaFactory
 ) : EntityMetaFactory {
@@ -49,7 +48,7 @@ open class DefaultEntityMetaFactory(
                 check(consParam.type == prop.returnType) { "${consParam.type} is not equal to ${prop.returnType}" }
                 propMetaFactory.create(consParam, copyParam, prop)
             }
-        return EntityMeta(dialect, cons, copy, tableName, propMetaList)
+        return EntityMeta(clazz, cons, copy, tableName, propMetaList)
     }
 
 }

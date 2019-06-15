@@ -11,20 +11,23 @@ class SqlBuffer(
     val log = StringBuilder(capacity)
     val values = ArrayList<Value>()
 
-    fun append(s: CharSequence) {
+    fun append(s: CharSequence): SqlBuffer {
         sql.append(s)
         log.append(s)
+        return this
     }
 
-    fun bind(value: Value) {
+    fun bind(value: Value): SqlBuffer {
         sql.append("?")
         log.append(formatter(value.first, value.second))
         values.add(value)
+        return this
     }
 
-    fun cutBack(length: Int) {
+    fun cutBack(length: Int): SqlBuffer {
         sql.setLength(sql.length - length)
         log.setLength(log.length - length)
+        return this
     }
 
     fun toSql(): Sql {

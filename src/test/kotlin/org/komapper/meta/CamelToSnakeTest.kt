@@ -2,7 +2,6 @@ package org.komapper.meta
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.komapper.meta.CamelToSnake
 
 class CamelToSnakeTest {
 
