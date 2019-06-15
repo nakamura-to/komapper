@@ -18,7 +18,7 @@ data class DbConfig(
     val listener: EntityListener = DefaultEntityListener(),
     val logger: Logger = {},
     val useTransaction: Boolean = false,
-    val defaultIsolationLevel: TransactionIsolationLevel? = null,
+    val isolationLevel: TransactionIsolationLevel? = null,
     val batchSize: Int = 10,
     val fetchSize: Int? = null,
     val maxRows: Int? = null,
@@ -32,7 +32,7 @@ data class DbConfig(
 
     val transactionScope: TransactionScope by lazy {
         if (useTransaction) {
-            TransactionScope(transactionManager, defaultIsolationLevel)
+            TransactionScope(transactionManager, isolationLevel)
         } else {
             throw DbConfigException("To use transaction, specify \"useTransaction = true\" at DbConfig.")
         }
