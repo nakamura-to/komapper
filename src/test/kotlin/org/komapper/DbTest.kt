@@ -365,7 +365,7 @@ internal class DbTest {
                 """
                 select employee_id, employee_no, employee_name, manager_id,
                 hiredate, salary, department_id, address_id, version from employee
-            """.trimIndent()
+                """.trimIndent()
             )
         assertEquals(14, list.size)
     }

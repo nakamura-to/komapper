@@ -37,6 +37,19 @@ data class PropMeta<T, R : Any?>(
         else -> listOf(columnName)
     }
 
+    fun getLeafPropMetaList(): List<PropMeta<*, *>> = when (kind) {
+        is PropKind.Embedded -> kind.meta.getLeafPropMetaList()
+        else -> listOf(this)
+    }
+
+    fun new(leafValues: Map<PropMeta<*, *>, Any?>): R {
+        @Suppress("UNCHECKED_CAST")
+        return when (kind) {
+            is PropKind.Embedded<R> -> kind.meta.new(leafValues)
+            else -> leafValues[this] as R
+        }
+    }
+
     fun call(entity: T): R {
         return prop.call(entity)
     }

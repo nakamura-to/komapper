@@ -15,43 +15,11 @@ class EntityMeta<T>(
     val version = propMetaList.find { it.kind is PropKind.Version }
     val createdAt = propMetaList.find { it.kind is PropKind.CreatedAt }
     val updatedAt = propMetaList.find { it.kind is PropKind.UpdatedAt }
-    val embeddedList = propMetaList
-        .flatMap {
-            when (it.kind) {
-                is PropKind.Embedded -> listOf(it) + it.kind.meta.getEmbeddedPropMetaList()
-                else -> emptyList()
-            }
-        }.reversed()
-    val columnNameMap = propMetaList
-        .flatMap {
-            when (it.kind) {
-                is PropKind.Embedded -> it.kind.meta.getLeafPropMetaList()
-                else -> listOf(it)
-            }
-        }.associateBy { it.columnName }
-    val propMap = propMetaList
-        .flatMap {
-            when (it.kind) {
-                is PropKind.Embedded -> it.kind.meta.getLeafPropMetaList()
-                else -> listOf(it)
-            }
-        }.associateBy { it.prop }
+    val columnNameMap = propMetaList.flatMap { it.getLeafPropMetaList() }.associateBy { it.columnName }
+    val propMap = propMetaList.flatMap { it.getLeafPropMetaList() }.associateBy { it.prop }
 
-
-    fun new(leafs: Map<PropMeta<*, *>, Any?>): T {
-        val composites = LinkedHashMap<PropMeta<*, *>, Any?>(leafs)
-        for (propMeta in embeddedList) {
-            when (propMeta.kind) {
-                is PropKind.Embedded -> {
-                    val embeddedMeta = propMeta.kind.meta
-                    val args = embeddedMeta.propMetaList.map { it.consParam to composites[it] }.toMap()
-                    val embedded = embeddedMeta.new(args)
-                    composites[propMeta] = embedded
-                }
-                else -> error("illegal kind: ${propMeta.kind}")
-            }
-        }
-        val args = composites.map { (k, v) -> k.consParam to v }.toMap()
+    fun new(leafValues: Map<PropMeta<*, *>, Any?>): T {
+        val args = propMetaList.map { it.consParam to it.new(leafValues) }.toMap()
         return cons.callBy(args)
     }
 
