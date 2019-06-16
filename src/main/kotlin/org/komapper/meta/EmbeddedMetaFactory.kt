@@ -20,6 +20,6 @@ open class DefaultEmbeddedMetaFactory : EmbeddedMetaFactory {
         require(clazz.isData) { "The clazz must be a data class." }
         require(!clazz.isAbstract) { "The clazz must not be abstract." }
         val meta = DataClassMeta(clazz, propMetaFactory, hierarchy + clazz)
-        return EmbeddedMeta(clazz, meta.cons, meta.propMetaList)
+        return EmbeddedMeta(clazz, meta.cons, meta.copy, meta.propMetaList)
     }
 }

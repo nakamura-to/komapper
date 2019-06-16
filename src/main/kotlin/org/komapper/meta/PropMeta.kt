@@ -8,7 +8,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
 
-data class PropMeta<T, R : Any?>(
+class PropMeta<T, R : Any?>(
     val type: KClass<*>,
     val consParam: KParameter,
     val copyParam: KParameter,
@@ -16,31 +16,6 @@ data class PropMeta<T, R : Any?>(
     val kind: PropKind<R>,
     val columnName: String
 ) {
-
-    fun getValues(entity: T): List<Value> {
-        val value = prop.call(entity)
-        return if (kind is PropKind.Embedded<R>) {
-            kind.meta.propMetaList.flatMap { propMeta ->
-                if (value == null) {
-                    listOf(null to propMeta.type)
-                } else {
-                    propMeta.getValues(value)
-                }
-            }
-        } else {
-            listOf(value to type)
-        }
-    }
-
-    fun getColumnNames(): List<String> = when (kind) {
-        is PropKind.Embedded -> kind.meta.getLeafPropMetaList().flatMap { it.getColumnNames() }
-        else -> listOf(columnName)
-    }
-
-    fun getLeafPropMetaList(): List<PropMeta<*, *>> = when (kind) {
-        is PropKind.Embedded -> kind.meta.getLeafPropMetaList()
-        else -> listOf(this)
-    }
 
     fun new(leafValues: Map<PropMeta<*, *>, Any?>): R {
         @Suppress("UNCHECKED_CAST")
@@ -50,8 +25,58 @@ data class PropMeta<T, R : Any?>(
         }
     }
 
-    fun call(entity: T): R {
+    fun copy(
+        entity: T,
+        predicate: (PropMeta<*, *>) -> Boolean,
+        block: (PropMeta<*, *>, Any?) -> Any?
+    ): Pair<KParameter, Any?>? = when (kind) {
+        is PropKind.Embedded -> {
+            val embedded = call(entity)
+            val newEmbedded = kind.meta.copy(embedded, predicate, block)
+            if (newEmbedded == null) null else copyParam to newEmbedded
+        }
+        else -> {
+            if (predicate(this)) {
+                val value = call(entity)
+                val newValue = block(this, value as Any)
+                copyParam to newValue
+            } else {
+                null
+            }
+        }
+    }
+
+    fun getValues(entity: T, predicate: (PropMeta<*, *>) -> Boolean): List<Value> = when (kind) {
+        is PropKind.Embedded -> {
+            val embedded = call(entity)
+            kind.meta.getValues(embedded, predicate)
+        }
+        else -> {
+            if (predicate(this)) {
+                val value = prop.call(entity)
+                listOf(value to type)
+            } else {
+                emptyList()
+            }
+        }
+    }
+
+    private fun call(entity: T): R {
         return prop.call(entity)
+    }
+
+    fun getColumnNames(predicate: (PropMeta<*, *>) -> Boolean): List<String> = when (kind) {
+        is PropKind.Embedded -> {
+            kind.meta.getColumnNames(predicate)
+        }
+        else -> {
+            if (predicate(this)) listOf(columnName) else emptyList()
+        }
+    }
+
+    fun getLeafPropMetaList(): List<PropMeta<*, *>> = when (kind) {
+        is PropKind.Embedded -> kind.meta.getLeafPropMetaList()
+        else -> listOf(this)
     }
 
     fun next(key: String, callNextValue: (String) -> Long): Any? = when (kind) {

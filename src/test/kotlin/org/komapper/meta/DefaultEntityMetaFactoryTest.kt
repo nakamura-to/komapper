@@ -36,10 +36,4 @@ internal class DefaultEntityMetaFactoryTest {
         println(exception)
     }
 
-    @Test
-    fun `Embedded classes must not contain the @Id parameter`() {
-        val exception = assertThrows<IllegalStateException> { factory.get(Address::class) }
-        println(exception)
-    }
-
 }

@@ -47,16 +47,6 @@ open class DefaultPropMetaFactory(
         val createdAt = consParam.findAnnotation<CreatedAt>()
         val updatedAt = consParam.findAnnotation<UpdatedAt>()
         val embedded = consParam.findAnnotation<Embedded>()
-        if (hierarchy.size > 1) {
-            val lazyMessage: (String) -> String =
-                { a -> "The embedded class \"${hierarchy.last().qualifiedName}\" must not have the $a parameter." }
-            when {
-                id != null -> error(lazyMessage("@Id"))
-                version != null -> error(lazyMessage("@Version"))
-                createdAt != null -> error(lazyMessage("@CreatedAt"))
-                updatedAt != null -> error(lazyMessage("@UpdatedAt"))
-            }
-        }
         return when {
             id != null -> idKind(type, consParam, prop)
             version != null -> versionKind(type, consParam, prop)
@@ -118,7 +108,7 @@ open class DefaultPropMetaFactory(
             else -> {
                 if (type in hierarchy) {
                     error(
-                        "@Embedded does'n support circular reference. " +
+                        "@Embedded doesn't support circular reference. " +
                                 "The type \"${type.qualifiedName}\" is circularly referenced in the hierarchy."
                     )
                 }

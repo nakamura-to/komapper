@@ -109,6 +109,25 @@ internal class DbTest {
         val version: Int
     )
 
+    data class Common(
+        @Id
+        @SequenceGenerator(name = "PERSON_ID_SEQUENCE", incrementBy = 100)
+        val personId: Int = 0,
+        @CreatedAt
+        val createdAt: LocalDateTime = LocalDateTime.of(2000, 1, 1, 0, 0, 0),
+        @UpdatedAt
+        val updatedAt: LocalDateTime = LocalDateTime.of(2000, 1, 1, 0, 0, 0),
+        @Version
+        val version: Int = 0
+    )
+
+    @Table(name = "person")
+    data class Human(
+        val name: String,
+        @Embedded
+        val common: Common
+    )
+
     val config = DbConfig(
         dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"),
         dialect = H2Dialect(),
@@ -124,11 +143,12 @@ internal class DbTest {
                     """
                     CREATE SEQUENCE SEQUENCE_STRATEGY_ID START WITH 1 INCREMENT BY 100;
                     CREATE SEQUENCE MY_SEQUENCE_STRATEGY_ID START WITH 1 INCREMENT BY 100;
+                    CREATE SEQUENCE PERSON_ID_SEQUENCE START WITH 1 INCREMENT BY 100;
 
                     CREATE TABLE DEPARTMENT(DEPARTMENT_ID INTEGER NOT NULL PRIMARY KEY, DEPARTMENT_NO INTEGER NOT NULL UNIQUE,DEPARTMENT_NAME VARCHAR(20),LOCATION VARCHAR(20) DEFAULT 'TOKYO', VERSION INTEGER);
                     CREATE TABLE ADDRESS(ADDRESS_ID INTEGER NOT NULL PRIMARY KEY, STREET VARCHAR(20) UNIQUE, VERSION INTEGER);
                     CREATE TABLE EMPLOYEE(EMPLOYEE_ID INTEGER NOT NULL PRIMARY KEY, EMPLOYEE_NO INTEGER NOT NULL ,EMPLOYEE_NAME VARCHAR(20),MANAGER_ID INTEGER,HIREDATE DATE,SALARY NUMERIC(7,2),DEPARTMENT_ID INTEGER,ADDRESS_ID INTEGER,VERSION INTEGER, CONSTRAINT FK_DEPARTMENT_ID FOREIGN KEY(DEPARTMENT_ID) REFERENCES DEPARTMENT(DEPARTMENT_ID), CONSTRAINT FK_ADDRESS_ID FOREIGN KEY(ADDRESS_ID) REFERENCES ADDRESS(ADDRESS_ID));
-                    CREATE TABLE PERSON(PERSON_ID INTEGER NOT NULL PRIMARY KEY, NAME VARCHAR(20), CREATED_AT TIMESTAMP, UPDATED_AT TIMESTAMP);
+                    CREATE TABLE PERSON(PERSON_ID INTEGER NOT NULL PRIMARY KEY, NAME VARCHAR(20), CREATED_AT TIMESTAMP, UPDATED_AT TIMESTAMP, VERSION INTEGER);
 
                     CREATE TABLE COMP_KEY_DEPARTMENT(DEPARTMENT_ID1 INTEGER NOT NULL, DEPARTMENT_ID2 INTEGER NOT NULL, DEPARTMENT_NO INTEGER NOT NULL UNIQUE,DEPARTMENT_NAME VARCHAR(20),LOCATION VARCHAR(20) DEFAULT 'TOKYO', VERSION INTEGER, CONSTRAINT PK_COMP_KEY_DEPARTMENT PRIMARY KEY(DEPARTMENT_ID1, DEPARTMENT_ID2));
                     CREATE TABLE COMP_KEY_ADDRESS(ADDRESS_ID1 INTEGER NOT NULL, ADDRESS_ID2 INTEGER NOT NULL, STREET VARCHAR(20), VERSION INTEGER, CONSTRAINT PK_COMP_KEY_ADDRESS PRIMARY KEY(ADDRESS_ID1, ADDRESS_ID2));
@@ -454,6 +474,47 @@ internal class DbTest {
         val worker5 = db.findById<Worker>(100)
         assertEquals(WorkerSalary(BigDecimal("5000.00")), worker5?.detail?.salary)
     }
+
+    @Test
+    fun insert_Embedded_valueAssignment() {
+        val db = Db(config)
+        val human = Human(
+            name = "aaa",
+            common = Common()
+        )
+        val human2 = db.insert(human)
+        val human3 = db.findById<Human>(1, 0)
+        assertEquals(human2, human3)
+    }
+
+    @Test
+    fun delete_Embedded_valueAssignment() {
+        val db = Db(config)
+        val human = Human(
+            name = "aaa",
+            common = Common()
+        )
+        val human2 = db.insert(human)
+        db.delete(human2)
+        val human3 = db.findById<Human>(1)
+        assertNull(human3)
+    }
+
+    @Test
+    fun update_Embedded_valueAssignment() {
+        val db = Db(config)
+        val human = Human(
+            name = "aaa",
+            common = Common()
+        )
+        val human2 = db.insert(human)
+        val human3 = human2.copy(name = "bbb")
+        val human4 = db.update(human3)
+        val human5 = db.findById<Human>(1)
+        assertEquals(human4, human5)
+        println(human4)
+    }
+
 
     @Test
     fun selectByCriteria() {
