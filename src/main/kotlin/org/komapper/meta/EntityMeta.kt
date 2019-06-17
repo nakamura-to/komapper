@@ -3,7 +3,6 @@ package org.komapper.meta
 import org.komapper.Value
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
-import kotlin.reflect.KParameter
 
 class EntityMeta<T>(
     val type: KClass<*>,
@@ -14,74 +13,58 @@ class EntityMeta<T>(
 ) {
     private val leafPropMetaList = propMetaList.flatMap { it.getLeafPropMetaList() }
     val idList = leafPropMetaList.filter { it.kind is PropKind.Id }
+    val sequenceIdList = leafPropMetaList.filter { it.kind is PropKind.Id.Sequence }
     val version = leafPropMetaList.find { it.kind is PropKind.Version }
     val createdAt = leafPropMetaList.find { it.kind is PropKind.CreatedAt }
     val updatedAt = leafPropMetaList.find { it.kind is PropKind.UpdatedAt }
+    val columnNames = leafPropMetaList.map { it.columnName }
+    val idColumnNames = idList.map { it.columnName }
+    val nonIdColumnNames = (leafPropMetaList - idList).map { it.columnName }
     val columnNameMap = leafPropMetaList.associateBy { it.columnName }
     val propMap = leafPropMetaList.associateBy { it.prop }
 
-    fun new(leafValues: Map<PropMeta<*, *>, Any?>): T {
-        val args = propMetaList.map { it.consParam to it.new(leafValues) }.toMap()
+    fun new(leaves: Map<PropMeta<*, *>, Any?>): T {
+        val args = propMetaList.map { it.consParam to it.new(leaves) }.toMap()
         return cons.callBy(args)
     }
 
-    fun assignId(entity: T, key: String, callNextValue: (String) -> Long): T {
-        if (idList.none { it.kind is PropKind.Id.Sequence }) {
-            return entity
+    fun assignId(entity: T, key: String, callNextValue: (String) -> Long): T =
+        if (sequenceIdList.isEmpty()) {
+            entity
+        } else {
+            copy(entity, { it in sequenceIdList }) { meta, _ -> meta.next(key, callNextValue) }
         }
-        val valueArgs = propMetaList.mapNotNull { propMeta ->
-            propMeta.copy(entity, { it.kind is PropKind.Id.Sequence }) { sequencePropMeta, _ ->
-                sequencePropMeta.next(key, callNextValue)
-            }
-        }.toMap()
-        return copy(entity, valueArgs)
-    }
 
-    fun incrementVersion(entity: T): T {
+    fun incrementVersion(entity: T): T =
         if (version == null) {
-            return entity
+            entity
+        } else {
+            copy(entity, { it == version }) { meta, lazy -> lazy()?.let { meta.inc(it) } }
         }
-        val valueArgs = propMetaList.mapNotNull { propMeta ->
-            propMeta.copy(entity, { it == version }) { _, currentValue ->
-                version.inc(currentValue)
-            }
-        }.toMap()
-        return copy(entity, valueArgs)
-    }
 
-    fun assignTimestamp(entity: T): T {
+    fun assignTimestamp(entity: T): T =
         if (createdAt == null) {
-            return entity
+            entity
+        } else {
+            copy(entity, { it == createdAt }) { meta, _ -> meta.now() }
         }
-        val valueArgs = propMetaList.mapNotNull { propMeta ->
-            propMeta.copy(entity, { it == createdAt }) { _, _ -> createdAt.now() }
-        }.toMap()
-        return copy(entity, valueArgs)
-    }
 
-    fun updateTimestamp(entity: T): T {
+    fun updateTimestamp(entity: T): T =
         if (updatedAt == null) {
-            return entity
+            entity
+        } else {
+            copy(entity, { it == updatedAt }) { meta, _ -> meta.now() }
         }
-        val valueArgs = propMetaList.mapNotNull { propMeta ->
-            propMeta.copy(entity, { it == updatedAt }) { _, _ -> updatedAt.now() }
-        }.toMap()
-        return copy(entity, valueArgs)
-    }
 
-    private fun copy(entity: T, valueArgs: Map<KParameter, Any?>): T {
+    private fun copy(
+        entity: T,
+        predicate: (PropMeta<*, *>) -> Boolean,
+        block: (PropMeta<*, *>, () -> Any?) -> Any?
+    ): T {
         val receiverArg = copy.parameters[0] to entity
+        val valueArgs = propMetaList.mapNotNull { it.copy(entity, predicate, block) }.toMap()
         return copy.callBy(mapOf(receiverArg) + valueArgs)
     }
-
-    fun getColumnNames(): List<String> =
-        propMetaList.flatMap { it.getColumnNames { true } }
-
-    fun getIdColumnNames(): List<String> =
-        propMetaList.flatMap { meta -> meta.getColumnNames { it in idList } }
-
-    fun getNonIdColumnNames(): List<String> =
-        propMetaList.flatMap { meta -> meta.getColumnNames { it !in idList } }
 
     fun getValues(entity: T): List<Value> =
         propMetaList.flatMap { it.getValues(entity, { true }) }
@@ -92,9 +75,7 @@ class EntityMeta<T>(
     fun getNonIdValues(entity: T): List<Value> =
         propMetaList.flatMap { meta -> meta.getValues(entity, { it !in idList }) }
 
-    fun getVersionValue(entity: T): Value {
-        require(version != null)
-        return propMetaList.flatMap { meta -> meta.getValues(entity, { it == version }) }.first()
-    }
+    fun getVersionValue(entity: T): Value =
+        propMetaList.flatMap { meta -> meta.getValues(entity, { it == version }) }.first()
 
 }

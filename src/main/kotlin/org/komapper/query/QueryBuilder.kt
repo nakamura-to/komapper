@@ -24,7 +24,7 @@ open class DefaultQueryBuilder(
         val traversal = CriteriaTraversal(entityMeta, buf)
         with(entityMeta) {
             buf.append("select ")
-            getColumnNames().forEach { buf.append("$it, ") }
+            columnNames.forEach { buf.append("$it, ") }
             buf.cutBack(2).append(" from $tableName")
             traversal.run(criteria)
             return buf.toSql()
@@ -34,7 +34,7 @@ open class DefaultQueryBuilder(
     override fun <T> buildFindById(entityMeta: EntityMeta<T>, id: Any, versionValue: Any?): Sql {
         with(entityMeta) {
             val buf = newSqlBuffer().append("select ")
-            getColumnNames().forEach { buf.append("$it, ") }
+            columnNames.forEach { buf.append("$it, ") }
             buf.cutBack(2).append(" from $tableName where ")
             when (id) {
                 is Collection<*> -> {
@@ -59,7 +59,7 @@ open class DefaultQueryBuilder(
     override fun <T> buildInsert(entityMeta: EntityMeta<T>, newEntity: T): Sql {
         with(entityMeta) {
             val buf = newSqlBuffer().append("insert into $tableName (")
-            getColumnNames().forEach { buf.append("$it, ") }
+            columnNames.forEach { buf.append("$it, ") }
             buf.cutBack(2).append(") values(")
             getValues(newEntity).forEach { buf.bind(it).append(", ") }
             buf.cutBack(2).append(")")
@@ -79,7 +79,7 @@ open class DefaultQueryBuilder(
     override fun <T> buildUpdate(entityMeta: EntityMeta<T>, entity: T, newEntity: T): Sql {
         with(entityMeta) {
             val buf = newSqlBuffer().append("update $tableName set ")
-            getNonIdColumnNames().zip(getNonIdValues(newEntity)).forEach { (columnName, value) ->
+            nonIdColumnNames.zip(getNonIdValues(newEntity)).forEach { (columnName, value) ->
                 buf.append("$columnName = ").bind(value).append(", ")
             }
             buf.cutBack(2)
@@ -92,7 +92,7 @@ open class DefaultQueryBuilder(
         with(entityMeta) {
             if (idList.isNotEmpty()) {
                 buf.append(" where ")
-                getIdColumnNames().zip(getIdValues(entity)).forEach { (columnName, value) ->
+                idColumnNames.zip(getIdValues(entity)).forEach { (columnName, value) ->
                     buf.append("$columnName = ").bind(value).append(" and ")
                 }
                 buf.cutBack(5)

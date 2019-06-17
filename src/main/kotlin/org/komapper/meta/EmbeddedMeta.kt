@@ -11,12 +11,12 @@ class EmbeddedMeta<T>(
     val propMetaList: List<PropMeta<T, *>>
 ) {
 
-    fun new(leafs: Map<PropMeta<*, *>, Any?>): T {
-        val args = propMetaList.map { it.consParam to it.new(leafs) }.toMap()
+    fun new(leaves: Map<PropMeta<*, *>, Any?>): T {
+        val args = propMetaList.map { it.consParam to it.new(leaves) }.toMap()
         return cons.callBy(args)
     }
 
-    fun copy(embedded: T, predicate: (PropMeta<*, *>) -> Boolean, block: (PropMeta<*, *>, Any?) -> Any?): Any? {
+    fun copy(embedded: T, predicate: (PropMeta<*, *>) -> Boolean, block: (PropMeta<*, *>, () -> Any?) -> Any?): Any? {
         val valueArgs = propMetaList.mapNotNull { it.copy(embedded, predicate, block) }.toMap()
         return if (valueArgs.isEmpty()) {
             null
@@ -28,9 +28,6 @@ class EmbeddedMeta<T>(
 
     fun getValues(embedded: T, predicate: (PropMeta<*, *>) -> Boolean): List<Value> =
         propMetaList.flatMap { it.getValues(embedded, predicate) }
-
-    fun getColumnNames(predicate: (PropMeta<*, *>) -> Boolean): List<String> =
-        propMetaList.flatMap { it.getColumnNames(predicate) }
 
     fun getLeafPropMetaList(): List<PropMeta<*, *>> =
         propMetaList.flatMap { it.getLeafPropMetaList() }
