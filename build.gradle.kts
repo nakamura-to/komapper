@@ -3,7 +3,7 @@ import tanvd.kosogor.proxy.publishJar
 
 plugins {
     java
-    kotlin("jvm") version "1.3.31"
+    kotlin("jvm") version "1.3.40"
     id("tanvd.kosogor") version "1.0.4" apply true
 }
 
