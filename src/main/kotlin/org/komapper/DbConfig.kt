@@ -48,13 +48,12 @@ data class DbConfig(
         TransactionManager(dataSource, logger)
     }
 
-    val transactionScope: TransactionScope by lazy {
-        if (useTransaction) {
+    val transactionScope: TransactionScope
+        get() = if (useTransaction) {
             TransactionScope(transactionManager, isolationLevel)
         } else {
             error("To use transaction, specify \"useTransaction = true\" at DbConfig.")
         }
-    }
 
     val connection: Connection
         get() = if (useTransaction)

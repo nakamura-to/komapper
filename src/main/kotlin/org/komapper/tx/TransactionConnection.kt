@@ -31,15 +31,12 @@ class TransactionConnection(
         }
     }
 
-    fun dispose() {
-        try {
-            connection.close()
-        } catch (ignored: SQLException) {
-        }
+    fun dispose() = try {
+        connection.close()
+    } catch (ignored: SQLException) {
     }
 
-    override fun close() {
-        // do nothing
-    }
+    // do nothing
+    override fun close() = Unit
 
 }

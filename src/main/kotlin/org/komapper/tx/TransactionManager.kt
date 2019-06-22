@@ -144,11 +144,7 @@ class TransactionManager(
         }
     }
 
-    fun getDataSource(): DataSource {
-        return transactionDataSource
-    }
+    fun getDataSource(): DataSource = transactionDataSource
 
-    private fun Transaction?.isActive(): Boolean {
-        return this != null
-    }
+    private fun Transaction?.isActive(): Boolean = this != null
 }
