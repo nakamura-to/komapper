@@ -1,6 +1,6 @@
 package org.komapper.tx
 
-import org.komapper.Logger
+import org.komapper.core.Logger
 import java.sql.Connection
 import java.sql.SQLException
 import javax.sql.DataSource

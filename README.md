@@ -52,7 +52,6 @@ fun main() {
         DbConfig(
             dataSource = SimpleDataSource("jdbc:h2:mem:example;DB_CLOSE_DELAY=-1"),
             dialect = H2Dialect(),
-            logger = { println(it()) },
             useTransaction = true
         )
     )

@@ -1,5 +1,7 @@
 package org.komapper
 
+import org.komapper.core.Logger
+import org.komapper.core.StdoutLogger
 import org.komapper.expr.CacheExprNodeFactory
 import org.komapper.expr.DefaultExprEvaluator
 import org.komapper.expr.ExprEvaluator
@@ -32,7 +34,7 @@ data class DbConfig(
     val exprEvaluator: ExprEvaluator = DefaultExprEvaluator(exprNodeFactory),
     val sqlNodeFactory: SqlNodeFactory = CacheSqlNodeFactory(),
     val sqlBuilder: SqlBuilder = DefaultSqlBuilder(dialect::formatValue, sqlNodeFactory, exprEvaluator),
-    val logger: Logger = {},
+    val logger: Logger = StdoutLogger(),
     val useTransaction: Boolean = false,
     val isolationLevel: TransactionIsolationLevel? = null,
     val batchSize: Int = 10,

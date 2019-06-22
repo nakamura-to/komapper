@@ -29,7 +29,6 @@ internal class DbTxTest {
     val config = DbConfig(
         dataSource = simpleDataSource,
         dialect = H2Dialect(),
-        logger = { println(it()) },
         useTransaction = true
     )
 
@@ -311,8 +310,7 @@ internal class DbTxTest {
     fun `specify useTransaction`() {
         val config = DbConfig(
             dataSource = simpleDataSource,
-            dialect = H2Dialect(),
-            logger = { println(it()) }
+            dialect = H2Dialect()
         )
         val db = Db(config)
         val exception =

@@ -131,7 +131,6 @@ internal class DbTest {
     val config = DbConfig(
         dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"),
         dialect = H2Dialect(),
-        logger = { println(it()) },
         batchSize = 2
     )
 
