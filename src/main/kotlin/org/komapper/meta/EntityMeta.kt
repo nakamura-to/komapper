@@ -22,6 +22,7 @@ class EntityMeta<T>(
     val nonIdColumnNames = (leafPropMetaList - idList).map { it.columnName }
     val columnNameMap = leafPropMetaList.associateBy { it.columnName }
     val propMap = leafPropMetaList.associateBy { it.prop }
+    val expander: (String) -> List<String> = { prefix -> columnNames.map { prefix + it } }
 
     fun new(leaves: Map<PropMeta<*, *>, Any?>): T {
         val args = propMetaList.map { it.consParam to it.new(leaves) }.toMap()

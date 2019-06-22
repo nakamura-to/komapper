@@ -739,9 +739,27 @@ internal class DbTest {
     }
 
     @Test
+    fun select_expand() {
+        val db = Db(config)
+        val list = db.select<Address>("select /*%expand*/* from address")
+        assertEquals(15, list.size)
+        assertEquals(Address(1, "STREET 1", 1), list[0])
+    }
+
+    @Test
     fun sequence() {
         val db = Db(config)
         val list = db.sequence<Address, List<Address>>("select * from address") {
+            it.toList()
+        }
+        assertEquals(15, list.size)
+        assertEquals(Address(1, "STREET 1", 1), list[0])
+    }
+
+    @Test
+    fun sequence_expand() {
+        val db = Db(config)
+        val list = db.sequence<Address, List<Address>>("select /*%expand*/* from address") {
             it.toList()
         }
         assertEquals(15, list.size)

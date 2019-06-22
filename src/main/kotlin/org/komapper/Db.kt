@@ -39,7 +39,7 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
         val ctx = config.objectMetaFactory.toMap(condition)
-        val sql = config.sqlBuilder.build(template, ctx)
+        val sql = config.sqlBuilder.build(template, ctx, meta.expander)
         return `access$stream`(sql, meta).use {
             it.collect(Collectors.toList())
         }
@@ -92,7 +92,7 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
         val ctx = config.objectMetaFactory.toMap(condition)
-        val sql = config.sqlBuilder.build(template, ctx)
+        val sql = config.sqlBuilder.build(template, ctx, meta.expander)
         return `access$stream`(sql, meta).use {
             block(it.asSequence())
         }

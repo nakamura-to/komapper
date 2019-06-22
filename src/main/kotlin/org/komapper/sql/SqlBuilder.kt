@@ -2,10 +2,15 @@ package org.komapper.sql
 
 import org.komapper.core.Value
 import org.komapper.expr.ExprEvaluator
+import org.komapper.expr.ExprException
 import kotlin.reflect.KClass
 
 interface SqlBuilder {
-    fun build(template: CharSequence, ctx: Map<String, Value> = emptyMap()): Sql
+    fun build(
+        template: CharSequence,
+        ctx: Map<String, Value> = emptyMap(),
+        expander: (String) -> List<String> = { emptyList() }
+    ): Sql
 }
 
 open class DefaultSqlBuilder(
@@ -14,9 +19,9 @@ open class DefaultSqlBuilder(
     private val exprEvaluator: ExprEvaluator
 ) : SqlBuilder {
 
-    override fun build(template: CharSequence, ctx: Map<String, Value>): Sql {
+    override fun build(template: CharSequence, ctx: Map<String, Value>, expander: (String) -> List<String>): Sql {
         val node = sqlNodeFactory.get(template)
-        val state = visit(State(ctx), node)
+        val state = visit(State(ctx, expander), node)
         return state.toSql()
     }
 
@@ -32,7 +37,7 @@ open class DefaultSqlBuilder(
             node.nodeList.fold(state, ::visit)
         }
         is SqlNode.Keyword -> {
-            val childState = node.nodeList.fold(State(state.ctx), ::visit)
+            val childState = node.nodeList.fold(State(state), ::visit)
             if (childState.available) {
                 state.append(node.keyword).append(childState)
             }
@@ -50,7 +55,7 @@ open class DefaultSqlBuilder(
             visit(state, node.node).append(")")
         }
         is SqlNode.BindValueDirective -> {
-            val result = eval(node.expression, state.ctx)
+            val result = eval(node.location, node.expression, state.ctx)
             when (val obj = result.obj) {
                 is Iterable<*> -> {
                     var counter = 0
@@ -70,7 +75,7 @@ open class DefaultSqlBuilder(
             node.nodeList.fold(state, ::visit)
         }
         is SqlNode.EmbeddedValueDirective -> {
-            val (value) = eval(node.expression, state.ctx)
+            val (value) = eval(node.location, node.expression, state.ctx)
             val s = value?.toString()
             if (!s.isNullOrEmpty()) {
                 state.available = true
@@ -79,23 +84,31 @@ open class DefaultSqlBuilder(
             state
         }
         is SqlNode.LiteralValueDirective -> {
-            val (value, type) = eval(node.expression, state.ctx)
+            val (value, type) = eval(node.location, node.expression, state.ctx)
             val literal = formatter(value, type)
             state.append(literal)
             node.nodeList.fold(state, ::visit)
         }
         is SqlNode.ExpandDirective -> {
-            // TODO
-            throw NotImplementedError()
+            state.available = true
+            val (obj, _) = eval(node.location, node.expression, state.ctx)
+            if (obj == null) {
+                throw SqlException("The alias expression \"${node.expression}\" cannot be resolved at ${node.location}.")
+            }
+            val alias = obj.toString()
+            val prefix = if (alias.isEmpty()) "" else "$alias."
+            val columns = state.expander(prefix).joinToString()
+            state.append(columns)
+            node.nodeList.fold(state, ::visit)
         }
         is SqlNode.IfBlock -> {
             fun chooseNodeList(): List<SqlNode> {
-                val (result) = eval(node.ifDirective.expression, state.ctx)
+                val (result) = eval(node.ifDirective.location, node.ifDirective.expression, state.ctx)
                 if (result == true) {
                     return node.ifDirective.nodeList
                 } else {
                     val elseIfDirective = node.elseifDirectives.find {
-                        val (r) = eval(it.expression, state.ctx)
+                        val (r) = eval(it.location, it.expression, state.ctx)
                         r == true
                     }
                     if (elseIfDirective != null) {
@@ -116,7 +129,7 @@ open class DefaultSqlBuilder(
         is SqlNode.ForBlock -> {
             val forDirective = node.forDirective
             val id = forDirective.identifier
-            val (expression) = eval(node.forDirective.expression, state.ctx)
+            val (expression) = eval(node.forDirective.location, node.forDirective.expression, state.ctx)
             expression as? Iterable<*>
                 ?: throw SqlException("The expression ${forDirective.expression} is not Iterable at ${forDirective.location}")
             val it = expression.iterator()
@@ -146,9 +159,15 @@ open class DefaultSqlBuilder(
         is SqlNode.ForDirective -> error("unreachable")
     }
 
-    private fun eval(expression: String, ctx: Map<String, Value>): Value = exprEvaluator.eval(expression, ctx)
+    private fun eval(location: SqlLocation, expression: String, ctx: Map<String, Value>): Value = try {
+        exprEvaluator.eval(expression, ctx)
+    } catch (e: ExprException) {
+        throw SqlException("The expression evaluation was failed at $location.", e)
+    }
 
-    inner class State(ctx: Map<String, Value>) {
+    inner class State(ctx: Map<String, Value>, val expander: (String) -> List<String>) {
+        constructor(state: State) : this(state.ctx, state.expander)
+
         private val buf = SqlBuffer(formatter)
         val ctx: MutableMap<String, Value> = HashMap(ctx)
         var available: Boolean = false

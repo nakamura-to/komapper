@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.komapper.core.Value
 import org.komapper.expr.DefaultExprEvaluator
 import org.komapper.expr.NoCacheExprNodeFactory
@@ -29,6 +30,14 @@ class DefaultSqlBuilderTest {
             "select name, age from person where name = /*name*/'test' and age > 1 order by name, age for update"
         val sql = sqlBuilder.build(template)
         assertEquals("select name, age from person where name = ? and age > 1 order by name, age for update", sql.text)
+    }
+
+    @Test
+    fun `The expression evaluation was failed`() {
+        val template =
+            "select name, age from person where name = /*name.a*/'test'"
+        val exception = assertThrows<SqlException> { sqlBuilder.build(template) }
+        println(exception)
     }
 
     @Nested
@@ -140,4 +149,30 @@ class DefaultSqlBuilderTest {
         }
     }
 
+    @Nested
+    inner class ExpandTest {
+        @Test
+        fun test() {
+            val template = "select /*%expand */* from person"
+            val expander: (String) -> List<String> = { prefix -> listOf("name", "age").map { "$prefix$it" } }
+            val sql = sqlBuilder.build(template, expander = expander)
+            assertEquals("select name, age from person", sql.text)
+        }
+
+        @Test
+        fun alias() {
+            val template = "select /*%expand 'p'*/* from person p"
+            val expander: (String) -> List<String> = { prefix -> listOf("name", "age").map { "$prefix$it" } }
+            val sql = sqlBuilder.build(template, expander = expander)
+            assertEquals("select p.name, p.age from person p", sql.text)
+        }
+
+        @Test
+        fun `The alias expression cannot be resolved`() {
+            val template = "select /*%expand p*/* from person"
+            val expander: (String) -> List<String> = { prefix -> listOf("name", "age").map { "$prefix$it" } }
+            val exception = assertThrows<SqlException> { sqlBuilder.build(template, expander = expander) }
+            println(exception)
+        }
+    }
 }

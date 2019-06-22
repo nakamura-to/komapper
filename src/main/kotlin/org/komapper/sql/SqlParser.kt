@@ -154,16 +154,9 @@ class SqlParser constructor(
 
     private fun parseExpandDirective() {
         val expression = token.substring(9, token.length - 2).trim()
-        reducers.push(ExpandDirectiveReducer(location, token, expression))
-
-        // TODO
-//        var alias = tokenType.extract(token)
-//        if (alias.isEmpty() || StringUtil.isWhitespace(alias)) {
-//            alias = "\"\""
-//        }
-//        val node = ExpandNode(location, alias, token)
+        val alias = if (expression.isBlank()) "\"\"" else expression
+        reducers.push(ExpandDirectiveReducer(location, token, alias))
     }
-
 
     private fun reduceUntil(kClass: KClass<out SqlReducer>) {
         val it = reducers.iterator()
