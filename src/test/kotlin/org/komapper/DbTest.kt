@@ -282,7 +282,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class FindById {
+    inner class FindByIdTest {
 
         @Test
         fun test() {
@@ -329,7 +329,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class Query {
+    inner class QueryTest {
 
         @Test
         fun test() {
@@ -543,7 +543,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class Select {
+    inner class SelectTest {
 
         @Test
         fun test() {
@@ -637,7 +637,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class SelectOneColumn {
+    inner class SelectOneColumnTest {
 
         @Test
         fun test() {
@@ -659,7 +659,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class SelectTowColumns {
+    inner class SelectTowColumnsTest {
 
         @Test
         fun test() {
@@ -683,7 +683,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class SelectThreeColumns {
+    inner class SelectThreeColumnsTest {
 
         @Test
         fun test() {
@@ -709,7 +709,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class Delete {
+    inner class DeleteTest {
 
         @Test
         fun test() {
@@ -815,7 +815,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class Insert {
+    inner class InsertTest {
 
         @Test
         fun test() {
@@ -939,7 +939,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class Update {
+    inner class UpdateTest {
 
         @Test
         fun test() {
@@ -1074,7 +1074,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class BatchDelete {
+    inner class BatchDeleteTest {
 
         @Test
         fun test() {
@@ -1151,7 +1151,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class BatchInsert {
+    inner class BatchInsertTest {
 
         @Test
         fun test() {
@@ -1238,7 +1238,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class BatchUpdate {
+    inner class BatchUpdateTest {
 
         @Test
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
@@ -1325,7 +1325,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class ExecuteUpdate {
+    inner class ExecuteUpdateTest {
 
         @Test
         fun test() {
@@ -1341,7 +1341,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class Execute {
+    inner class ExecuteTest {
 
         @Test
         fun test() {
@@ -1358,7 +1358,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class JdbcType {
+    inner class JdbcTypeTest {
 
         @Test
         fun any() {
