@@ -17,7 +17,7 @@ internal class AbstractDialectTest {
             throw UnsupportedOperationException()
         }
 
-        override fun isUniqueConstraintViolated(exception: SQLException): Boolean {
+        override fun isUniqueConstraintViolation(exception: SQLException): Boolean {
             throw UnsupportedOperationException()
         }
     }

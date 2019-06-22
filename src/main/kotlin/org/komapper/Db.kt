@@ -278,7 +278,7 @@ class Db(val config: DbConfig) {
             val count = try {
                 `access$executeUpdate`(sql)
             } catch (e: SQLException) {
-                if (config.dialect.isUniqueConstraintViolated(e)) {
+                if (config.dialect.isUniqueConstraintViolation(e)) {
                     throw UniqueConstraintException(e)
                 } else {
                     throw e
@@ -317,7 +317,7 @@ class Db(val config: DbConfig) {
             val count = try {
                 `access$executeUpdate`(sql)
             } catch (e: SQLException) {
-                if (config.dialect.isUniqueConstraintViolated(e)) {
+                if (config.dialect.isUniqueConstraintViolation(e)) {
                     throw UniqueConstraintException(e)
                 } else {
                     throw e
@@ -366,7 +366,7 @@ class Db(val config: DbConfig) {
         val counts = try {
             `access$executeBatch`(sqls)
         } catch (e: SQLException) {
-            if (config.dialect.isUniqueConstraintViolated(e)) {
+            if (config.dialect.isUniqueConstraintViolation(e)) {
                 throw UniqueConstraintException(e)
             } else {
                 throw e
@@ -421,7 +421,7 @@ class Db(val config: DbConfig) {
         val counts = try {
             `access$executeBatch`(sqls)
         } catch (e: SQLException) {
-            if (config.dialect.isUniqueConstraintViolated(e)) {
+            if (config.dialect.isUniqueConstraintViolation(e)) {
                 throw UniqueConstraintException(e)
             } else {
                 throw e

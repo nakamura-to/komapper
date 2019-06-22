@@ -17,7 +17,7 @@ interface Dialect {
 
     fun formatValue(value: Any?, valueClass: KClass<*>): String
 
-    fun isUniqueConstraintViolated(exception: SQLException): Boolean
+    fun isUniqueConstraintViolation(exception: SQLException): Boolean
 
     fun getSequenceSql(sequenceName: String): String
 }
@@ -70,29 +70,40 @@ abstract class AbstractDialect : Dialect {
         )
     }
 
-    protected fun getErrorCode(exception: SQLException): Int {
-        val cause = getCauseSQLException(exception)
-        return cause.errorCode
-    }
-
-    private fun getCauseSQLException(exception: SQLException): SQLException {
-        return exception.filterIsInstance(SQLException::class.java).first()
-    }
+    protected fun getCause(exception: SQLException): SQLException =
+        exception.filterIsInstance(SQLException::class.java).first()
 }
 
-class H2Dialect : AbstractDialect() {
+open class H2Dialect : AbstractDialect() {
 
     companion object {
         /** the error code that represents unique violation  */
         const val UNIQUE_CONSTRAINT_VIOLATION_ERROR_CODE = 23505
     }
 
-    override fun isUniqueConstraintViolated(exception: SQLException): Boolean {
-        val code = getErrorCode(exception)
-        return UNIQUE_CONSTRAINT_VIOLATION_ERROR_CODE == code
+    override fun isUniqueConstraintViolation(exception: SQLException): Boolean {
+        val cause = getCause(exception)
+        return cause.errorCode == UNIQUE_CONSTRAINT_VIOLATION_ERROR_CODE
     }
 
     override fun getSequenceSql(sequenceName: String): String {
         return "call next value for $sequenceName"
+    }
+}
+
+open class PostgreSqlDialect : AbstractDialect() {
+
+    companion object {
+        /** the state code that represents unique violation  */
+        const val UNIQUE_CONSTRAINT_VIOLATION_STATE_CODE = "23505"
+    }
+
+    override fun isUniqueConstraintViolation(exception: SQLException): Boolean {
+        val cause = getCause(exception)
+        return cause.sqlState == UNIQUE_CONSTRAINT_VIOLATION_STATE_CODE
+    }
+
+    override fun getSequenceSql(sequenceName: String): String {
+        return "select nextval('$sequenceName')"
     }
 }
