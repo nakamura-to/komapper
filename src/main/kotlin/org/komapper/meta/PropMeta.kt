@@ -1,6 +1,6 @@
 package org.komapper.meta
 
-import org.komapper.Value
+import org.komapper.core.Value
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
@@ -47,8 +47,8 @@ class PropMeta<T, R : Any?>(
         }
         else -> {
             if (predicate(this)) {
-                val value = prop.call(owner)
-                listOf(value to type)
+                val obj = prop.call(owner)
+                listOf(Value(obj, type))
             } else {
                 emptyList()
             }

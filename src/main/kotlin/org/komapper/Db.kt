@@ -1,5 +1,6 @@
 package org.komapper
 
+import org.komapper.core.Value
 import org.komapper.criteria.CriteriaScope
 import org.komapper.criteria.Terminal
 import org.komapper.meta.EntityMeta
@@ -506,8 +507,8 @@ class Db(val config: DbConfig) {
     }
 
     private fun PreparedStatement.bind(values: List<Value>) {
-        values.forEachIndexed { index, (value, valueType) ->
-            config.dialect.setValue(this, index + 1, value, valueType)
+        values.forEachIndexed { index, (obj, type) ->
+            config.dialect.setValue(this, index + 1, obj, type)
         }
     }
 

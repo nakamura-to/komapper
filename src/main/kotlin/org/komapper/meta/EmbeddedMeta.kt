@@ -1,6 +1,6 @@
 package org.komapper.meta
 
-import org.komapper.Value
+import org.komapper.core.Value
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 

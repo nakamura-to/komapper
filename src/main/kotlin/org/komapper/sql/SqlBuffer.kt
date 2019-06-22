@@ -1,6 +1,6 @@
 package org.komapper.sql
 
-import org.komapper.Value
+import org.komapper.core.Value
 import kotlin.reflect.KClass
 
 class SqlBuffer(
@@ -19,7 +19,7 @@ class SqlBuffer(
 
     fun bind(value: Value): SqlBuffer {
         sql.append("?")
-        log.append(formatter(value.first, value.second))
+        log.append(formatter(value.obj, value.type))
         values.add(value)
         return this
     }

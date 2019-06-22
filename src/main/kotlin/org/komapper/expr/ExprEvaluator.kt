@@ -1,6 +1,6 @@
 package org.komapper.expr
 
-import org.komapper.Value
+import org.komapper.core.Value
 import kotlin.reflect.KCallable
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberFunctions
@@ -40,14 +40,14 @@ class DefaultExprEvaluator(
         is ExprNode.Gt -> compare(node.location, node.left, node.right, ctx) { x, y -> x > y }
         is ExprNode.Le -> compare(node.location, node.left, node.right, ctx) { x, y -> x <= y }
         is ExprNode.Lt -> compare(node.location, node.left, node.right, ctx) { x, y -> x < y }
-        is ExprNode.Literal -> node.value to node.kClass
+        is ExprNode.Literal -> Value(node.value, node.kClass)
         is ExprNode.Comma -> node.nodeList.map {
             visit(it, ctx)
-        }.map { it.first }.toCollection(ArgList()) to List::class
+        }.map { it.obj }.toCollection(ArgList()).let { Value(it, List::class) }
         is ExprNode.Value -> visitValue(node, ctx)
         is ExprNode.Property -> visitProperty(node, ctx)
         is ExprNode.Function -> visitFunction(node, ctx)
-        is ExprNode.Empty -> Unit to Unit::class
+        is ExprNode.Empty -> Value(Unit, Unit::class)
     }
 
     private fun perform(
@@ -72,7 +72,7 @@ class DefaultExprEvaluator(
                 "Cannot perform the logical operator because the operands is not Boolean at $location"
             )
         }
-        return f(value) to Boolean::class
+        return Value(f(value), Boolean::class)
     }
 
     private fun perform(
@@ -100,7 +100,7 @@ class DefaultExprEvaluator(
                 "Cannot perform the logical operator because either operands is not Boolean at $location"
             )
         }
-        return f(left, right) to Boolean::class
+        return Value(f(left, right), Boolean::class)
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -113,7 +113,7 @@ class DefaultExprEvaluator(
     ): Value {
         val (left) = visit(leftNode, ctx)
         val (right) = visit(rightNode, ctx)
-        return f(left, right) to Boolean::class
+        return Value(f(left, right), Boolean::class)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -140,7 +140,7 @@ class DefaultExprEvaluator(
         try {
             left as Comparable<Any>
             right as Comparable<Any>
-            return f(left, right) to Boolean::class
+            return Value(f(left, right), Boolean::class)
         } catch (e: ClassCastException) {
             throw ExprException(
                 "Cannot compare because the operands are not comparable to each other at $location"
@@ -149,7 +149,7 @@ class DefaultExprEvaluator(
     }
 
     private fun visitValue(node: ExprNode.Value, ctx: Map<String, Value>): Value {
-        return ctx[node.name] ?: null to Any::class
+        return ctx[node.name] ?: Value(null, Any::class)
     }
 
     private fun visitProperty(node: ExprNode.Property, ctx: Map<String, Value>): Value {
@@ -157,7 +157,7 @@ class DefaultExprEvaluator(
         val property = findProperty(node.name, receiver)
             ?: throw ExprException("The receiver of the property \"${node.name}\" is null or the property is not found at ${node.location}")
         try {
-            return property.call(receiver) to property.returnType.jvmErasure
+            return Value(property.call(receiver), property.returnType)
         } catch (cause: Exception) {
             throw ExprException("Failed to call the property \"${node.name}\" at ${node.location}. The cause is $cause")
         }
@@ -189,7 +189,7 @@ class DefaultExprEvaluator(
         val function = findFunction(node.name, receiver, arguments)
             ?: throw ExprException("The receiver of the function \"${node.name}\" is null or the function is not found at ${node.location}")
         try {
-            return function.call(*arguments.toTypedArray()) to function.returnType.jvmErasure
+            return Value(function.call(*arguments.toTypedArray()), function.returnType)
         } catch (cause: Exception) {
             throw ExprException("Failed to call the function \"${node.name}\" at ${node.location}. The cause is $cause")
         }

@@ -1,5 +1,6 @@
 package org.komapper.query
 
+import org.komapper.core.Value
 import org.komapper.criteria.Criteria
 import org.komapper.criteria.Criterion
 import org.komapper.meta.EntityMeta
@@ -51,8 +52,9 @@ class CriteriaTraversal<T>(private val entityMeta: EntityMeta<T>, private val bu
         buf.cutBack(5)
     }
 
-    private fun visitBinaryOp(op: String, prop: KProperty1<*, *>, value: Any?) {
-        buf.append(resolveColumnName(prop)).append(" $op ").bind(value to prop.returnType.jvmErasure)
+    private fun visitBinaryOp(op: String, prop: KProperty1<*, *>, obj: Any?) {
+        val value = Value(obj, prop.returnType)
+        buf.append(resolveColumnName(prop)).append(" $op ").bind(value)
     }
 
     private fun visitInOp(op: String, prop: KProperty1<*, *>, values: Iterable<*>) {
@@ -62,7 +64,7 @@ class CriteriaTraversal<T>(private val entityMeta: EntityMeta<T>, private val bu
         var counter = 0
         for (v in values) {
             if (++counter > 1) buf.append(", ")
-            buf.bind(v to type)
+            buf.bind(Value(v, type))
         }
         if (counter == 0) {
             buf.append("null")
@@ -86,12 +88,11 @@ class CriteriaTraversal<T>(private val entityMeta: EntityMeta<T>, private val bu
     }
 
     private fun visitBetweenOp(prop: KProperty1<*, *>, range: Pair<*, *>) {
-        val type = prop.returnType.jvmErasure
         buf.append(resolveColumnName(prop))
             .append(" between ")
-            .bind(range.first to type)
+            .bind(Value(range.first, prop.returnType))
             .append(" and ")
-            .bind(range.second to type)
+            .bind(Value(range.second, prop.returnType))
     }
 
     private fun resolveColumnName(prop: KProperty1<*, *>): String {

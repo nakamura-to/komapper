@@ -1,5 +1,6 @@
 package org.komapper.query
 
+import org.komapper.core.Value
 import org.komapper.criteria.Criteria
 import org.komapper.jdbc.Dialect
 import org.komapper.meta.EntityMeta
@@ -40,17 +41,20 @@ open class DefaultQueryBuilder(
                 is Collection<*> -> {
                     require(id.size == idList.size) { "The number of id must be {$idList.size}." }
                     id.zip(idList).forEach { (obj, propMeta) ->
-                        buf.append("${propMeta.columnName} = ").bind(obj to propMeta.type).append(" and ")
+                        val value = Value(obj, propMeta.type)
+                        buf.append("${propMeta.columnName} = ").bind(value).append(" and ")
                     }
                 }
                 else -> {
                     require(idList.size == 1) { "The number of id must be ${idList.size}." }
-                    buf.append("${idList[0].columnName} = ").bind(id to idList[0].type).append(" and ")
+                    val value = Value(id, idList[0].type)
+                    buf.append("${idList[0].columnName} = ").bind(value).append(" and ")
                 }
             }
             buf.cutBack(5)
             if (versionValue != null && version != null) {
-                buf.append(" and ").append("${version.columnName} = ").bind(versionValue to version.type)
+                val value = Value(versionValue, version.type)
+                buf.append(" and ").append("${version.columnName} = ").bind(value)
             }
             return buf.toSql()
         }

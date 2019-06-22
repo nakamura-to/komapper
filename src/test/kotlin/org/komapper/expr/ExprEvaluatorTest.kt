@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.komapper.Value
+import org.komapper.core.Value
 
 class ExprEvaluatorTest {
 
@@ -27,30 +27,30 @@ class ExprEvaluatorTest {
     inner class LiteralTest {
         @Test
         fun nullLiteral() {
-            val ctx = mapOf("a" to (null to Any::class))
+            val ctx = mapOf("a" to Value(null, Any::class))
             val result = evaluator.eval("a", ctx)
-            assertEquals(null to Any::class, result)
+            assertEquals(Value(null, Any::class), result)
         }
 
         @Test
         fun trueLiteral() {
-            val ctx = mapOf("a" to (true to Boolean::class))
+            val ctx = mapOf("a" to Value(true))
             val result = evaluator.eval("a", ctx)
-            assertEquals(true to Boolean::class, result)
+            assertEquals(Value(true), result)
         }
 
         @Test
         fun falseLiteral() {
-            val ctx = mapOf("a" to (false to Boolean::class))
+            val ctx = mapOf("a" to Value(false))
             val result = evaluator.eval("a", ctx)
-            assertEquals(false to Boolean::class, result)
+            assertEquals(Value(false), result)
         }
 
         @Test
         fun stringLiteral() {
-            val ctx = mapOf("a" to ("abc" to String::class))
+            val ctx = mapOf("a" to Value("abc"))
             val result = evaluator.eval("a", ctx)
-            assertEquals("abc" to String::class, result)
+            assertEquals(Value("abc"), result)
         }
     }
 
@@ -59,119 +59,119 @@ class ExprEvaluatorTest {
 
         @Test
         fun eq1() {
-            val ctx = mapOf("a" to (1 to Int::class))
+            val ctx = mapOf("a" to Value(1))
             val result = evaluator.eval("a == 1", ctx)
-            assertEquals(true to Boolean::class, result)
+            assertEquals(Value(true), result)
         }
 
         @Test
         fun eq2() {
-            val ctx = mapOf("a" to (2 to Int::class))
+            val ctx = mapOf("a" to Value(2))
             val result = evaluator.eval("a == 1", ctx)
-            assertEquals(false to Boolean::class, result)
+            assertEquals(Value(false), result)
         }
 
         @Test
         fun ne1() {
-            val ctx = mapOf("a" to (0 to Int::class))
+            val ctx = mapOf("a" to Value(0))
             val result = evaluator.eval("a != 1", ctx)
-            assertEquals(true to Boolean::class, result)
+            assertEquals(Value(true), result)
         }
 
         @Test
         fun ne2() {
-            val ctx = mapOf("a" to (1 to Int::class))
+            val ctx = mapOf("a" to Value(1))
             val result = evaluator.eval("a != 1", ctx)
-            assertEquals(false to Boolean::class, result)
+            assertEquals(Value(false), result)
         }
 
         @Test
         fun ge1() {
-            val ctx = mapOf("a" to (2 to Int::class))
+            val ctx = mapOf("a" to Value(2))
             val result = evaluator.eval("a >= 1", ctx)
-            assertEquals(true to Boolean::class, result)
+            assertEquals(Value(true), result)
         }
 
         @Test
         fun ge2() {
-            val ctx = mapOf("a" to (2 to Int::class))
+            val ctx = mapOf("a" to Value(2))
             val result = evaluator.eval("a >= 1", ctx)
-            assertEquals(true to Boolean::class, result)
+            assertEquals(Value(true), result)
         }
 
         @Test
         fun ge3() {
-            val ctx = mapOf("a" to (0 to Int::class))
+            val ctx = mapOf("a" to Value(0))
             val result = evaluator.eval("a >= 1", ctx)
-            assertEquals(false to Boolean::class, result)
+            assertEquals(Value(false), result)
         }
 
         @Test
         fun gt1() {
-            val ctx = mapOf("a" to (2 to Int::class))
+            val ctx = mapOf("a" to Value(2))
             val result = evaluator.eval("a > 1", ctx)
-            assertEquals(true to Boolean::class, result)
+            assertEquals(Value(true), result)
         }
 
         @Test
         fun gt2() {
-            val ctx = mapOf("a" to (1 to Int::class))
+            val ctx = mapOf("a" to Value(1))
             val result = evaluator.eval("a > 1", ctx)
-            assertEquals(false to Boolean::class, result)
+            assertEquals(Value(false), result)
         }
 
         @Test
         fun gt3() {
-            val ctx = mapOf("a" to (0 to Int::class))
+            val ctx = mapOf("a" to Value(0))
             val result = evaluator.eval("a > 1", ctx)
-            assertEquals(false to Boolean::class, result)
+            assertEquals(Value(false), result)
         }
 
         @Test
         fun le1() {
-            val ctx = mapOf("a" to (2 to Int::class))
+            val ctx = mapOf("a" to Value(2))
             val result = evaluator.eval("a <= 1", ctx)
-            assertEquals(false to Boolean::class, result)
+            assertEquals(Value(false), result)
         }
 
         @Test
         fun le2() {
-            val ctx = mapOf("a" to (1 to Int::class))
+            val ctx = mapOf("a" to Value(1))
             val result = evaluator.eval("a <= 1", ctx)
-            assertEquals(true to Boolean::class, result)
+            assertEquals(Value(true), result)
         }
 
         @Test
         fun le3() {
-            val ctx = mapOf("a" to (0 to Int::class))
+            val ctx = mapOf("a" to Value(0))
             val result = evaluator.eval("a <= 1", ctx)
-            assertEquals(true to Boolean::class, result)
+            assertEquals(Value(true), result)
         }
 
         @Test
         fun lt1() {
-            val ctx = mapOf("a" to (2 to Int::class))
+            val ctx = mapOf("a" to Value(2))
             val result = evaluator.eval("a < 1", ctx)
-            assertEquals(false to Boolean::class, result)
+            assertEquals(Value(false), result)
         }
 
         @Test
         fun lt2() {
-            val ctx = mapOf("a" to (1 to Int::class))
+            val ctx = mapOf("a" to Value(1))
             val result = evaluator.eval("a < 1", ctx)
-            assertEquals(false to Boolean::class, result)
+            assertEquals(Value(false), result)
         }
 
         @Test
         fun lt3() {
-            val ctx = mapOf("a" to (0 to Int::class))
+            val ctx = mapOf("a" to Value(0))
             val result = evaluator.eval("a < 1", ctx)
-            assertEquals(true to Boolean::class, result)
+            assertEquals(Value(true), result)
         }
 
         @Test
         fun `Cannot compare because the left operand is null`() {
-            val ctx = mapOf("a" to (null to Any::class))
+            val ctx = mapOf("a" to Value(null, Any::class))
             val exception = assertThrows<ExprException> {
                 evaluator
                     .eval("a > 1", ctx)
@@ -181,7 +181,7 @@ class ExprEvaluatorTest {
 
         @Test
         fun `Cannot compare because the right operand is null`() {
-            val ctx = mapOf("a" to (null to Any::class))
+            val ctx = mapOf("a" to Value(null, Any::class))
             val exception = assertThrows<ExprException> {
                 evaluator
                     .eval("1 > a", ctx)
@@ -191,7 +191,7 @@ class ExprEvaluatorTest {
 
         @Test
         fun `Cannot compare because the operands are not comparable to each other`() {
-            val ctx = mapOf("a" to ("string" to String::class))
+            val ctx = mapOf("a" to Value("string"))
             val exception = assertThrows<ExprException> {
                 evaluator
                     .eval("a > 1", ctx)
@@ -205,49 +205,49 @@ class ExprEvaluatorTest {
     inner class LogicalOperatorTest {
         @Test
         fun not_true() {
-            val ctx = mapOf("a" to (false to Boolean::class))
+            val ctx = mapOf("a" to Value(false))
             val result = evaluator.eval("!a", ctx)
-            assertEquals(true to Boolean::class, result)
+            assertEquals(Value(true), result)
         }
 
         @Test
         fun not_false() {
-            val ctx = mapOf("a" to (true to Boolean::class))
+            val ctx = mapOf("a" to Value(true))
             val result = evaluator.eval("!a", ctx)
-            assertEquals(false to Boolean::class, result)
+            assertEquals(Value(false), result)
         }
 
         @Test
         fun and_true() {
-            val ctx = mapOf("a" to (true to Boolean::class))
+            val ctx = mapOf("a" to Value(true))
             val result = evaluator.eval("a && true", ctx)
-            assertEquals(true to Boolean::class, result)
+            assertEquals(Value(true), result)
         }
 
         @Test
         fun and_false() {
-            val ctx = mapOf("a" to (false to Boolean::class))
+            val ctx = mapOf("a" to Value(false))
             val result = evaluator.eval("a && true", ctx)
-            assertEquals(false to Boolean::class, result)
+            assertEquals(Value(false), result)
         }
 
         @Test
         fun or_true() {
-            val ctx = mapOf("a" to (true to Boolean::class))
+            val ctx = mapOf("a" to Value(true))
             val result = evaluator.eval("a || false", ctx)
-            assertEquals(true to Boolean::class, result)
+            assertEquals(Value(true), result)
         }
 
         @Test
         fun or_false() {
-            val ctx = mapOf("a" to (false to Boolean::class))
+            val ctx = mapOf("a" to Value(false))
             val result = evaluator.eval("a || false", ctx)
-            assertEquals(false to Boolean::class, result)
+            assertEquals(Value(false), result)
         }
 
         @Test
         fun `Cannot perform the logical operator because the left operand is null`() {
-            val ctx = mapOf("a" to (null to Any::class))
+            val ctx = mapOf("a" to Value(null, Any::class))
             val exception = assertThrows<ExprException> {
                 evaluator
                     .eval("a && true", ctx)
@@ -257,7 +257,7 @@ class ExprEvaluatorTest {
 
         @Test
         fun `Cannot perform the logical operator because the right operand is null`() {
-            val ctx = mapOf("a" to (null to Any::class))
+            val ctx = mapOf("a" to Value(null, Any::class))
             val exception = assertThrows<ExprException> {
                 evaluator
                     .eval("true && a", ctx)
@@ -267,7 +267,7 @@ class ExprEvaluatorTest {
 
         @Test
         fun `Cannot perform the logical operator because either operand is not boolean`() {
-            val ctx = mapOf("a" to ("string" to String::class))
+            val ctx = mapOf("a" to Value("string"))
             val exception = assertThrows<ExprException> {
                 evaluator
                     .eval("true && a", ctx)
@@ -277,7 +277,7 @@ class ExprEvaluatorTest {
 
         @Test
         fun `Cannot perform the logical operator because the operand is null`() {
-            val ctx = mapOf("a" to (null to Any::class))
+            val ctx = mapOf("a" to Value(null, Any::class))
             val exception = assertThrows<ExprException> {
                 evaluator
                     .eval("!a", ctx)
@@ -287,7 +287,7 @@ class ExprEvaluatorTest {
 
         @Test
         fun `Cannot perform the logical operator because the operand is not Boolean`() {
-            val ctx = mapOf("a" to ("string" to String::class))
+            val ctx = mapOf("a" to Value("string"))
             val exception = assertThrows<ExprException> {
                 evaluator
                     .eval("!a", ctx)
@@ -302,7 +302,7 @@ class ExprEvaluatorTest {
         fun `The value cannot be resolved`() {
             val ctx = emptyMap<String, Value>()
             val result = evaluator.eval("a", ctx)
-            assertEquals(null to Any::class, result)
+            assertEquals(Value(null, Any::class), result)
         }
     }
 
@@ -311,53 +311,45 @@ class ExprEvaluatorTest {
         @Test
         fun property() {
             val ctx = mapOf(
-                "p" to (Person(
-                    1,
-                    "aaa",
-                    20
-                ) to Person::class)
+                "p" to Value(
+                    Person(1, "aaa", 20)
+                )
             )
             val result = evaluator.eval("p.name", ctx)
-            assertEquals("aaa" to String::class, result)
+            assertEquals(Value("aaa"), result)
         }
 
         @Test
         fun property_nullable() {
             val ctx = mapOf(
-                "p" to (Person(
-                    1,
-                    "aaa",
-                    null
-                ) to Person::class)
+                "p" to Value(Person(1, "aaa", null))
             )
             val result = evaluator.eval("p.age", ctx)
-            assertEquals(null to Int::class, result)
+            assertEquals(Value(null, Int::class), result)
         }
 
         @Test
         fun extensionProperty() {
             val extensions = listOf(String::lastIndex)
-            val ctx = mapOf("a" to ("abc" to String::class))
+            val ctx = mapOf("a" to Value("abc"))
             val result = DefaultExprEvaluator(NoCacheExprNodeFactory(), extensions).eval("a.lastIndex", ctx)
-            assertEquals(2 to Int::class, result)
+            assertEquals(Value(2), result)
         }
 
         @Test
         fun `The receiver of the property is null`() {
-            val ctx = mapOf("a" to (null to Any::class))
+            val ctx = mapOf("a" to Value(null, Any::class))
             val exception = assertThrows<ExprException> {
-                evaluator
-                    .eval("a.name", ctx)
+                evaluator.eval("a.name", ctx)
             }
             println(exception)
         }
 
         @Test
         fun `The property is not found`() {
-            val ctx = mapOf("a" to ("string" to String::class))
+            val ctx = mapOf("a" to Value("string"))
             val exception = assertThrows<ExprException> {
-                evaluator
-                    .eval("a.notFound", ctx)
+                evaluator.eval("a.notFound", ctx)
             }
             println(exception)
         }
@@ -367,42 +359,42 @@ class ExprEvaluatorTest {
     inner class FunctionTest {
         @Test
         fun function_1parameter() {
-            val ctx = mapOf("h" to (Hello() to Hello::class), "w" to ("world" to String::class))
+            val ctx = mapOf("h" to Value(Hello()), "w" to Value("world"))
             val result = evaluator.eval("h.say(w)", ctx)
-            assertEquals("hello world" to String::class, result)
+            assertEquals(Value("hello world"), result)
         }
 
         @Test
         fun function_2parameter() {
             val ctx = mapOf(
-                "h" to (Hello() to Hello::class),
-                "w" to ("world" to String::class),
-                "m" to ("good luck" to String::class)
+                "h" to Value(Hello(), Hello::class),
+                "w" to Value("world", String::class),
+                "m" to Value("good luck", String::class)
             )
             val result = evaluator.eval("h.say(w, m)", ctx)
-            assertEquals("hello world, good luck" to String::class, result)
+            assertEquals(Value("hello world, good luck"), result)
         }
 
         @Test
         fun extensionFunction() {
             val extensionFunctions = listOf(String::isBlank)
-            val ctx = mapOf("s" to ("" to String::class))
+            val ctx = mapOf("s" to Value(""))
             val result = DefaultExprEvaluator(NoCacheExprNodeFactory(), extensionFunctions).eval("s.isBlank()", ctx)
-            assertEquals(true to Boolean::class, result)
+            assertEquals(Value(true), result)
         }
 
         @Test
         fun `Call an extension function when the receiver is null`() {
             val extensionFunctions = listOf(String::isNullOrEmpty)
-            val ctx = mapOf("s" to (null to Any::class))
+            val ctx = mapOf("s" to Value(null, Any::class))
             val result =
                 DefaultExprEvaluator(NoCacheExprNodeFactory(), extensionFunctions).eval("s.isNullOrEmpty()", ctx)
-            assertEquals(true to Boolean::class, result)
+            assertEquals(Value(true), result)
         }
 
         @Test
         fun `The receiver of the function is null`() {
-            val ctx = mapOf("a" to (null to Any::class))
+            val ctx = mapOf("a" to Value(null, Any::class))
             val exception = assertThrows<ExprException> {
                 evaluator
                     .eval("a.hello()", ctx)
@@ -412,7 +404,7 @@ class ExprEvaluatorTest {
 
         @Test
         fun `The function is not found`() {
-            val ctx = mapOf("a" to ("string" to String::class))
+            val ctx = mapOf("a" to Value("string"))
             val exception = assertThrows<ExprException> {
                 evaluator
                     .eval("a.notFound()", ctx)

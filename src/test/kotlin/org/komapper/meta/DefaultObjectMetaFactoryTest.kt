@@ -2,6 +2,7 @@ package org.komapper.meta
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.komapper.core.Value
 
 @Suppress("UNUSED")
 internal class DefaultObjectMetaFactoryTest {
@@ -15,7 +16,7 @@ internal class DefaultObjectMetaFactoryTest {
             val y = 1
         }
         val map = objectMetaFactory.toMap(obj)
-        assertEquals(mapOf("x" to ("a" to String::class), "y" to (1 to Int::class)), map)
+        assertEquals(mapOf("x" to Value("a", String::class), "y" to Value(1, Int::class)), map)
     }
 
     @Test
@@ -25,6 +26,6 @@ internal class DefaultObjectMetaFactoryTest {
             val y = 1
         }
         val map = objectMetaFactory.toMap(obj)
-        assertEquals(mapOf("y" to (1 to Int::class)), map)
+        assertEquals(mapOf("y" to Value(1, Int::class)), map)
     }
 }

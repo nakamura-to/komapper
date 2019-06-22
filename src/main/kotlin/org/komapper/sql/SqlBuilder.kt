@@ -1,6 +1,6 @@
 package org.komapper.sql
 
-import org.komapper.Value
+import org.komapper.core.Value
 import org.komapper.expr.ExprEvaluator
 import kotlin.reflect.KClass
 
@@ -51,13 +51,14 @@ open class DefaultSqlBuilder(
         }
         is SqlNode.BindValueDirective -> {
             val result = eval(node.expression, state.ctx)
-            when (val value = result.first) {
+            when (val obj = result.obj) {
                 is Iterable<*> -> {
                     var counter = 0
                     state.append("(")
-                    for (v in value) {
+                    for (o in obj) {
                         if (++counter > 1) state.append(", ")
-                        state.bind(v to (if (v == null) Any::class else v::class))
+                        val value = Value(o, o?.let { it::class } ?: Any::class)
+                        state.bind(value)
                     }
                     if (counter == 0) {
                         state.append("null")
@@ -126,9 +127,9 @@ open class DefaultSqlBuilder(
             val idHasNext = id + "_has_next"
             while (it.hasNext()) {
                 val each = it.next()
-                s.ctx[id] = if (each == null) null to Any::class else each to each::class
-                s.ctx[idIndex] = index++ to Int::class
-                s.ctx[idHasNext] = it.hasNext() to Boolean::class
+                s.ctx[id] = Value(each, each?.let { it::class } ?: Any::class)
+                s.ctx[idIndex] = Value(index++, Int::class)
+                s.ctx[idHasNext] = Value(it.hasNext(), Boolean::class)
                 s = node.forDirective.nodeList.fold(s, ::visit)
             }
             if (preserved != null) {
