@@ -93,7 +93,7 @@ fun main() {
         println(addressB)
 
         // select address_id, street, created_at, updated_at, version from address where street = 'street B'
-        val foundB = db.selectByCriteria<Address> {
+        val foundB = db.query<Address> {
             where {
                 Address::street eq "street B"
             }
@@ -106,7 +106,7 @@ fun main() {
         db.delete(addressB)
 
         // select address_id, street, created_at, updated_at, version from address
-        val addressList = db.selectByCriteria<Address>()
+        val addressList = db.query<Address>()
 
         // 0
         println(addressList.size)
