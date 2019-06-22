@@ -52,7 +52,7 @@ data class DbConfig(
         if (useTransaction) {
             TransactionScope(transactionManager, isolationLevel)
         } else {
-            throw DbConfigException("To use transaction, specify \"useTransaction = true\" at DbConfig.")
+            error("To use transaction, specify \"useTransaction = true\" at DbConfig.")
         }
     }
 
