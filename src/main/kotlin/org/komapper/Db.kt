@@ -1,5 +1,6 @@
 package org.komapper
 
+import org.komapper.core.LogKind
 import org.komapper.core.Value
 import org.komapper.criteria.CriteriaScope
 import org.komapper.criteria.Terminal
@@ -497,7 +498,7 @@ class Db(val config: DbConfig) {
     }
 
     private fun log(sql: Sql) {
-        sql.log?.let { log -> config.logger { log } }
+        sql.log?.let { message -> config.logger.log(LogKind.SQL) { message } }
     }
 
     private fun PreparedStatement.setUp() {

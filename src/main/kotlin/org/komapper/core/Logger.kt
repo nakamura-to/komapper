@@ -1,9 +1,14 @@
 package org.komapper.core
 
+enum class LogKind {
+    SQL,
+    TRANSACTION
+}
+
 interface Logger {
-    operator fun invoke(lazyMessage: () -> String)
+    fun log(kind: LogKind, lazyMessage: () -> String)
 }
 
 class StdoutLogger : Logger {
-    override operator fun invoke(lazyMessage: () -> String) = println(lazyMessage())
+    override fun log(kind: LogKind, lazyMessage: () -> String) = println(lazyMessage())
 }
