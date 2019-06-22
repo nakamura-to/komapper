@@ -2,8 +2,8 @@ package org.komapper.sql
 
 enum class SqlTokenType {
     QUOTE,
-    OPEN_BRACKET,
-    CLOSE_BRACKET,
+    OPEN_PAREN,
+    CLOSE_PAREN,
     SINGLE_LINE_COMMENT,
     MULTI_LINE_COMMENT,
     BIND_VALUE_DIRECTIVE,
@@ -32,7 +32,7 @@ enum class SqlTokenType {
     INTERSECT,
     WORD,
     OTHER,
-    WHITESPACE,
+    SPACE,
     EOL,
     EOF;
 }

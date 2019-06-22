@@ -1,107 +1,27 @@
 package org.komapper.expr
 
 import kotlin.reflect.KClass
+import org.komapper.expr.ExprLocation as Loc
 
 sealed class ExprNode {
-    abstract val location: ExprLocation
+    abstract val location: Loc
+
+    data class Not(override val location: Loc, val operand: ExprNode) : ExprNode()
+    data class Or(override val location: Loc, val left: ExprNode, val right: ExprNode) : ExprNode()
+    data class And(override val location: Loc, val left: ExprNode, val right: ExprNode) : ExprNode()
+    data class Eq(override val location: Loc, val left: ExprNode, val right: ExprNode) : ExprNode()
+    data class Ne(override val location: Loc, val left: ExprNode, val right: ExprNode) : ExprNode()
+    data class Ge(override val location: Loc, val left: ExprNode, val right: ExprNode) : ExprNode()
+    data class Le(override val location: Loc, val left: ExprNode, val right: ExprNode) : ExprNode()
+    data class Gt(override val location: Loc, val left: ExprNode, val right: ExprNode) : ExprNode()
+    data class Lt(override val location: Loc, val left: ExprNode, val right: ExprNode) : ExprNode()
+    data class Property(override val location: Loc, val name: String, val receiver: ExprNode) : ExprNode()
+    data class Function(override val location: Loc, val name: String, val receiver: ExprNode, val args: ExprNode) :
+        ExprNode()
+
+    data class Comma(override val location: Loc, val nodeList: List<ExprNode>) : ExprNode()
+    data class Value(override val location: Loc, val name: String) : ExprNode()
+    data class Literal(override val location: Loc, val value: Any?, val kClass: KClass<out Any>) : ExprNode()
+    data class Empty(override val location: Loc) : ExprNode()
 }
 
-sealed class UnaryOp : ExprNode() {
-    abstract val operand: ExprNode
-}
-
-sealed class BinaryOp : ExprNode() {
-    abstract val left: ExprNode
-    abstract val right: ExprNode
-}
-
-data class NotNode(
-    override val location: ExprLocation,
-    override val operand: ExprNode
-) : org.komapper.expr.UnaryOp()
-
-data class OrNode(
-    override val location: ExprLocation,
-    override val left: ExprNode,
-    override val right: ExprNode
-) :
-    org.komapper.expr.BinaryOp()
-
-data class AndNode(
-    override val location: ExprLocation,
-    override val left: ExprNode,
-    override val right: ExprNode
-) :
-    org.komapper.expr.BinaryOp()
-
-data class EqNode(
-    override val location: ExprLocation,
-    override val left: ExprNode,
-    override val right: ExprNode
-) :
-    org.komapper.expr.BinaryOp()
-
-data class NeNode(
-    override val location: ExprLocation,
-    override val left: ExprNode,
-    override val right: ExprNode
-) :
-    org.komapper.expr.BinaryOp()
-
-data class GeNode(
-    override val location: ExprLocation,
-    override val left: ExprNode,
-    override val right: ExprNode
-) :
-    org.komapper.expr.BinaryOp()
-
-data class LeNode(
-    override val location: ExprLocation,
-    override val left: ExprNode,
-    override val right: ExprNode
-) :
-    org.komapper.expr.BinaryOp()
-
-data class GtNode(
-    override val location: ExprLocation,
-    override val left: ExprNode,
-    override val right: ExprNode
-) :
-    org.komapper.expr.BinaryOp()
-
-data class LtNode(
-    override val location: ExprLocation,
-    override val left: ExprNode,
-    override val right: ExprNode
-) :
-    org.komapper.expr.BinaryOp()
-
-data class PropertyNode(
-    override val location: ExprLocation,
-    val name: String,
-    val receiver: ExprNode
-) : ExprNode()
-
-data class FunctionNode(
-    override val location: ExprLocation,
-    val name: String,
-    val receiver: ExprNode,
-    val args: ExprNode
-) :
-    ExprNode()
-
-data class CommaNode(
-    override val location: ExprLocation,
-    val nodeList: List<ExprNode>
-) : ExprNode()
-
-data class ValueNode(override val location: ExprLocation, val name: String) :
-    ExprNode()
-
-data class LiteralNode(
-    override val location: ExprLocation,
-    val value: Any?,
-    val kClass: KClass<out Any>
-) : ExprNode()
-
-data class EmptyNode(override val location: ExprLocation) : ExprNode()

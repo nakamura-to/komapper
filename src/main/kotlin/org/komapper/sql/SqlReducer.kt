@@ -1,87 +1,63 @@
 package org.komapper.sql
 
+import java.util.*
+
 abstract class SqlReducer {
-    protected val nodeList: NodeList<SqlNode> = NodeList()
-
+    protected val nodeList = LinkedList<SqlNode>()
     abstract fun reduce(): SqlNode
-
-    open fun addNode(node: SqlNode) {
-        nodeList.add(node)
-    }
+    open fun addNode(node: SqlNode) = nodeList.add(node)
 }
 
 class SetReducer(private val location: SqlLocation, private val keyword: String, private val left: SqlNode) :
     SqlReducer() {
     override fun reduce(): SqlNode {
-        val right = nodeList.poll() ?: throw AssertionError("node not found")
-        return SetNode(location, keyword, left, right)
+        val right = nodeList.poll() ?: throw SqlException("The right node is not found.")
+        return SqlNode.Set(location, keyword, left, right)
     }
 }
 
 class StatementReducer : SqlReducer() {
-    override fun reduce(): SqlNode {
-        return StatementNode(nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.Statement(nodeList)
 }
 
 class SelectReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
-    override fun reduce(): SqlNode {
-        return SelectNode(location, keyword, nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.Keyword.Select(location, keyword, nodeList)
 }
 
 class FromReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
-    override fun reduce(): SqlNode {
-        return FromNode(location, keyword, nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.Keyword.From(location, keyword, nodeList)
 }
 
 class WhereReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
-    override fun reduce(): SqlNode {
-        return WhereNode(location, keyword, nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.Keyword.Where(location, keyword, nodeList)
 }
 
 class HavingReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
-    override fun reduce(): SqlNode {
-        return HavingNode(location, keyword, nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.Keyword.Having(location, keyword, nodeList)
 }
 
 class GroupByReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
-    override fun reduce(): SqlNode {
-        return GroupByNode(location, keyword, nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.Keyword.GroupBy(location, keyword, nodeList)
 }
 
 class OrderByReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
-    override fun reduce(): SqlNode {
-        return OrderByNode(location, keyword, nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.Keyword.OrderBy(location, keyword, nodeList)
 }
 
 class ForUpdateReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
-    override fun reduce(): SqlNode {
-        return ForUpdateNode(location, keyword, nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.Keyword.ForUpdate(location, keyword, nodeList)
 }
 
 class OptionReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
-    override fun reduce(): SqlNode {
-        return OptionNode(location, keyword, nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.Keyword.Option(location, keyword, nodeList)
 }
 
 class AndReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
-    override fun reduce(): SqlNode {
-        return AndNode(location, keyword, nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.Keyword.And(location, keyword, nodeList)
 }
 
 class OrReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
-    override fun reduce(): SqlNode {
-        return OrNode(location, keyword, nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.Keyword.Or(location, keyword, nodeList)
 }
 
 class BindValueDirectiveReducer(
@@ -90,11 +66,15 @@ class BindValueDirectiveReducer(
     private val expression: String
 ) :
     SqlReducer() {
-    override fun reduce(): SqlNode {
-        return when (val node = nodeList.poll()) {
-            is WordNode, is BracketsNode -> BindValueDirectiveNode(location, token, expression, node, nodeList)
-            else -> throw SqlException("The test value must follow the bind value directive at $location. node=$node")
-        }
+    override fun reduce(): SqlNode = when (val node = nodeList.poll()) {
+        is SqlNode.Token.Word, is SqlNode.Paren -> SqlNode.BindValueDirective(
+            location,
+            token,
+            expression,
+            node,
+            nodeList
+        )
+        else -> throw SqlException("The test value must follow the bind value directive at $location. node=$node")
     }
 }
 
@@ -103,11 +83,9 @@ class LiteralValueDirectiveReducer(
     val token: String,
     private val expression: String
 ) : SqlReducer() {
-    override fun reduce(): SqlNode {
-        return when (val node = nodeList.poll()) {
-            is WordNode -> LiteralValueDirectiveNode(location, token, expression, node, nodeList)
-            else -> throw SqlException("The test value must follow the literal value directive at $location")
-        }
+    override fun reduce(): SqlNode = when (val node = nodeList.poll()) {
+        is SqlNode.Token.Word -> SqlNode.LiteralValueDirective(location, token, expression, node, nodeList)
+        else -> throw SqlException("The test value must follow the literal value directive at $location")
     }
 }
 
@@ -116,8 +94,11 @@ abstract class BlockReducer : SqlReducer()
 class IfBlockReducer(private val location: SqlLocation) : BlockReducer() {
 
     override fun addNode(node: SqlNode) = when (node) {
-        is IfDirectiveNode, is ElseifDirectiveNode, is ElseDirectiveNode, is EndDirectiveNode -> super.addNode(node)
-        else -> throw AssertionError(node)
+        is SqlNode.IfDirective,
+        is SqlNode.ElseifDirective,
+        is SqlNode.ElseDirective,
+        is SqlNode.EndDirective -> super.addNode(node)
+        else -> error(node)
     }
 
     override fun reduce(): SqlNode {
@@ -125,18 +106,18 @@ class IfBlockReducer(private val location: SqlLocation) : BlockReducer() {
         val elseifDirectives = getElseifDirectives()
         val elseDirective = getElseDirective()
         val endDirect = getEndDirective()
-        return IfBlockNode(ifDirective, elseifDirectives, elseDirective, endDirect)
+        return SqlNode.IfBlock(ifDirective, elseifDirectives, elseDirective, endDirect)
     }
 
-    private fun getIfDirective(): IfDirectiveNode {
-        val node = nodeList.poll() as? IfDirectiveNode
-        return node ?: throw AssertionError(node)
+    private fun getIfDirective(): SqlNode.IfDirective {
+        val node = nodeList.poll() as? SqlNode.IfDirective
+        return node ?: error("IfDirective is not found.")
     }
 
-    private fun getElseifDirectives(): NodeList<ElseifDirectiveNode> {
-        val list = NodeList<ElseifDirectiveNode>()
+    private fun getElseifDirectives(): List<SqlNode.ElseifDirective> {
+        val list = LinkedList<SqlNode.ElseifDirective>()
         while (true) {
-            val node = nodeList.peek() as? ElseifDirectiveNode
+            val node = nodeList.peek() as? SqlNode.ElseifDirective
             if (node != null) {
                 nodeList.pop()
                 list.add(node)
@@ -146,19 +127,19 @@ class IfBlockReducer(private val location: SqlLocation) : BlockReducer() {
         }
     }
 
-    private fun getElseDirective(): ElseDirectiveNode? {
-        val node = nodeList.peek() as? ElseDirectiveNode
+    private fun getElseDirective(): SqlNode.ElseDirective? {
+        val node = nodeList.peek() as? SqlNode.ElseDirective
         if (node != null) {
             nodeList.pop()
         }
         return node
     }
 
-    private fun getEndDirective(): EndDirectiveNode {
+    private fun getEndDirective(): SqlNode.EndDirective {
         return when (val node = nodeList.poll()) {
-            is EndDirectiveNode -> node
-            is ElseifDirectiveNode -> throw SqlException("The illegal elseif directive is found at ${node.location}")
-            is ElseDirectiveNode -> throw SqlException("The illegal else directive is found at ${node.location}")
+            is SqlNode.EndDirective -> node
+            is SqlNode.ElseifDirective -> throw SqlException("The illegal elseif directive is found at ${node.location}")
+            is SqlNode.ElseDirective -> throw SqlException("The illegal else directive is found at ${node.location}")
             else -> throw throw SqlException("The corresponding end directive is not found at $location")
         }
     }
@@ -167,34 +148,30 @@ class IfBlockReducer(private val location: SqlLocation) : BlockReducer() {
 class ForBlockReducer(private val location: SqlLocation) : BlockReducer() {
 
     override fun addNode(node: SqlNode) = when (node) {
-        is ForDirectiveNode, is EndDirectiveNode -> super.addNode(node)
-        else -> throw AssertionError(node)
+        is SqlNode.ForDirective, is SqlNode.EndDirective -> super.addNode(node)
+        else -> error(node)
     }
 
     override fun reduce(): SqlNode {
         val forDirective = getForDirective()
         val endDirective = getEndDirective()
-        return ForBlockNode(forDirective, endDirective)
+        return SqlNode.ForBlock(forDirective, endDirective)
     }
 
-    private fun getForDirective(): ForDirectiveNode {
-        val node = nodeList.poll() as? ForDirectiveNode
-        return node ?: throw AssertionError(node)
+    private fun getForDirective(): SqlNode.ForDirective {
+        val node = nodeList.poll() as? SqlNode.ForDirective
+        return node ?: error("ForDirective is not found.")
     }
 
-    private fun getEndDirective(): EndDirectiveNode {
-        return when (val node = nodeList.poll()) {
-            is EndDirectiveNode -> node
-            else -> throw throw SqlException("The corresponding end directive is not found at $location")
-        }
+    private fun getEndDirective(): SqlNode.EndDirective = when (val node = nodeList.poll()) {
+        is SqlNode.EndDirective -> node
+        else -> throw throw SqlException("The corresponding end directive is not found at $location")
     }
 }
 
 class IfDirectiveReducer(private val location: SqlLocation, private val token: String, private val expression: String) :
     SqlReducer() {
-    override fun reduce(): SqlNode {
-        return IfDirectiveNode(location, token, expression, nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.IfDirective(location, token, expression, nodeList)
 }
 
 class ElseifDirectiveReducer(
@@ -203,15 +180,11 @@ class ElseifDirectiveReducer(
     private val expression: String
 ) :
     SqlReducer() {
-    override fun reduce(): SqlNode {
-        return ElseifDirectiveNode(location, token, expression, nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.ElseifDirective(location, token, expression, nodeList)
 }
 
 class ElseDirectiveReducer(private val location: SqlLocation, private val token: String) : SqlReducer() {
-    override fun reduce(): SqlNode {
-        return ElseDirectiveNode(location, token, nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.ElseDirective(location, token, nodeList)
 }
 
 class ForDirectiveReducer(
@@ -221,9 +194,7 @@ class ForDirectiveReducer(
     private val expression: String
 ) :
     SqlReducer() {
-    override fun reduce(): SqlNode {
-        return ForDirectiveNode(location, token, identifier, expression, nodeList)
-    }
+    override fun reduce(): SqlNode = SqlNode.ForDirective(location, token, identifier, expression, nodeList)
 }
 
 class ExpandDirectiveReducer(
@@ -234,7 +205,7 @@ class ExpandDirectiveReducer(
     SqlReducer() {
     override fun reduce(): SqlNode {
         return when (val node = nodeList.poll()) {
-            OtherNode("*") -> ExpandDirectiveNode(location, token, expression, node, nodeList)
+            SqlNode.Token.Other("*") -> SqlNode.ExpandDirective(location, token, expression, node, nodeList)
             else -> throw SqlException("The token \"*\" must follow the expand directive at $location")
         }
     }

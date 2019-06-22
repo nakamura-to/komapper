@@ -8,24 +8,14 @@ interface SqlNodeFactory {
 }
 
 open class CacheSqlNodeFactory : SqlNodeFactory {
-
     private val cache = ConcurrentHashMap<String, SqlNode>()
+    override fun get(template: CharSequence): SqlNode =
+        cache.computeIfAbsent(template.toString()) { SqlParser(it).parse() }
 
-    override fun get(template: CharSequence): SqlNode {
-        return cache.computeIfAbsent(template.toString()) { SqlParser(it).parse() }
-    }
-
-    override fun clear() {
-        cache.clear()
-    }
+    override fun clear() = cache.clear()
 }
 
 open class NoCacheSqlNodeFactory : SqlNodeFactory {
-
-    override fun get(template: CharSequence): SqlNode {
-        return SqlParser(template.toString()).parse()
-    }
-
-    override fun clear() {
-    }
+    override fun get(template: CharSequence): SqlNode = SqlParser(template.toString()).parse()
+    override fun clear() = Unit
 }

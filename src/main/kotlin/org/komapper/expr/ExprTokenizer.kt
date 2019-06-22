@@ -37,7 +37,7 @@ class ExprTokenizer(private val expression: String) {
             2 -> readTwoChars(lookahead)
             1 -> readOneChar(lookahead[0])
             0 -> type = EOE
-            else -> throw AssertionError()
+            else -> error(length)
         }
     }
 
@@ -120,17 +120,17 @@ class ExprTokenizer(private val expression: String) {
                 return
             }
         }
-        if (Character.isWhitespace(c)) {
+        if (c.isWhitespace()) {
             type = WHITESPACE
             return
         } else if (c == ',') {
             type = COMMA
             return
         } else if (c == '(') {
-            type = OPEN_BRACKET
+            type = OPEN_PAREN
             return
         } else if (c == ')') {
-            type = CLOSE_BRACKET
+            type = CLOSE_PAREN
             binaryOpAvailable = true
             return
         } else if (c == '!') {
@@ -176,22 +176,22 @@ class ExprTokenizer(private val expression: String) {
             buf.mark()
             if (buf.hasRemaining()) {
                 val c1 = buf.get()
-                if (Character.isDigit(c1)) {
+                if (c1.isDigit()) {
                     readNumber()
                     return
                 }
                 buf.reset()
             }
             type = ILLEGAL_NUMBER
-        } else if (Character.isDigit(c)) {
+        } else if (c.isDigit()) {
             readNumber()
-        } else if (Character.isJavaIdentifierStart(c)) {
+        } else if (c.isJavaIdentifierStart()) {
             type = VALUE
             binaryOpAvailable = true
             while (buf.hasRemaining()) {
                 buf.mark()
                 val c1 = buf.get()
-                if (!Character.isJavaIdentifierPart(c1)) {
+                if (!c1.isJavaIdentifierPart()) {
                     buf.reset()
                     break
                 }
@@ -204,11 +204,11 @@ class ExprTokenizer(private val expression: String) {
             }
             buf.mark()
             val c1 = buf.get()
-            if (Character.isJavaIdentifierStart(c1)) {
+            if (c1.isJavaIdentifierStart()) {
                 while (buf.hasRemaining()) {
                     buf.mark()
                     val c2 = buf.get()
-                    if (!Character.isJavaIdentifierPart(c2)) {
+                    if (!c2.isJavaIdentifierPart()) {
                         if (c2 == '(') {
                             type = FUNCTION
                             binaryOpAvailable = false
@@ -231,7 +231,7 @@ class ExprTokenizer(private val expression: String) {
         while (buf.hasRemaining()) {
             buf.mark()
             val c = buf.get()
-            if (Character.isDigit(c)) {
+            if (c.isDigit()) {
                 continue
             } else if (c == '.') {
                 if (decimal) {
@@ -241,7 +241,7 @@ class ExprTokenizer(private val expression: String) {
                 decimal = true
                 if (buf.hasRemaining()) {
                     val c2 = buf.get()
-                    if (!Character.isDigit(c2)) {
+                    if (!c2.isDigit()) {
                         type = ILLEGAL_NUMBER
                         return
                     }
@@ -276,7 +276,7 @@ class ExprTokenizer(private val expression: String) {
         buf.mark()
         if (buf.hasRemaining()) {
             val c = buf.get()
-            if (!Character.isJavaIdentifierPart(c)) {
+            if (!c.isJavaIdentifierPart()) {
                 buf.reset()
                 return true
             }

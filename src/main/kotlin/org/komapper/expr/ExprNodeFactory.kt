@@ -8,24 +8,12 @@ interface ExprNodeFactory {
 }
 
 open class CacheExprNodeFactory : ExprNodeFactory {
-
     private val cache = ConcurrentHashMap<String, ExprNode>()
-
-    override fun get(expression: String): ExprNode {
-        return cache.computeIfAbsent(expression) { ExprParser(it).parse() }
-    }
-
-    override fun clear() {
-        cache.clear()
-    }
+    override fun get(expression: String): ExprNode = cache.computeIfAbsent(expression) { ExprParser(it).parse() }
+    override fun clear() = cache.clear()
 }
 
 open class NoCacheExprNodeFactory : ExprNodeFactory {
-
-    override fun get(expression: String): ExprNode {
-        return ExprParser(expression).parse()
-    }
-
-    override fun clear() {
-    }
+    override fun get(expression: String): ExprNode = ExprParser(expression).parse()
+    override fun clear() = Unit
 }

@@ -26,19 +26,19 @@ class SqlParser constructor(
             token = tokenizer.token
             when (tokenType) {
                 DELIMITER, EOF -> break@outer
-                OPEN_BRACKET -> {
+                OPEN_PAREN -> {
                     val parser = SqlParser(sql, tokenizer)
                     val node = parser.parse()
-                    if (parser.tokenType != CLOSE_BRACKET) {
-                        throw SqlException("The close bracket is not found at $location")
+                    if (parser.tokenType != CLOSE_PAREN) {
+                        throw SqlException("The close paren is not found at $location")
                     }
-                    pushNode(BracketsNode(node))
+                    pushNode(SqlNode.Paren(node))
                 }
-                CLOSE_BRACKET -> break@outer
-                WORD, QUOTE -> pushNode(WordNode(token))
-                WHITESPACE -> pushNode(WhitespacesNode.of(token))
-                OTHER, EOL -> pushNode(OtherNode.of(token))
-                MULTI_LINE_COMMENT, SINGLE_LINE_COMMENT -> pushNode(CommentNode(token))
+                CLOSE_PAREN -> break@outer
+                WORD, QUOTE -> pushNode(SqlNode.Token.Word(token))
+                SPACE -> pushNode(SqlNode.Token.Space.of(token))
+                OTHER, EOL -> pushNode(SqlNode.Token.Other.of(token))
+                MULTI_LINE_COMMENT, SINGLE_LINE_COMMENT -> pushNode(SqlNode.Token.Comment(token))
                 SELECT -> reducers.push(SelectReducer(location, token))
                 FROM -> reducers.push(FromReducer(location, token))
                 WHERE -> reducers.push(WhereReducer(location, token))
@@ -89,7 +89,7 @@ class SqlParser constructor(
         if (expression.isEmpty()) {
             throw SqlException("The expression is not found in the embedded value directive at $location")
         }
-        pushNode(EmbeddedValueDirectiveNode(location, token, expression))
+        pushNode(SqlNode.EmbeddedValueDirective(location, token, expression))
     }
 
     private fun parseIfDirective() {
@@ -126,7 +126,7 @@ class SqlParser constructor(
         if (reducers.isEmpty()) {
             throw SqlException("The corresponding if or for directive is not found at $location")
         }
-        pushNode(EndDirectiveNode(location, token))
+        pushNode(SqlNode.EndDirective(location, token))
         val block = reducers.pop()
         pushNode(block.reduce())
     }
@@ -187,7 +187,7 @@ class SqlParser constructor(
             node = reducer.reduce()
             pushNode(node)
         }
-        return node ?: throw AssertionError("no reducers")
+        return node ?: error("no reducers")
     }
 
     private fun pushNode(node: SqlNode) {

@@ -17,44 +17,39 @@ open class DefaultSqlBuilder(
     override fun build(template: CharSequence, ctx: Map<String, Value>): Sql {
         val node = sqlNodeFactory.get(template)
         val state = visit(State(ctx), node)
-        val buffer = state.getBuffer()
-        return buffer.toSql()
+        return state.toSql()
     }
 
     private fun visit(state: State, node: SqlNode): State = when (node) {
-        is StatementNode -> node.nodeList.fold(state, ::visit)
-        is SetNode -> {
+        is SqlNode.Statement -> node.nodeList.fold(state, ::visit)
+        is SqlNode.Set -> {
             val left = visit(state, node.left)
             state.append(node.keyword)
             visit(left, node.right)
         }
-        is ForUpdateNode -> {
+        is SqlNode.Keyword.ForUpdate -> {
             state.append(node.keyword)
             node.nodeList.fold(state, ::visit)
         }
-        is KeywordNode -> {
-            val childState = node.nodeList.fold(State(state), ::visit)
+        is SqlNode.Keyword -> {
+            val childState = node.nodeList.fold(State(state.ctx), ::visit)
             if (childState.available) {
-                state.append(node.keyword)
-                state.append(childState)
+                state.append(node.keyword).append(childState)
             }
             state
         }
-        is TokenNode -> {
-            if (node is WordNode || node is OtherNode) {
+        is SqlNode.Token -> {
+            if (node is SqlNode.Token.Word || node is SqlNode.Token.Other) {
                 state.available = true
             }
             state.append(node.token)
-            state
         }
-        is BracketsNode -> {
+        is SqlNode.Paren -> {
             state.available = true
             state.append("(")
-            visit(state, node.node).also {
-                state.append(")")
-            }
+            visit(state, node.node).append(")")
         }
-        is BindValueDirectiveNode -> {
+        is SqlNode.BindValueDirective -> {
             val result = eval(node.expression, state.ctx)
             when (val value = result.first) {
                 is Iterable<*> -> {
@@ -73,7 +68,7 @@ open class DefaultSqlBuilder(
             }
             node.nodeList.fold(state, ::visit)
         }
-        is EmbeddedValueDirectiveNode -> {
+        is SqlNode.EmbeddedValueDirective -> {
             val (value) = eval(node.expression, state.ctx)
             val s = value?.toString()
             if (!s.isNullOrEmpty()) {
@@ -82,17 +77,17 @@ open class DefaultSqlBuilder(
             }
             state
         }
-        is LiteralValueDirectiveNode -> {
-            val (value) = eval(node.expression, state.ctx)
-            val literal = toText(value)
+        is SqlNode.LiteralValueDirective -> {
+            val (value, type) = eval(node.expression, state.ctx)
+            val literal = formatter(value, type)
             state.append(literal)
             node.nodeList.fold(state, ::visit)
         }
-        is ExpandDirectiveNode -> {
+        is SqlNode.ExpandDirective -> {
             // TODO
             throw NotImplementedError()
         }
-        is IfBlockNode -> {
+        is SqlNode.IfBlock -> {
             fun chooseNodeList(): List<SqlNode> {
                 val (result) = eval(node.ifDirective.expression, state.ctx)
                 if (result == true) {
@@ -117,7 +112,7 @@ open class DefaultSqlBuilder(
             val nodeList = chooseNodeList()
             nodeList.fold(state, ::visit)
         }
-        is ForBlockNode -> {
+        is SqlNode.ForBlock -> {
             val forDirective = node.forDirective
             val id = forDirective.identifier
             val (expression) = eval(node.forDirective.expression, state.ctx)
@@ -143,46 +138,37 @@ open class DefaultSqlBuilder(
             s.ctx.remove(idHasNext)
             s
         }
-        is IfDirectiveNode,
-        is ElseifDirectiveNode,
-        is ElseDirectiveNode,
-        is EndDirectiveNode,
-        is ForDirectiveNode -> {
-            throw AssertionError("unreachable")
-        }
+        is SqlNode.IfDirective,
+        is SqlNode.ElseifDirective,
+        is SqlNode.ElseDirective,
+        is SqlNode.EndDirective,
+        is SqlNode.ForDirective -> error("unreachable")
     }
 
-    private fun eval(expression: String, ctx: Map<String, Value>): Value {
-        return exprEvaluator.eval(expression, ctx)
-    }
-
-    private fun toText(value: Any?): String {
-        return if (value is CharSequence) "'$value'" else value.toString()
-    }
+    private fun eval(expression: String, ctx: Map<String, Value>): Value = exprEvaluator.eval(expression, ctx)
 
     inner class State(ctx: Map<String, Value>) {
-        var available: Boolean = false
+        private val buf = SqlBuffer(formatter)
         val ctx: MutableMap<String, Value> = HashMap(ctx)
-        val buf = SqlBuffer(formatter)
+        var available: Boolean = false
 
-        constructor(state: State) : this(state.ctx)
-
-        fun append(state: State) {
+        fun append(state: State): State {
             buf.sql.append(state.buf.sql)
             buf.log.append(state.buf.log)
             buf.values.addAll(state.buf.values)
+            return this
         }
 
-        fun append(s: CharSequence) {
+        fun append(s: CharSequence): State {
             buf.append(s)
+            return this
         }
 
-        fun bind(value: Value) {
+        fun bind(value: Value): State {
             buf.bind(value)
+            return this
         }
 
-        fun getBuffer(): SqlBuffer {
-            return buf
-        }
+        fun toSql(): Sql = buf.toSql()
     }
 }

@@ -10,9 +10,9 @@ class ExprParserTest {
     @Test
     fun gt() {
         when (val expr = ExprParser("aaa > 1").parse()) {
-            is GtNode -> {
-                assertTrue(expr.left is ValueNode)
-                assertTrue(expr.right is LiteralNode)
+            is ExprNode.Gt -> {
+                assertTrue(expr.left is ExprNode.Value)
+                assertTrue(expr.right is ExprNode.Literal)
             }
             else -> throw AssertionError()
         }
@@ -21,9 +21,9 @@ class ExprParserTest {
     @Test
     fun and() {
         when (val expr = ExprParser("aaa > 1 && true").parse()) {
-            is AndNode -> {
-                assertTrue(expr.left is GtNode)
-                assertTrue(expr.right is LiteralNode)
+            is ExprNode.And -> {
+                assertTrue(expr.left is ExprNode.Gt)
+                assertTrue(expr.right is ExprNode.Literal)
             }
             else -> throw AssertionError()
         }
@@ -32,9 +32,9 @@ class ExprParserTest {
     @Test
     fun property() {
         when (val expr = ExprParser("aaa.age").parse()) {
-            is PropertyNode -> {
+            is ExprNode.Property -> {
                 assertEquals(expr.name, "age")
-                assertTrue(expr.receiver is ValueNode)
+                assertTrue(expr.receiver is ExprNode.Value)
             }
             else -> throw AssertionError()
         }
@@ -43,7 +43,7 @@ class ExprParserTest {
     @Test
     fun comma() {
         when (val expr = ExprParser("a, b, c").parse()) {
-            is CommaNode -> {
+            is ExprNode.Comma -> {
                 assertEquals(3, expr.nodeList.size)
             }
             else -> throw AssertionError()
@@ -63,7 +63,7 @@ class ExprParserTest {
     }
 
     @Test
-    fun `The close bracket is not found`() {
+    fun `The close paren is not found`() {
         val exception =
             assertThrows<ExprException> { ExprParser("aaa(bbb").parse() }
         println(exception)

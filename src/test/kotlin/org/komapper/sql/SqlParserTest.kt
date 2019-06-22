@@ -12,7 +12,7 @@ class SqlParserTest {
         val sql = ""
         val node = SqlParser(sql).parse()
         assertEquals(sql, node.toText())
-        val statement = node as StatementNode
+        val statement = node as SqlNode.Statement
         assertTrue(statement.nodeList.isEmpty())
     }
 
@@ -21,17 +21,17 @@ class SqlParserTest {
         val sql = "select * from person"
         val node = SqlParser(sql).parse()
         assertEquals(sql, node.toText())
-        val statement = node as StatementNode
+        val statement = node as SqlNode.Statement
         assertEquals(1, statement.nodeList.size)
-        val select = statement.nodeList[0] as SelectNode
+        val select = statement.nodeList[0] as SqlNode.Keyword.Select
         assertEquals(4, select.nodeList.size)
-        select.nodeList[0] as WhitespacesNode
-        select.nodeList[1] as OtherNode
-        select.nodeList[2] as WhitespacesNode
-        val from = select.nodeList[3] as FromNode
+        select.nodeList[0] as SqlNode.Token.Space
+        select.nodeList[1] as SqlNode.Token.Other
+        select.nodeList[2] as SqlNode.Token.Space
+        val from = select.nodeList[3] as SqlNode.Keyword.From
         assertEquals(2, from.nodeList.size)
-        select.nodeList[0] as WhitespacesNode
-        select.nodeList[1] as OtherNode
+        select.nodeList[0] as SqlNode.Token.Space
+        select.nodeList[1] as SqlNode.Token.Other
     }
 
     @Test
@@ -106,41 +106,41 @@ class SqlParserTest {
         @Test
         fun bindValue() {
             val sql = "/* age */1"
-            val node = SqlParser(sql).parse() as StatementNode
+            val node = SqlParser(sql).parse() as SqlNode.Statement
             assertEquals(sql, node.toText())
-            val bindValue = node.nodeList[0] as BindValueDirectiveNode
+            val bindValue = node.nodeList[0] as SqlNode.BindValueDirective
             assertEquals("age", bindValue.expression)
-            val word = bindValue.node as WordNode
+            val word = bindValue.node as SqlNode.Token.Word
             assertEquals("1", word.token)
         }
 
         @Test
         fun bindValues() {
             val sql = "/* age */(1,2,3)"
-            val node = SqlParser(sql).parse() as StatementNode
+            val node = SqlParser(sql).parse() as SqlNode.Statement
             assertEquals(sql, node.toText())
-            val bindValue = node.nodeList[0] as BindValueDirectiveNode
+            val bindValue = node.nodeList[0] as SqlNode.BindValueDirective
             assertEquals("age", bindValue.expression)
-            bindValue.node as BracketsNode
+            bindValue.node as SqlNode.Paren
         }
 
         @Test
         fun embeddedValue() {
             val sql = "/*# age */"
-            val node = SqlParser(sql).parse() as StatementNode
+            val node = SqlParser(sql).parse() as SqlNode.Statement
             assertEquals(sql, node.toText())
-            val embeddedValue = node.nodeList[0] as EmbeddedValueDirectiveNode
+            val embeddedValue = node.nodeList[0] as SqlNode.EmbeddedValueDirective
             assertEquals("age", embeddedValue.expression)
         }
 
         @Test
         fun literalValue() {
             val sql = "/*^ age */1"
-            val node = SqlParser(sql).parse() as StatementNode
+            val node = SqlParser(sql).parse() as SqlNode.Statement
             assertEquals(sql, node.toText())
-            val literal = node.nodeList[0] as LiteralValueDirectiveNode
+            val literal = node.nodeList[0] as SqlNode.LiteralValueDirective
             assertEquals("age", literal.expression)
-            val word = literal.node as WordNode
+            val word = literal.node as SqlNode.Token.Word
             assertEquals("1", word.token)
         }
 
@@ -224,26 +224,26 @@ class SqlParserTest {
         @Test
         fun simple() {
             val sql = "select * from person union select * from employee"
-            val node = SqlParser(sql).parse() as SetNode
+            val node = SqlParser(sql).parse() as SqlNode.Set
             assertEquals(sql, node.toText())
-            node.left as StatementNode
-            node.right as StatementNode
+            node.left as SqlNode.Statement
+            node.right as SqlNode.Statement
         }
 
         @Test
         fun multiple() {
             val sql = "select * from person union select * from employee union select * from worker"
-            val node = SqlParser(sql).parse() as SetNode
+            val node = SqlParser(sql).parse() as SqlNode.Set
             assertEquals(sql, node.toText())
-            val left = node.left as SetNode
-            left.left as StatementNode
-            left.right as StatementNode
-            node.right as StatementNode
+            val left = node.left as SqlNode.Set
+            left.left as SqlNode.Statement
+            left.right as SqlNode.Statement
+            node.right as SqlNode.Statement
         }
 
     }
 
-    class BracketsTest {
+    class ParenTest {
 
         @Test
         fun empty() {
@@ -260,7 +260,7 @@ class SqlParserTest {
         }
 
         @Test
-        fun `The close bracket is not found`() {
+        fun `The close paren is not found`() {
             val sql = "select date("
             val exception = assertThrows<SqlException> { SqlParser(sql).parse() }
             println(exception)

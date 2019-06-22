@@ -2,8 +2,8 @@ package org.komapper.expr
 
 enum class ExprTokenType {
     WHITESPACE,
-    OPEN_BRACKET,
-    CLOSE_BRACKET,
+    OPEN_PAREN,
+    CLOSE_PAREN,
     VALUE,
     CHAR,
     STRING,

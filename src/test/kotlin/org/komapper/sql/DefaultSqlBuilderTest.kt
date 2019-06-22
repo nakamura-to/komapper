@@ -10,7 +10,7 @@ import org.komapper.expr.NoCacheExprNodeFactory
 class DefaultSqlBuilderTest {
 
     private val sqlBuilder = DefaultSqlBuilder(
-        { value, _ -> value.toString() },
+        { value, _ -> if (value is CharSequence) "'$value'" else value.toString() },
         sqlNodeFactory = NoCacheSqlNodeFactory(),
         exprEvaluator = DefaultExprEvaluator(NoCacheExprNodeFactory())
     )
@@ -130,7 +130,7 @@ class DefaultSqlBuilderTest {
     }
 
     @Nested
-    inner class BracketsTest {
+    inner class ParenTest {
         @Test
         fun subQuery() {
             val template = "select name, age from (select * from person)"

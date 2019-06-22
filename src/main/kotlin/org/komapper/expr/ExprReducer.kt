@@ -5,107 +5,106 @@ import java.util.*
 abstract class ExprReducer(val priority: Int, val location: ExprLocation) {
     abstract fun reduce(deque: Deque<ExprNode>): ExprNode
 
-    fun pop(deque: Deque<ExprNode>): ExprNode {
-        return deque.poll() ?: throw ExprException("The operand is not found at $location")
-    }
+    fun pop(deque: Deque<ExprNode>): ExprNode =
+        deque.poll() ?: throw ExprException("The operand is not found at $location")
 }
 
 class PropertyReducer(location: ExprLocation, val name: String) :
-    org.komapper.expr.ExprReducer(100, location) {
+    ExprReducer(100, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val receiver = pop(deque)
-        return PropertyNode(location, name, receiver)
+        return ExprNode.Property(location, name, receiver)
     }
 }
 
 class FunctionReducer(location: ExprLocation, val name: String) :
-    org.komapper.expr.ExprReducer(100, location) {
+    ExprReducer(100, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val args = pop(deque)
         val receiver = pop(deque)
-        return FunctionNode(location, name, receiver, args)
+        return ExprNode.Function(location, name, receiver, args)
     }
 }
 
-class NotReducer(location: ExprLocation) : org.komapper.expr.ExprReducer(50, location) {
+class NotReducer(location: ExprLocation) : ExprReducer(50, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val expr = pop(deque)
-        return NotNode(location, expr)
+        return ExprNode.Not(location, expr)
     }
 }
 
-class EqReducer(location: ExprLocation) : org.komapper.expr.ExprReducer(40, location) {
+class EqReducer(location: ExprLocation) : ExprReducer(40, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return EqNode(location, left, right)
+        return ExprNode.Eq(location, left, right)
     }
 }
 
-class NeReducer(location: ExprLocation) : org.komapper.expr.ExprReducer(40, location) {
+class NeReducer(location: ExprLocation) : ExprReducer(40, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return NeNode(location, left, right)
+        return ExprNode.Ne(location, left, right)
     }
 }
 
-class GeReducer(location: ExprLocation) : org.komapper.expr.ExprReducer(40, location) {
+class GeReducer(location: ExprLocation) : ExprReducer(40, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return GeNode(location, left, right)
+        return ExprNode.Ge(location, left, right)
     }
 }
 
-class GtReducer(location: ExprLocation) : org.komapper.expr.ExprReducer(40, location) {
+class GtReducer(location: ExprLocation) : ExprReducer(40, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return GtNode(location, left, right)
+        return ExprNode.Gt(location, left, right)
     }
 }
 
-class LeReducer(location: ExprLocation) : org.komapper.expr.ExprReducer(40, location) {
+class LeReducer(location: ExprLocation) : ExprReducer(40, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return LeNode(location, left, right)
+        return ExprNode.Le(location, left, right)
     }
 }
 
-class LtReducer(location: ExprLocation) : org.komapper.expr.ExprReducer(40, location) {
+class LtReducer(location: ExprLocation) : ExprReducer(40, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return LtNode(location, left, right)
+        return ExprNode.Lt(location, left, right)
     }
 }
 
-class AndReducer(location: ExprLocation) : org.komapper.expr.ExprReducer(20, location) {
+class AndReducer(location: ExprLocation) : ExprReducer(20, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return AndNode(location, left, right)
+        return ExprNode.And(location, left, right)
     }
 }
 
-class OrReducer(location: ExprLocation) : org.komapper.expr.ExprReducer(10, location) {
+class OrReducer(location: ExprLocation) : ExprReducer(10, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
-        return OrNode(location, left, right)
+        return ExprNode.Or(location, left, right)
     }
 }
 
-class CommaReducer(location: ExprLocation) : org.komapper.expr.ExprReducer(0, location) {
+class CommaReducer(location: ExprLocation) : ExprReducer(0, location) {
     override fun reduce(deque: Deque<ExprNode>): ExprNode {
         val right = pop(deque)
         val left = pop(deque)
         val exprList = when (right) {
-            is CommaNode -> listOf(left) + right.nodeList
+            is ExprNode.Comma -> listOf(left) + right.nodeList
             else -> listOf(left, right)
         }
-        return CommaNode(location, exprList)
+        return ExprNode.Comma(location, exprList)
     }
 }

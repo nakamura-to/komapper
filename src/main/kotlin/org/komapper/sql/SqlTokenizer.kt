@@ -48,7 +48,7 @@ class SqlTokenizer(private val sql: String) {
             2 -> readTwoChars(lookahead)
             1 -> readOneChar(lookahead[0])
             0 -> type = EOF
-            else -> throw AssertionError()
+            else -> error(length)
         }
     }
 
@@ -56,7 +56,7 @@ class SqlTokenizer(private val sql: String) {
         if ((c[0] == 'f' || c[0] == 'F')
             && (c[1] == 'o' || c[1] == 'O')
             && (c[2] == 'r' || c[2] == 'R')
-            && isWhitespace(c[3])
+            && c[3].isSpace()
             && (c[4] == 'u' || c[4] == 'U')
             && (c[5] == 'p' || c[5] == 'P')
             && (c[6] == 'd' || c[6] == 'D')
@@ -99,7 +99,7 @@ class SqlTokenizer(private val sql: String) {
             && (c[2] == 'o' || c[2] == 'O')
             && (c[3] == 'u' || c[3] == 'U')
             && (c[4] == 'p' || c[4] == 'P')
-            && isWhitespace(c[5])
+            && c[5].isSpace()
             && (c[6] == 'b' || c[6] == 'B')
             && (c[7] == 'y' || c[7] == 'Y')
         ) {
@@ -112,7 +112,7 @@ class SqlTokenizer(private val sql: String) {
             && (c[2] == 'd' || c[2] == 'D')
             && (c[3] == 'e' || c[3] == 'E')
             && (c[4] == 'r' || c[4] == 'R')
-            && Character.isWhitespace(c[5])
+            && c[5].isSpace()
             && (c[6] == 'b' || c[6] == 'B')
             && (c[7] == 'y' || c[7] == 'Y')
         ) {
@@ -126,7 +126,7 @@ class SqlTokenizer(private val sql: String) {
             && (c[3] == 'i' || c[3] == 'I')
             && (c[4] == 'o' || c[4] == 'O')
             && (c[5] == 'n' || c[5] == 'N')
-            && isWhitespace(c[6])
+            && c[6].isSpace()
             && c[7] == '('
         ) {
             type = OPTION
@@ -254,7 +254,7 @@ class SqlTokenizer(private val sql: String) {
             type = MULTI_LINE_COMMENT
             if (buf.hasRemaining()) {
                 val c2 = buf.get()
-                if (isExpressionIdentifierStart(c2)) {
+                if (c2.isExpressionIdentifierStart()) {
                     type = BIND_VALUE_DIRECTIVE
                 } else if (c2 == '^') {
                     type = LITERAL_VALUE_DIRECTIVE
@@ -378,12 +378,12 @@ class SqlTokenizer(private val sql: String) {
     }
 
     private fun readOneChar(c: Char) {
-        if (isWhitespace(c)) {
-            type = WHITESPACE
+        if (c.isSpace()) {
+            type = SPACE
         } else if (c == '(') {
-            type = OPEN_BRACKET
+            type = OPEN_PAREN
         } else if (c == ')') {
-            type = CLOSE_BRACKET
+            type = CLOSE_PAREN
         } else if (c == ';') {
             type = DELIMITER
         } else if (c == '\'') {
@@ -437,7 +437,7 @@ class SqlTokenizer(private val sql: String) {
                     }
                     throw SqlException("The token \"'\" for the end of the string literal is not found at $location")
                 }
-                if (!isWordPart(c1)) {
+                if (!c1.isWordPart()) {
                     buf.reset()
                     return
                 }
@@ -456,43 +456,27 @@ class SqlTokenizer(private val sql: String) {
             if (buf.hasRemaining()) {
                 val c1 = buf.get()
                 buf.reset()
-                if (Character.isDigit(c1)) {
+                if (c1.isDigit()) {
                     return true
                 }
             }
         }
-        return isWordPart(c)
+        return c.isWordPart()
     }
 
-    private fun isWordPart(c: Char): Boolean {
-        if (Character.isWhitespace(c)) {
-            return false
-        }
-        return when (c) {
-            '=', '<', '>', '-', ',', '/', '*', '+', '(', ')', ';' -> false
-            else -> true
-        }
-    }
 
     private fun isWordTerminated(): Boolean {
         buf.mark()
         if (buf.hasRemaining()) {
             val c = buf.get()
             buf.reset()
-            if (!isWordPart(c)) {
+            if (!c.isWordPart()) {
                 return true
             }
         } else {
             return true
         }
         return false
-    }
-
-    private fun isExpressionIdentifierStart(c: Char): Boolean {
-        return (Character.isJavaIdentifierStart(c)
-                || Character.isWhitespace(c)
-                || c == '"'
-                || c == '\'')
     }
 
     private fun isDirectiveTerminated(): Boolean {
@@ -500,7 +484,7 @@ class SqlTokenizer(private val sql: String) {
         if (buf.hasRemaining()) {
             val c = buf.get()
             buf.reset()
-            if (!isWordPart(c)) {
+            if (!c.isWordPart()) {
                 return true
             }
         } else {
@@ -509,11 +493,22 @@ class SqlTokenizer(private val sql: String) {
         return false
     }
 
-    private fun isWhitespace(c: Char): Boolean {
-        return when (c) {
-            '\u0009', '\u000B', '\u000C', '\u001C', '\u001D', '\u001E', '\u001F', '\u0020' -> true
-            else -> false
-        }
-    }
+}
 
+private fun Char.isWordPart(): Boolean = if (this.isWhitespace()) {
+    false
+} else {
+    when (this) {
+        '=', '<', '>', '-', ',', '/', '*', '+', '(', ')', ';' -> false
+        else -> true
+    }
+}
+
+private fun Char.isExpressionIdentifierStart(): Boolean =
+    (this.isJavaIdentifierStart() || this.isWhitespace() || this == '"' || this == '\'')
+
+
+private fun Char.isSpace(): Boolean = when (this) {
+    '\u0009', '\u000B', '\u000C', '\u001C', '\u001D', '\u001E', '\u001F', '\u0020' -> true
+    else -> false
 }

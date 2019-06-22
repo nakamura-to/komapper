@@ -30,7 +30,5 @@ class SqlBuffer(
         return this
     }
 
-    fun toSql(): Sql {
-        return Sql(sql.toString(), values, log.toString())
-    }
+    fun toSql(): Sql = Sql(sql.toString(), values, log.toString())
 }
