@@ -128,7 +128,7 @@ internal class DbTest {
         val common: Common
     )
 
-    val config = DbConfig(
+    private val config = DbConfig(
         dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"),
         dialect = H2Dialect(),
         batchSize = 2
@@ -281,1022 +281,1080 @@ internal class DbTest {
         }
     }
 
-    @Test
-    fun select_Embedded() {
-        val db = Db(config)
-        val list =
-            db.select<Employee>(
-                """
+    @Nested
+    inner class FindById {
+
+        @Test
+        fun test() {
+            val db = Db(config)
+            val address = db.findById<Address>(2)
+            assertEquals(Address(2, "STREET 2", 1), address)
+        }
+
+        @Test
+        fun idAndVersion() {
+            val db = Db(config)
+            val address = db.findById<Address>(2, 1)
+            assertEquals(Address(2, "STREET 2", 1), address)
+        }
+
+        @Test
+        fun idList() {
+            val db = Db(config)
+            val address = db.findById<CompositeKeyAddress>(listOf(2, 2))
+            assertEquals(CompositeKeyAddress(2, 2, "STREET 2", 1), address)
+        }
+
+        @Test
+        fun idListAndVersion() {
+            val db = Db(config)
+            val address = db.findById<CompositeKeyAddress>(listOf(2, 2), 1)
+            assertEquals(CompositeKeyAddress(2, 2, "STREET 2", 1), address)
+        }
+
+        @Test
+        fun embedded() {
+            val db = Db(config)
+            val employee = db.findById<Employee>(1)
+            assertNotNull(employee)
+        }
+
+        @Test
+        fun nestedEmbedded() {
+            val db = Db(config)
+            val employee = db.findById<Worker>(1)
+            assertNotNull(employee)
+        }
+
+    }
+
+    @Nested
+    inner class Query {
+
+        @Test
+        fun test() {
+            val db = Db(config)
+            val list = db.query<Address> {
+                where {
+                    Address::addressId ge 1
+                }.orderBy {
+                    Address::addressId.desc()
+                }.limit(2).offset(5)
+            }
+            assertEquals(
+                listOf(
+                    Address(10, "STREET 10", 1),
+                    Address(9, "STREET 9", 1)
+                ), list
+            )
+        }
+
+        @Test
+        fun like() {
+            val db = Db(config)
+            val idList = db.query<Address> {
+                where {
+                    Address::street like "STREET 1_"
+                }.orderBy {
+                    Address::addressId.asc()
+                }
+            }.map { it.addressId }
+            assertEquals((10..15).toList(), idList)
+        }
+
+        @Test
+        fun notLike() {
+            val db = Db(config)
+            val idList = db.query<Address> {
+                where {
+                    Address::street notLike "STREET 1_"
+                }.orderBy {
+                    Address::addressId.asc()
+                }
+            }.map { it.addressId }
+            assertEquals((1..9).toList(), idList)
+        }
+
+        @Test
+        fun noArg() {
+            val db = Db(config)
+            val list = db.query<Address>()
+            assertEquals(15, list.size)
+        }
+
+        @Test
+        fun not() {
+            val db = Db(config)
+            val idList = db.query<Address> {
+                where {
+                    Address::addressId gt 5
+                    not {
+                        Address::addressId ge 10
+                    }
+                }.orderBy {
+                    Address::addressId.asc()
+                }
+            }.map { it.addressId }
+            assertEquals((6..9).toList(), idList)
+        }
+
+        @Test
+        fun and() {
+            val db = Db(config)
+            val list = db.query<Address> {
+                where {
+                    Address::addressId ge 1
+                    and {
+                        Address::addressId ge 1
+                    }
+                }.orderBy {
+                    Address::addressId.desc()
+                }.limit(2).offset(5)
+            }
+            assertEquals(
+                listOf(
+                    Address(10, "STREET 10", 1),
+                    Address(9, "STREET 9", 1)
+                ), list
+            )
+        }
+
+        @Test
+        fun or() {
+            val db = Db(config)
+            val list = db.query<Address> {
+                where {
+                    Address::addressId ge 1
+                    or {
+                        Address::addressId ge 1
+                        Address::addressId ge 1
+                    }
+                }.orderBy {
+                    Address::addressId.desc()
+                }.limit(2).offset(5)
+            }
+            assertEquals(
+                listOf(
+                    Address(10, "STREET 10", 1),
+                    Address(9, "STREET 9", 1)
+                ), list
+            )
+        }
+
+        @Test
+        fun `in`() {
+            val db = Db(config)
+            val list = db.query<Address> {
+                where {
+                    Address::addressId `in` listOf(9, 10)
+                }.orderBy {
+                    Address::addressId.desc()
+                }
+            }
+            assertEquals(
+                listOf(
+                    Address(10, "STREET 10", 1),
+                    Address(9, "STREET 9", 1)
+                ), list
+            )
+        }
+
+        @Test
+        fun notIn() {
+            val db = Db(config)
+            val idList = db.query<Address> {
+                where {
+                    Address::addressId notIn (1..9).toList()
+                }.orderBy {
+                    Address::addressId.asc()
+                }
+            }.map { it.addressId }
+            assertEquals((10..15).toList(), idList)
+        }
+
+        @Test
+        fun in_empty() {
+            val db = Db(config)
+            val list = db.query<Address> {
+                where {
+                    Address::addressId `in` emptyList()
+                }.orderBy {
+                    Address::addressId.desc()
+                }
+            }
+            assertTrue(list.isEmpty())
+        }
+
+        @Test
+        fun between() {
+            val db = Db(config)
+            val idList = db.query<Address> {
+                where {
+                    Address::addressId between (5 to 10)
+                }.orderBy {
+                    Address::addressId.asc()
+                }
+            }.map { it.addressId }
+            assertEquals((5..10).toList(), idList)
+        }
+
+        @Test
+        fun sequence() {
+            val db = Db(config)
+            val list = db.query<Address, List<Address>>({
+                where {
+                    Address::addressId ge 1
+                }.orderBy {
+                    Address::addressId.desc()
+                }.limit(2).offset(5)
+            }) {
+                it.toList()
+            }
+            assertEquals(
+                listOf(
+                    Address(10, "STREET 10", 1),
+                    Address(9, "STREET 9", 1)
+                ), list
+            )
+        }
+
+        @Test
+        fun embedded() {
+            val db = Db(config)
+            val list = db.query<Employee> {
+                where {
+                    EmployeeDetail::salary ge BigDecimal("2000.00")
+                }
+            }
+            assertEquals(6, list.size)
+        }
+
+        @Test
+        fun nestedEmbedded() {
+            val db = Db(config)
+            val list = db.query<Worker> {
+                where {
+                    WorkerSalary::salary ge BigDecimal("2000.00")
+                }
+            }
+            assertEquals(6, list.size)
+        }
+
+    }
+
+    @Nested
+    inner class Select {
+
+        @Test
+        fun test() {
+            val db = Db(config)
+            val list = db.select<Address>("select * from address")
+            assertEquals(15, list.size)
+            assertEquals(Address(1, "STREET 1", 1), list[0])
+        }
+
+        @Test
+        fun expand() {
+            val db = Db(config)
+            val list = db.select<Address>("select /*%expand*/* from address")
+            assertEquals(15, list.size)
+            assertEquals(Address(1, "STREET 1", 1), list[0])
+        }
+
+        @Test
+        fun sequence() {
+            val db = Db(config)
+            val list = db.select<Address, List<Address>>("select * from address") {
+                it.toList()
+            }
+            assertEquals(15, list.size)
+            assertEquals(Address(1, "STREET 1", 1), list[0])
+        }
+
+        @Test
+        fun sequence_expand() {
+            val db = Db(config)
+            val list = db.select<Address, List<Address>>("select /*%expand*/* from address") {
+                it.toList()
+            }
+            assertEquals(15, list.size)
+            assertEquals(Address(1, "STREET 1", 1), list[0])
+        }
+
+        @Test
+        fun condition_objectExpression() {
+            val db = Db(config)
+            val list =
+                db.select<Address>(
+                    "select * from address where street = /*street*/'test'"
+                    , object {
+                        val street = "STREET 10"
+                    }
+                )
+            assertEquals(1, list.size)
+            assertEquals(Address(10, "STREET 10", 1), list[0])
+        }
+
+        @Test
+        fun condition_dataClass() {
+            data class Condition(val street: String)
+
+            val db = Db(config)
+            val list =
+                db.select<Address>(
+                    "select * from address where street = /*street*/'test'"
+                    , Condition("STREET 10")
+                )
+            assertEquals(1, list.size)
+            assertEquals(Address(10, "STREET 10", 1), list[0])
+        }
+
+        @Test
+        fun embedded() {
+            val db = Db(config)
+            val list =
+                db.select<Employee>(
+                    """
                 select employee_id, employee_no, employee_name, manager_id,
                 hiredate, salary, department_id, address_id, version from employee
             """.trimIndent()
-            )
-        assertEquals(14, list.size)
-    }
-
-    @Test
-    fun selectByCriteria_Embedded() {
-        val db = Db(config)
-        val list = db.selectByCriteria<Employee> {
-            where {
-                EmployeeDetail::salary ge BigDecimal("2000.00")
-            }
+                )
+            assertEquals(14, list.size)
         }
-        assertEquals(6, list.size)
-    }
 
-    @Test
-    fun findById_Embedded() {
-        val db = Db(config)
-        val employee = db.findById<Employee>(1)
-        assertNotNull(employee)
-    }
-
-    @Test
-    fun insert_Embedded() {
-        val db = Db(config)
-        val employee = Employee(
-            employeeId = 100,
-            employeeNo = 9999,
-            employeeName = "aaa",
-            managerId = null,
-            detail = EmployeeDetail(LocalDate.of(2019, 6, 15), BigDecimal("2000.00")),
-            departmentId = 1,
-            addressId = 1,
-            version = 1
-        )
-        db.insert(employee)
-        val employee2 = db.findById<Employee>(100)
-        assertEquals(employee, employee2)
-    }
-
-    @Test
-    fun delete_Embedded() {
-        val db = Db(config)
-        val employee = Employee(
-            employeeId = 100,
-            employeeNo = 9999,
-            employeeName = "aaa",
-            managerId = null,
-            detail = EmployeeDetail(LocalDate.of(2019, 6, 15), BigDecimal("2000.00")),
-            departmentId = 1,
-            addressId = 1,
-            version = 1
-        )
-        db.insert(employee)
-        val employee2 = db.findById<Employee>(100)
-        assertEquals(employee, employee2)
-        db.delete(employee)
-        val employee3 = db.findById<Employee>(100)
-        assertNull(employee3)
-    }
-
-    @Test
-    fun update_Embedded() {
-        val db = Db(config)
-        val employee = Employee(
-            employeeId = 100,
-            employeeNo = 9999,
-            employeeName = "aaa",
-            managerId = null,
-            detail = EmployeeDetail(LocalDate.of(2019, 6, 15), BigDecimal("2000.00")),
-            departmentId = 1,
-            addressId = 1,
-            version = 1
-        )
-        db.insert(employee)
-        val employee2 = db.findById<Employee>(100)
-        assertEquals(employee, employee2)
-
-        val employee3 = employee.copy(detail = employee.detail.copy(salary = BigDecimal("5000.00")))
-        val employee4 = db.update(employee3)
-        assertEquals(BigDecimal("5000.00"), employee4.detail.salary)
-
-        val employee5 = db.findById<Employee>(100)
-        assertEquals(BigDecimal("5000.00"), employee5?.detail?.salary)
-    }
-
-    @Test
-    fun select_NestedEmbedded() {
-        val db = Db(config)
-        val list =
-            db.select<Worker>(
-                """
+        @Test
+        fun nestedEmbedded() {
+            val db = Db(config)
+            val list =
+                db.select<Worker>(
+                    """
                 select employee_id, employee_no, employee_name, manager_id,
                 hiredate, salary, department_id, address_id, version from employee
                 """.trimIndent()
-            )
-        assertEquals(14, list.size)
-    }
-
-    @Test
-    fun selectByCriteria_NestedEmbedded() {
-        val db = Db(config)
-        val list = db.selectByCriteria<Worker> {
-            where {
-                WorkerSalary::salary ge BigDecimal("2000.00")
-            }
-        }
-        assertEquals(6, list.size)
-    }
-
-    @Test
-    fun findById_NestedEmbedded() {
-        val db = Db(config)
-        val employee = db.findById<Worker>(1)
-        assertNotNull(employee)
-    }
-
-    @Test
-    fun insert_NestedEmbedded() {
-        val db = Db(config)
-        val salary = WorkerSalary(BigDecimal("2000.00"))
-        val worker = Worker(
-            employeeId = 100,
-            employeeNo = 9999,
-            employeeName = "aaa",
-            managerId = null,
-            detail = WorkerDetail(LocalDate.of(2019, 6, 15), salary),
-            departmentId = 1,
-            addressId = 1,
-            version = 1
-        )
-        db.insert(worker)
-        val worker2 = db.findById<Worker>(100)
-        assertEquals(worker, worker2)
-    }
-
-    @Test
-    fun delete_NestedEmbedded() {
-        val db = Db(config)
-        val salary = WorkerSalary(BigDecimal("2000.00"))
-        val worker = Worker(
-            employeeId = 100,
-            employeeNo = 9999,
-            employeeName = "aaa",
-            managerId = null,
-            detail = WorkerDetail(LocalDate.of(2019, 6, 15), salary),
-            departmentId = 1,
-            addressId = 1,
-            version = 1
-        )
-        db.insert(worker)
-        val worker2 = db.findById<Worker>(100)
-        assertEquals(worker, worker2)
-        db.delete(worker)
-        val worker3 = db.findById<Worker>(100)
-        assertNull(worker3)
-    }
-
-    @Test
-    fun update_NestedEmbedded() {
-        val db = Db(config)
-        val salary = WorkerSalary(BigDecimal("2000.00"))
-        val worker = Worker(
-            employeeId = 100,
-            employeeNo = 9999,
-            employeeName = "aaa",
-            managerId = null,
-            detail = WorkerDetail(LocalDate.of(2019, 6, 15), salary),
-            departmentId = 1,
-            addressId = 1,
-            version = 1
-        )
-        db.insert(worker)
-        val worker2 = db.findById<Worker>(100)
-        assertEquals(worker, worker2)
-
-        val worker3 = worker.copy(detail = worker.detail.copy(salary = WorkerSalary(BigDecimal("5000.00"))))
-        val worker4 = db.update(worker3)
-        assertEquals(WorkerSalary(BigDecimal("5000.00")), worker4.detail.salary)
-
-        val worker5 = db.findById<Worker>(100)
-        assertEquals(WorkerSalary(BigDecimal("5000.00")), worker5?.detail?.salary)
-    }
-
-    @Test
-    fun insert_Embedded_valueAssignment() {
-        val db = Db(config)
-        val human = Human(
-            name = "aaa",
-            common = Common()
-        )
-        val human2 = db.insert(human)
-        val human3 = db.findById<Human>(1, 0)
-        assertEquals(human2, human3)
-    }
-
-    @Test
-    fun delete_Embedded_valueAssignment() {
-        val db = Db(config)
-        val human = Human(
-            name = "aaa",
-            common = Common()
-        )
-        val human2 = db.insert(human)
-        db.delete(human2)
-        val human3 = db.findById<Human>(1)
-        assertNull(human3)
-    }
-
-    @Test
-    fun update_Embedded_valueAssignment() {
-        val db = Db(config)
-        val human = Human(
-            name = "aaa",
-            common = Common()
-        )
-        val human2 = db.insert(human)
-        val human3 = human2.copy(name = "bbb")
-        val human4 = db.update(human3)
-        val human5 = db.findById<Human>(1)
-        assertEquals(human4, human5)
-        println(human4)
-    }
-
-
-    @Test
-    fun selectByCriteria() {
-        val db = Db(config)
-        val list = db.selectByCriteria<Address> {
-            where {
-                Address::addressId ge 1
-            }.orderBy {
-                Address::addressId.desc()
-            }.limit(2).offset(5)
-        }
-        assertEquals(
-            listOf(
-                Address(10, "STREET 10", 1),
-                Address(9, "STREET 9", 1)
-            ), list
-        )
-    }
-
-    @Test
-    fun selectByCriteria_like() {
-        val db = Db(config)
-        val idList = db.selectByCriteria<Address> {
-            where {
-                Address::street like "STREET 1_"
-            }.orderBy {
-                Address::addressId.asc()
-            }
-        }.map { it.addressId }
-        assertEquals((10..15).toList(), idList)
-    }
-
-    @Test
-    fun selectByCriteria_notLike() {
-        val db = Db(config)
-        val idList = db.selectByCriteria<Address> {
-            where {
-                Address::street notLike "STREET 1_"
-            }.orderBy {
-                Address::addressId.asc()
-            }
-        }.map { it.addressId }
-        assertEquals((1..9).toList(), idList)
-    }
-
-    @Test
-    fun selectByCriteria_noArg() {
-        val db = Db(config)
-        val list = db.selectByCriteria<Address>()
-        assertEquals(15, list.size)
-    }
-
-    @Test
-    fun selectByCriteria_not() {
-        val db = Db(config)
-        val idList = db.selectByCriteria<Address> {
-            where {
-                Address::addressId gt 5
-                not {
-                    Address::addressId ge 10
-                }
-            }.orderBy {
-                Address::addressId.asc()
-            }
-        }.map { it.addressId }
-        assertEquals((6..9).toList(), idList)
-    }
-
-    @Test
-    fun selectByCriteria_and() {
-        val db = Db(config)
-        val list = db.selectByCriteria<Address> {
-            where {
-                Address::addressId ge 1
-                and {
-                    Address::addressId ge 1
-                }
-            }.orderBy {
-                Address::addressId.desc()
-            }.limit(2).offset(5)
-        }
-        assertEquals(
-            listOf(
-                Address(10, "STREET 10", 1),
-                Address(9, "STREET 9", 1)
-            ), list
-        )
-    }
-
-    @Test
-    fun selectByCriteria_or() {
-        val db = Db(config)
-        val list = db.selectByCriteria<Address> {
-            where {
-                Address::addressId ge 1
-                or {
-                    Address::addressId ge 1
-                    Address::addressId ge 1
-                }
-            }.orderBy {
-                Address::addressId.desc()
-            }.limit(2).offset(5)
-        }
-        assertEquals(
-            listOf(
-                Address(10, "STREET 10", 1),
-                Address(9, "STREET 9", 1)
-            ), list
-        )
-    }
-
-    @Test
-    fun selectByCriteria_in() {
-        val db = Db(config)
-        val list = db.selectByCriteria<Address> {
-            where {
-                Address::addressId `in` listOf(9, 10)
-            }.orderBy {
-                Address::addressId.desc()
-            }
-        }
-        assertEquals(
-            listOf(
-                Address(10, "STREET 10", 1),
-                Address(9, "STREET 9", 1)
-            ), list
-        )
-    }
-
-    @Test
-    fun selectByCriteria_notIn() {
-        val db = Db(config)
-        val idList = db.selectByCriteria<Address> {
-            where {
-                Address::addressId notIn (1..9).toList()
-            }.orderBy {
-                Address::addressId.asc()
-            }
-        }.map { it.addressId }
-        assertEquals((10..15).toList(), idList)
-    }
-
-    @Test
-    fun selectByCriteria_in_empty() {
-        val db = Db(config)
-        val list = db.selectByCriteria<Address> {
-            where {
-                Address::addressId `in` emptyList()
-            }.orderBy {
-                Address::addressId.desc()
-            }
-        }
-        assertTrue(list.isEmpty())
-    }
-
-    @Test
-    fun selectByCriteria_between() {
-        val db = Db(config)
-        val idList = db.selectByCriteria<Address> {
-            where {
-                Address::addressId between (5 to 10)
-            }.orderBy {
-                Address::addressId.asc()
-            }
-        }.map { it.addressId }
-        assertEquals((5..10).toList(), idList)
-    }
-
-    @Test
-    fun sequenceByCriteria() {
-        val db = Db(config)
-        val list = db.sequenceByCriteria<Address, List<Address>>({
-            where {
-                Address::addressId ge 1
-            }.orderBy {
-                Address::addressId.desc()
-            }.limit(2).offset(5)
-        }) {
-            it.toList()
-        }
-        assertEquals(
-            listOf(
-                Address(10, "STREET 10", 1),
-                Address(9, "STREET 9", 1)
-            ), list
-        )
-    }
-
-    @Test
-    fun findById() {
-        val db = Db(config)
-        val address = db.findById<Address>(2)
-        assertEquals(Address(2, "STREET 2", 1), address)
-    }
-
-    @Test
-    fun findByIdAndVersion() {
-        val db = Db(config)
-        val address = db.findById<Address>(2, 1)
-        assertEquals(Address(2, "STREET 2", 1), address)
-    }
-
-    @Test
-    fun findByIdList() {
-        val db = Db(config)
-        val address = db.findById<CompositeKeyAddress>(listOf(2, 2))
-        assertEquals(CompositeKeyAddress(2, 2, "STREET 2", 1), address)
-    }
-
-    @Test
-    fun findByIdListAndVersion() {
-        val db = Db(config)
-        val address = db.findById<CompositeKeyAddress>(listOf(2, 2), 1)
-        assertEquals(CompositeKeyAddress(2, 2, "STREET 2", 1), address)
-    }
-
-    @Test
-    fun select() {
-        val db = Db(config)
-        val list = db.select<Address>("select * from address")
-        assertEquals(15, list.size)
-        assertEquals(Address(1, "STREET 1", 1), list[0])
-    }
-
-    @Test
-    fun select_expand() {
-        val db = Db(config)
-        val list = db.select<Address>("select /*%expand*/* from address")
-        assertEquals(15, list.size)
-        assertEquals(Address(1, "STREET 1", 1), list[0])
-    }
-
-    @Test
-    fun sequence() {
-        val db = Db(config)
-        val list = db.sequence<Address, List<Address>>("select * from address") {
-            it.toList()
-        }
-        assertEquals(15, list.size)
-        assertEquals(Address(1, "STREET 1", 1), list[0])
-    }
-
-    @Test
-    fun sequence_expand() {
-        val db = Db(config)
-        val list = db.sequence<Address, List<Address>>("select /*%expand*/* from address") {
-            it.toList()
-        }
-        assertEquals(15, list.size)
-        assertEquals(Address(1, "STREET 1", 1), list[0])
-    }
-
-    @Test
-    fun selectOneColumn() {
-        val db = Db(config)
-        val list = db.selectOneColumn<String>("select street from address")
-        assertEquals(15, list.size)
-        assertEquals("STREET 1", list[0])
-    }
-
-    @Test
-    fun selectTwoColumns() {
-        val db = Db(config)
-        val list = db.selectTwoColumns<Int, String>("select address_id, street from address")
-        assertEquals(15, list.size)
-        assertEquals(1, list[0].first)
-        assertEquals("STREET 1", list[0].second)
-    }
-
-    @Test
-    fun selectThreeColumns() {
-        val db = Db(config)
-        val list = db.selectThreeColumns<Int, String, Int>("select address_id, street, version from address")
-        assertEquals(15, list.size)
-        assertEquals(15, list[14].first)
-        assertEquals("STREET 15", list[14].second)
-        assertEquals(1, list[0].third)
-    }
-
-    @Test
-    fun sequenceOneColumn() {
-        val db = Db(config)
-        val list = db.sequenceOneColumn<String?, List<String?>>("select street from address") {
-            it.toList()
-        }
-        assertEquals(15, list.size)
-        assertEquals("STREET 1", list[0])
-    }
-
-    @Test
-    fun sequenceTwoColumns() {
-        val db = Db(config)
-        val list = db.sequenceTwoColumns<Int, String?, List<Pair<Int, String?>>>(
-            "select address_id, street from address"
-        ) { it.toList() }
-        assertEquals(15, list.size)
-        assertEquals(1, list[0].first)
-        assertEquals("STREET 1", list[0].second)
-    }
-
-    @Test
-    fun sequenceThreeColumns() {
-        val db = Db(config)
-        val list = db.sequenceThreeColumns<Int, String?, Int, List<Triple<Int, String?, Int>>>(
-            "select address_id, street, version from address"
-        ) { it.toList() }
-        assertEquals(15, list.size)
-        assertEquals(15, list[14].first)
-        assertEquals("STREET 15", list[14].second)
-        assertEquals(1, list[14].third)
-    }
-
-    @Test
-    fun select_condition() {
-        val db = Db(config)
-        val list =
-            db.select<Address>(
-                "select * from address where street = /*street*/'test'"
-                , object {
-                    val street = "STREET 10"
-                }
-            )
-        assertEquals(1, list.size)
-        assertEquals(Address(10, "STREET 10", 1), list[0])
-    }
-
-    @Test
-    fun select_condition2() {
-        data class Condition(val street: String)
-
-        val db = Db(config)
-        val list =
-            db.select<Address>(
-                "select * from address where street = /*street*/'test'"
-                , Condition("STREET 10")
-            )
-        assertEquals(1, list.size)
-        assertEquals(Address(10, "STREET 10", 1), list[0])
-    }
-
-    @Test
-    fun delete() {
-        val sql = "select * from address where address_id = 15"
-        val db = Db(config)
-        val address = db.select<Address>(sql).first()
-        db.delete(address)
-        val address2 = db.select<Address>(sql).firstOrNull()
-        assertNull(address2)
-    }
-
-    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-    @Test
-    fun delete_listener() {
-        val db = Db(config.copy(listener = object : EntityListener {
-            override fun <T> preDelete(entity: T, meta: EntityMeta<T>): T {
-                return when (entity) {
-                    is Address -> entity.copy(street = "*${entity.street}")
-                    else -> entity
-                } as T
-            }
-
-            override fun <T> postDelete(entity: T, meta: EntityMeta<T>): T {
-                return when (entity) {
-                    is Address -> entity.copy(street = "${entity.street}*")
-                    else -> entity
-                } as T
-            }
-        }))
-
-        val sql = "select * from address where address_id = 15"
-        val address = db.select<Address>(sql).first()
-        val address2 = db.delete(address)
-        assertEquals(Address(15, "*STREET 15*", 1), address2)
-        val address3 = db.select<Address>(sql).firstOrNull()
-        assertNull(address3)
-    }
-
-    @Test
-    fun delete_OptimisticLockException() {
-        val sql = "select * from address where address_id = 15"
-        val db = Db(config)
-        val address = db.select<Address>(sql).first()
-        db.delete(address)
-        assertThrows<OptimisticLockException> { db.delete(address) }
-    }
-
-    @Test
-    fun insert() {
-        val db = Db(config)
-        val address = Address(16, "STREET 16", 0)
-        db.insert(address)
-        val address2 = db.select<Address>("select * from address where address_id = 16").firstOrNull()
-        assertEquals(address, address2)
-    }
-
-    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-    @Test
-    fun insert_listener() {
-        val db = Db(config.copy(listener = object : EntityListener {
-            override fun <T> preInsert(entity: T, meta: EntityMeta<T>): T {
-                return when (entity) {
-                    is Address -> entity.copy(street = "*${entity.street}")
-                    else -> entity
-                } as T
-            }
-
-            override fun <T> postInsert(entity: T, meta: EntityMeta<T>): T {
-                return when (entity) {
-                    is Address -> entity.copy(street = "${entity.street}*")
-                    else -> entity
-                } as T
-            }
-        }))
-
-        val address = Address(16, "STREET 16", 0)
-        val address2 = db.insert(address)
-        assertEquals(Address(16, "*STREET 16*", 0), address2)
-        val address3 = db.select<Address>("select * from address where address_id = 16").firstOrNull()
-        assertEquals(Address(16, "*STREET 16", 0), address3)
-    }
-
-    @Test
-    fun insert_createdAt() {
-        val db = Db(config)
-        val person = Person(1, "ABC")
-        val newPerson = db.insert(person)
-        println(newPerson)
-        assertTrue(newPerson.createdAt > person.createdAt)
-    }
-
-    @Test
-    fun insert_UniqueConstraintException() {
-        val db = Db(config)
-        val address = Address(1, "STREET 1", 0)
-        assertThrows<UniqueConstraintException> { db.insert(address) }
-    }
-
-    @Test
-    fun insert_sequenceGenerator() {
-        val db = Db(config)
-        for (i in 1..201) {
-            val strategy = SequenceStrategy(0, "test")
-            val newStrategy = db.insert(strategy)
-            assertEquals(i, newStrategy.id)
-        }
-    }
-
-    @Test
-    fun insert_multiSequenceGenerator() {
-        val db = Db(config)
-        for (i in 1..201) {
-            val strategy = MultiSequenceStrategy(0, 0L)
-            val newStrategy = db.insert(strategy)
-            assertEquals(MultiSequenceStrategy(i, i.toLong()), newStrategy)
-        }
-    }
-
-    @Test
-    fun update() {
-        val sql = "select * from address where address_id = 15"
-        val db = Db(config)
-        val address = db.select<Address>(sql).first()
-        val newAddress = address.copy(street = "NY street")
-        db.update(newAddress)
-        val address2 = db.select<Address>(sql).firstOrNull()
-        assertEquals(Address(15, "NY street", 2), address2)
-    }
-
-    @Test
-    fun update_updatedAt() {
-        val db = Db(config)
-        val person = Person(1, "ABC")
-        val newPerson = db.insert(person).let {
-            db.update(it)
-        }
-        assertTrue(newPerson.updatedAt > person.updatedAt)
-    }
-
-    @Test
-    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-    fun update_listener() {
-        val db = Db(config.copy(listener = object : EntityListener {
-            override fun <T> preUpdate(entity: T, meta: EntityMeta<T>): T {
-                return when (entity) {
-                    is Address -> entity.copy(street = "*${entity.street}")
-                    else -> entity
-                } as T
-            }
-
-            override fun <T> postUpdate(entity: T, meta: EntityMeta<T>): T {
-                return when (entity) {
-                    is Address -> entity.copy(street = "${entity.street}*")
-                    else -> entity
-                } as T
-            }
-        }))
-
-        val sql = "select * from address where address_id = 15"
-        val address = db.select<Address>(sql).first()
-        val newAddress = address.copy(street = "NY street")
-        val address2 = db.update(newAddress)
-        assertEquals(Address(15, "*NY street*", 2), address2)
-        val address3 = db.select<Address>(sql).firstOrNull()
-        assertEquals(Address(15, "*NY street", 2), address3)
-    }
-
-    @Test
-    fun update_UniqueConstraintException() {
-        val db = Db(config)
-        val address = Address(1, "STREET 2", 1)
-        assertThrows<UniqueConstraintException> { db.update(address) }
-    }
-
-    @Test
-    fun update_OptimisticLockException() {
-        val sql = "select * from address where address_id = 15"
-        val db = Db(config)
-        val address = db.select<Address>(sql).first()
-        db.update(address)
-        assertThrows<OptimisticLockException> { db.update(address) }
-    }
-
-    @Test
-    fun batchInsert() {
-        val db = Db(config)
-        val addressList = listOf(
-            Address(16, "STREET 16", 0),
-            Address(17, "STREET 17", 0),
-            Address(18, "STREET 18", 0)
-        )
-        db.batchInsert(addressList)
-        val list = db.select<Address>("select * from address where address_id in (16, 17, 18)")
-        assertEquals(addressList, list)
-    }
-
-    @Test
-    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-    fun batchInsert_listener() {
-        val db = Db(config.copy(listener = object : EntityListener {
-            override fun <T> preInsert(entity: T, meta: EntityMeta<T>): T {
-                return when (entity) {
-                    is Address -> entity.copy(street = "*${entity.street}")
-                    else -> entity
-                } as T
-            }
-
-            override fun <T> postInsert(entity: T, meta: EntityMeta<T>): T {
-                return when (entity) {
-                    is Address -> entity.copy(street = "${entity.street}*")
-                    else -> entity
-                } as T
-            }
-        }))
-
-        val addressList = listOf(
-            Address(16, "STREET 16", 0),
-            Address(17, "STREET 17", 0),
-            Address(18, "STREET 18", 0)
-        )
-        val list = db.batchInsert(addressList)
-        assertEquals(
-            listOf(
-                Address(16, "*STREET 16*", 0),
-                Address(17, "*STREET 17*", 0),
-                Address(18, "*STREET 18*", 0)
-            ), list
-        )
-        val list2 = db.select<Address>("select * from address where address_id in (16, 17, 18)")
-        assertEquals(
-            listOf(
-                Address(16, "*STREET 16", 0),
-                Address(17, "*STREET 17", 0),
-                Address(18, "*STREET 18", 0)
-            ), list2
-        )
-    }
-
-    @Test
-    fun batchInsert_createdAt() {
-        val db = Db(config)
-        val personList = listOf(
-            Person(1, "A"),
-            Person(2, "B"),
-            Person(3, "C")
-        )
-        db.batchInsert(personList)
-        val list = db.select<Person>("select * from person")
-        assertTrue(list.all { it.createdAt > LocalDateTime.MIN })
-    }
-
-    @Test
-    fun batchInsert_UniqueConstraintException() {
-        val db = Db(config)
-        assertThrows<UniqueConstraintException> {
-            db.batchInsert(
-                listOf(
-                    Address(16, "STREET 16", 0),
-                    Address(17, "STREET 17", 0),
-                    Address(18, "STREET 1", 0)
                 )
-            )
+            assertEquals(14, list.size)
         }
     }
 
-    @Test
-    fun batchDelete() {
-        val db = Db(config)
-        val addressList = listOf(
-            Address(16, "STREET 16", 0),
-            Address(17, "STREET 17", 0),
-            Address(18, "STREET 18", 0)
-        )
-        db.batchInsert(addressList)
-        val sql = "select * from address where address_id in (16, 17, 18)"
-        assertEquals(addressList, db.select<Address>(sql))
-        db.batchDelete(addressList)
-        assertTrue(db.select<Address>(sql).isEmpty())
+    @Nested
+    inner class SelectOneColumn {
+
+        @Test
+        fun test() {
+            val db = Db(config)
+            val list = db.selectOneColumn<String>("select street from address")
+            assertEquals(15, list.size)
+            assertEquals("STREET 1", list[0])
+        }
+
+        @Test
+        fun sequence() {
+            val db = Db(config)
+            val list = db.selectOneColumn<String?, List<String?>>("select street from address") {
+                it.toList()
+            }
+            assertEquals(15, list.size)
+            assertEquals("STREET 1", list[0])
+        }
     }
 
-    @Test
-    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-    fun batchDelete_listener() {
-        val db = Db(config.copy(listener = object : EntityListener {
-            override fun <T> preDelete(entity: T, meta: EntityMeta<T>): T {
-                return when (entity) {
-                    is Address -> entity.copy(street = "*${entity.street}")
-                    else -> entity
-                } as T
-            }
+    @Nested
+    inner class SelectTowColumns {
 
-            override fun <T> postDelete(entity: T, meta: EntityMeta<T>): T {
-                return when (entity) {
-                    is Address -> entity.copy(street = "${entity.street}*")
-                    else -> entity
-                } as T
-            }
-        }))
+        @Test
+        fun test() {
+            val db = Db(config)
+            val list = db.selectTwoColumns<Int, String>("select address_id, street from address")
+            assertEquals(15, list.size)
+            assertEquals(1, list[0].first)
+            assertEquals("STREET 1", list[0].second)
+        }
 
-        val addressList = listOf(
-            Address(16, "STREET 16", 0),
-            Address(17, "STREET 17", 0),
-            Address(18, "STREET 18", 0)
-        )
-        db.batchInsert(addressList)
-        val sql = "select * from address where address_id in (16, 17, 18)"
-        assertEquals(addressList, db.select<Address>(sql))
-        val list = db.batchDelete(addressList)
-        assertEquals(
-            listOf(
-                Address(16, "*STREET 16*", 0),
-                Address(17, "*STREET 17*", 0),
-                Address(18, "*STREET 18*", 0)
-            ), list
-        )
-        assertTrue(db.select<Address>(sql).isEmpty())
+        @Test
+        fun sequence() {
+            val db = Db(config)
+            val list = db.selectTwoColumns<Int, String?, List<Pair<Int, String?>>>(
+                "select address_id, street from address"
+            ) { it.toList() }
+            assertEquals(15, list.size)
+            assertEquals(1, list[0].first)
+            assertEquals("STREET 1", list[0].second)
+        }
     }
 
-    @Test
-    fun batchDelete_OptimisticLockException() {
-        val db = Db(config)
-        val addressList = listOf(
-            Address(16, "STREET 16", 0),
-            Address(17, "STREET 17", 0),
-            Address(18, "STREET 18", 0)
-        )
-        db.batchInsert(addressList)
-        assertThrows<OptimisticLockException> {
-            db.batchDelete(
+    @Nested
+    inner class SelectThreeColumns {
+
+        @Test
+        fun test() {
+            val db = Db(config)
+            val list = db.selectThreeColumns<Int, String, Int>("select address_id, street, version from address")
+            assertEquals(15, list.size)
+            assertEquals(15, list[14].first)
+            assertEquals("STREET 15", list[14].second)
+            assertEquals(1, list[0].third)
+        }
+
+        @Test
+        fun sequence() {
+            val db = Db(config)
+            val list = db.selectThreeColumns<Int, String?, Int, List<Triple<Int, String?, Int>>>(
+                "select address_id, street, version from address"
+            ) { it.toList() }
+            assertEquals(15, list.size)
+            assertEquals(15, list[14].first)
+            assertEquals("STREET 15", list[14].second)
+            assertEquals(1, list[14].third)
+        }
+    }
+
+    @Nested
+    inner class Delete {
+
+        @Test
+        fun test() {
+            val sql = "select * from address where address_id = 15"
+            val db = Db(config)
+            val address = db.select<Address>(sql).first()
+            db.delete(address)
+            val address2 = db.select<Address>(sql).firstOrNull()
+            assertNull(address2)
+        }
+
+        @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+        @Test
+        fun listener() {
+            val db = Db(config.copy(listener = object : EntityListener {
+                override fun <T> preDelete(entity: T, meta: EntityMeta<T>): T {
+                    return when (entity) {
+                        is Address -> entity.copy(street = "*${entity.street}")
+                        else -> entity
+                    } as T
+                }
+
+                override fun <T> postDelete(entity: T, meta: EntityMeta<T>): T {
+                    return when (entity) {
+                        is Address -> entity.copy(street = "${entity.street}*")
+                        else -> entity
+                    } as T
+                }
+            }))
+
+            val sql = "select * from address where address_id = 15"
+            val address = db.select<Address>(sql).first()
+            val address2 = db.delete(address)
+            assertEquals(Address(15, "*STREET 15*", 1), address2)
+            val address3 = db.select<Address>(sql).firstOrNull()
+            assertNull(address3)
+        }
+
+        @Test
+        fun optimisticLockException() {
+            val sql = "select * from address where address_id = 15"
+            val db = Db(config)
+            val address = db.select<Address>(sql).first()
+            db.delete(address)
+            assertThrows<OptimisticLockException> { db.delete(address) }
+        }
+
+        @Test
+        fun embedded() {
+            val db = Db(config)
+            val employee = Employee(
+                employeeId = 100,
+                employeeNo = 9999,
+                employeeName = "aaa",
+                managerId = null,
+                detail = EmployeeDetail(LocalDate.of(2019, 6, 15), BigDecimal("2000.00")),
+                departmentId = 1,
+                addressId = 1,
+                version = 1
+            )
+            db.insert(employee)
+            val employee2 = db.findById<Employee>(100)
+            assertEquals(employee, employee2)
+            db.delete(employee)
+            val employee3 = db.findById<Employee>(100)
+            assertNull(employee3)
+        }
+
+        @Test
+        fun nestedEmbedded() {
+            val db = Db(config)
+            val salary = WorkerSalary(BigDecimal("2000.00"))
+            val worker = Worker(
+                employeeId = 100,
+                employeeNo = 9999,
+                employeeName = "aaa",
+                managerId = null,
+                detail = WorkerDetail(LocalDate.of(2019, 6, 15), salary),
+                departmentId = 1,
+                addressId = 1,
+                version = 1
+            )
+            db.insert(worker)
+            val worker2 = db.findById<Worker>(100)
+            assertEquals(worker, worker2)
+            db.delete(worker)
+            val worker3 = db.findById<Worker>(100)
+            assertNull(worker3)
+        }
+
+        @Test
+        fun embedded_valueAssignment() {
+            val db = Db(config)
+            val human = Human(
+                name = "aaa",
+                common = Common()
+            )
+            val human2 = db.insert(human)
+            db.delete(human2)
+            val human3 = db.findById<Human>(1)
+            assertNull(human3)
+        }
+    }
+
+    @Nested
+    inner class Insert {
+
+        @Test
+        fun test() {
+            val db = Db(config)
+            val address = Address(16, "STREET 16", 0)
+            db.insert(address)
+            val address2 = db.select<Address>("select * from address where address_id = 16").firstOrNull()
+            assertEquals(address, address2)
+        }
+
+        @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+        @Test
+        fun listener() {
+            val db = Db(config.copy(listener = object : EntityListener {
+                override fun <T> preInsert(entity: T, meta: EntityMeta<T>): T {
+                    return when (entity) {
+                        is Address -> entity.copy(street = "*${entity.street}")
+                        else -> entity
+                    } as T
+                }
+
+                override fun <T> postInsert(entity: T, meta: EntityMeta<T>): T {
+                    return when (entity) {
+                        is Address -> entity.copy(street = "${entity.street}*")
+                        else -> entity
+                    } as T
+                }
+            }))
+
+            val address = Address(16, "STREET 16", 0)
+            val address2 = db.insert(address)
+            assertEquals(Address(16, "*STREET 16*", 0), address2)
+            val address3 = db.select<Address>("select * from address where address_id = 16").firstOrNull()
+            assertEquals(Address(16, "*STREET 16", 0), address3)
+        }
+
+        @Test
+        fun createdAt() {
+            val db = Db(config)
+            val person = Person(1, "ABC")
+            val newPerson = db.insert(person)
+            println(newPerson)
+            assertTrue(newPerson.createdAt > person.createdAt)
+        }
+
+        @Test
+        fun uniqueConstraintException() {
+            val db = Db(config)
+            val address = Address(1, "STREET 1", 0)
+            assertThrows<UniqueConstraintException> { db.insert(address) }
+        }
+
+        @Test
+        fun sequenceGenerator() {
+            val db = Db(config)
+            for (i in 1..201) {
+                val strategy = SequenceStrategy(0, "test")
+                val newStrategy = db.insert(strategy)
+                assertEquals(i, newStrategy.id)
+            }
+        }
+
+        @Test
+        fun multiSequenceGenerator() {
+            val db = Db(config)
+            for (i in 1..201) {
+                val strategy = MultiSequenceStrategy(0, 0L)
+                val newStrategy = db.insert(strategy)
+                assertEquals(MultiSequenceStrategy(i, i.toLong()), newStrategy)
+            }
+        }
+
+        @Test
+        fun embedded() {
+            val db = Db(config)
+            val employee = Employee(
+                employeeId = 100,
+                employeeNo = 9999,
+                employeeName = "aaa",
+                managerId = null,
+                detail = EmployeeDetail(LocalDate.of(2019, 6, 15), BigDecimal("2000.00")),
+                departmentId = 1,
+                addressId = 1,
+                version = 1
+            )
+            db.insert(employee)
+            val employee2 = db.findById<Employee>(100)
+            assertEquals(employee, employee2)
+        }
+
+        @Test
+        fun nestedEmbedded() {
+            val db = Db(config)
+            val salary = WorkerSalary(BigDecimal("2000.00"))
+            val worker = Worker(
+                employeeId = 100,
+                employeeNo = 9999,
+                employeeName = "aaa",
+                managerId = null,
+                detail = WorkerDetail(LocalDate.of(2019, 6, 15), salary),
+                departmentId = 1,
+                addressId = 1,
+                version = 1
+            )
+            db.insert(worker)
+            val worker2 = db.findById<Worker>(100)
+            assertEquals(worker, worker2)
+        }
+
+        @Test
+        fun embedded_valueAssignment() {
+            val db = Db(config)
+            val human = Human(
+                name = "aaa",
+                common = Common()
+            )
+            val human2 = db.insert(human)
+            val human3 = db.findById<Human>(1, 0)
+            assertEquals(human2, human3)
+        }
+    }
+
+    @Nested
+    inner class Update {
+
+        @Test
+        fun test() {
+            val sql = "select * from address where address_id = 15"
+            val db = Db(config)
+            val address = db.select<Address>(sql).first()
+            val newAddress = address.copy(street = "NY street")
+            db.update(newAddress)
+            val address2 = db.select<Address>(sql).firstOrNull()
+            assertEquals(Address(15, "NY street", 2), address2)
+        }
+
+        @Test
+        fun updatedAt() {
+            val db = Db(config)
+            val person = Person(1, "ABC")
+            val newPerson = db.insert(person).let {
+                db.update(it)
+            }
+            assertTrue(newPerson.updatedAt > person.updatedAt)
+        }
+
+        @Test
+        @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+        fun listener() {
+            val db = Db(config.copy(listener = object : EntityListener {
+                override fun <T> preUpdate(entity: T, meta: EntityMeta<T>): T {
+                    return when (entity) {
+                        is Address -> entity.copy(street = "*${entity.street}")
+                        else -> entity
+                    } as T
+                }
+
+                override fun <T> postUpdate(entity: T, meta: EntityMeta<T>): T {
+                    return when (entity) {
+                        is Address -> entity.copy(street = "${entity.street}*")
+                        else -> entity
+                    } as T
+                }
+            }))
+
+            val sql = "select * from address where address_id = 15"
+            val address = db.select<Address>(sql).first()
+            val newAddress = address.copy(street = "NY street")
+            val address2 = db.update(newAddress)
+            assertEquals(Address(15, "*NY street*", 2), address2)
+            val address3 = db.select<Address>(sql).firstOrNull()
+            assertEquals(Address(15, "*NY street", 2), address3)
+        }
+
+        @Test
+        fun uniqueConstraintException() {
+            val db = Db(config)
+            val address = Address(1, "STREET 2", 1)
+            assertThrows<UniqueConstraintException> { db.update(address) }
+        }
+
+        @Test
+        fun optimisticLockException() {
+            val sql = "select * from address where address_id = 15"
+            val db = Db(config)
+            val address = db.select<Address>(sql).first()
+            db.update(address)
+            assertThrows<OptimisticLockException> { db.update(address) }
+        }
+
+        @Test
+        fun embedded() {
+            val db = Db(config)
+            val employee = Employee(
+                employeeId = 100,
+                employeeNo = 9999,
+                employeeName = "aaa",
+                managerId = null,
+                detail = EmployeeDetail(LocalDate.of(2019, 6, 15), BigDecimal("2000.00")),
+                departmentId = 1,
+                addressId = 1,
+                version = 1
+            )
+            db.insert(employee)
+            val employee2 = db.findById<Employee>(100)
+            assertEquals(employee, employee2)
+
+            val employee3 = employee.copy(detail = employee.detail.copy(salary = BigDecimal("5000.00")))
+            val employee4 = db.update(employee3)
+            assertEquals(BigDecimal("5000.00"), employee4.detail.salary)
+
+            val employee5 = db.findById<Employee>(100)
+            assertEquals(BigDecimal("5000.00"), employee5?.detail?.salary)
+        }
+
+        @Test
+        fun nestedEmbedded() {
+            val db = Db(config)
+            val salary = WorkerSalary(BigDecimal("2000.00"))
+            val worker = Worker(
+                employeeId = 100,
+                employeeNo = 9999,
+                employeeName = "aaa",
+                managerId = null,
+                detail = WorkerDetail(LocalDate.of(2019, 6, 15), salary),
+                departmentId = 1,
+                addressId = 1,
+                version = 1
+            )
+            db.insert(worker)
+            val worker2 = db.findById<Worker>(100)
+            assertEquals(worker, worker2)
+
+            val worker3 = worker.copy(detail = worker.detail.copy(salary = WorkerSalary(BigDecimal("5000.00"))))
+            val worker4 = db.update(worker3)
+            assertEquals(WorkerSalary(BigDecimal("5000.00")), worker4.detail.salary)
+
+            val worker5 = db.findById<Worker>(100)
+            assertEquals(WorkerSalary(BigDecimal("5000.00")), worker5?.detail?.salary)
+        }
+
+        @Test
+        fun embedded_valueAssignment() {
+            val db = Db(config)
+            val human = Human(
+                name = "aaa",
+                common = Common()
+            )
+            val human2 = db.insert(human)
+            val human3 = human2.copy(name = "bbb")
+            val human4 = db.update(human3)
+            val human5 = db.findById<Human>(1)
+            assertEquals(human4, human5)
+            println(human4)
+        }
+    }
+
+    @Nested
+    inner class BatchDelete {
+
+        @Test
+        fun test() {
+            val db = Db(config)
+            val addressList = listOf(
+                Address(16, "STREET 16", 0),
+                Address(17, "STREET 17", 0),
+                Address(18, "STREET 18", 0)
+            )
+            db.batchInsert(addressList)
+            val sql = "select * from address where address_id in (16, 17, 18)"
+            assertEquals(addressList, db.select<Address>(sql))
+            db.batchDelete(addressList)
+            assertTrue(db.select<Address>(sql).isEmpty())
+        }
+
+        @Test
+        @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+        fun listener() {
+            val db = Db(config.copy(listener = object : EntityListener {
+                override fun <T> preDelete(entity: T, meta: EntityMeta<T>): T {
+                    return when (entity) {
+                        is Address -> entity.copy(street = "*${entity.street}")
+                        else -> entity
+                    } as T
+                }
+
+                override fun <T> postDelete(entity: T, meta: EntityMeta<T>): T {
+                    return when (entity) {
+                        is Address -> entity.copy(street = "${entity.street}*")
+                        else -> entity
+                    } as T
+                }
+            }))
+
+            val addressList = listOf(
+                Address(16, "STREET 16", 0),
+                Address(17, "STREET 17", 0),
+                Address(18, "STREET 18", 0)
+            )
+            db.batchInsert(addressList)
+            val sql = "select * from address where address_id in (16, 17, 18)"
+            assertEquals(addressList, db.select<Address>(sql))
+            val list = db.batchDelete(addressList)
+            assertEquals(
                 listOf(
-                    addressList[0],
-                    addressList[1],
-                    addressList[2].copy(version = +1)
-                )
+                    Address(16, "*STREET 16*", 0),
+                    Address(17, "*STREET 17*", 0),
+                    Address(18, "*STREET 18*", 0)
+                ), list
             )
+            assertTrue(db.select<Address>(sql).isEmpty())
         }
-    }
 
-    @Test
-    @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-    fun batchUpdate_listener() {
-        val db = Db(config.copy(listener = object : EntityListener {
-            override fun <T> preUpdate(entity: T, meta: EntityMeta<T>): T {
-                return when (entity) {
-                    is Address -> entity.copy(street = "*${entity.street}")
-                    else -> entity
-                } as T
+        @Test
+        fun optimisticLockException() {
+            val db = Db(config)
+            val addressList = listOf(
+                Address(16, "STREET 16", 0),
+                Address(17, "STREET 17", 0),
+                Address(18, "STREET 18", 0)
+            )
+            db.batchInsert(addressList)
+            assertThrows<OptimisticLockException> {
+                db.batchDelete(
+                    listOf(
+                        addressList[0],
+                        addressList[1],
+                        addressList[2].copy(version = +1)
+                    )
+                )
             }
+        }
+    }
 
-            override fun <T> postUpdate(entity: T, meta: EntityMeta<T>): T {
-                return when (entity) {
-                    is Address -> entity.copy(street = "${entity.street}*")
-                    else -> entity
-                } as T
+    @Nested
+    inner class BatchInsert {
+
+        @Test
+        fun test() {
+            val db = Db(config)
+            val addressList = listOf(
+                Address(16, "STREET 16", 0),
+                Address(17, "STREET 17", 0),
+                Address(18, "STREET 18", 0)
+            )
+            db.batchInsert(addressList)
+            val list = db.select<Address>("select * from address where address_id in (16, 17, 18)")
+            assertEquals(addressList, list)
+        }
+
+        @Test
+        @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+        fun listener() {
+            val db = Db(config.copy(listener = object : EntityListener {
+                override fun <T> preInsert(entity: T, meta: EntityMeta<T>): T {
+                    return when (entity) {
+                        is Address -> entity.copy(street = "*${entity.street}")
+                        else -> entity
+                    } as T
+                }
+
+                override fun <T> postInsert(entity: T, meta: EntityMeta<T>): T {
+                    return when (entity) {
+                        is Address -> entity.copy(street = "${entity.street}*")
+                        else -> entity
+                    } as T
+                }
+            }))
+
+            val addressList = listOf(
+                Address(16, "STREET 16", 0),
+                Address(17, "STREET 17", 0),
+                Address(18, "STREET 18", 0)
+            )
+            val list = db.batchInsert(addressList)
+            assertEquals(
+                listOf(
+                    Address(16, "*STREET 16*", 0),
+                    Address(17, "*STREET 17*", 0),
+                    Address(18, "*STREET 18*", 0)
+                ), list
+            )
+            val list2 = db.select<Address>("select * from address where address_id in (16, 17, 18)")
+            assertEquals(
+                listOf(
+                    Address(16, "*STREET 16", 0),
+                    Address(17, "*STREET 17", 0),
+                    Address(18, "*STREET 18", 0)
+                ), list2
+            )
+        }
+
+        @Test
+        fun createdAt() {
+            val db = Db(config)
+            val personList = listOf(
+                Person(1, "A"),
+                Person(2, "B"),
+                Person(3, "C")
+            )
+            db.batchInsert(personList)
+            val list = db.select<Person>("select * from person")
+            assertTrue(list.all { it.createdAt > LocalDateTime.MIN })
+        }
+
+        @Test
+        fun uniqueConstraintException() {
+            val db = Db(config)
+            assertThrows<UniqueConstraintException> {
+                db.batchInsert(
+                    listOf(
+                        Address(16, "STREET 16", 0),
+                        Address(17, "STREET 17", 0),
+                        Address(18, "STREET 1", 0)
+                    )
+                )
             }
-        }))
-
-        val sql = "select * from address where address_id in (1,2,3)"
-        val addressList = db.select<Address>(sql)
-        val list = db.batchUpdate(addressList)
-        assertEquals(
-            listOf(
-                Address(1, "*STREET 1*", 2),
-                Address(2, "*STREET 2*", 2),
-                Address(3, "*STREET 3*", 2)
-            ), list
-        )
-        val list2 = db.select<Address>(sql)
-        assertEquals(
-            listOf(
-                Address(1, "*STREET 1", 2),
-                Address(2, "*STREET 2", 2),
-                Address(3, "*STREET 3", 2)
-            ), list2
-        )
-    }
-
-    @Test
-    fun batchUpdate_updatedAt() {
-        val db = Db(config)
-        val personList = listOf(
-            Person(1, "A"),
-            Person(2, "B"),
-            Person(3, "C")
-        )
-        db.batchInsert(personList)
-        db.select<Person>("select * from person").let {
-            db.batchUpdate(it)
         }
-        val list = db.select<Person>("select * from person")
-        assertTrue(list.all { it.updatedAt > LocalDateTime.MIN })
+
     }
 
-    @Test
-    fun batchUpdate_UniqueConstraintException() {
-        val db = Db(config)
-        assertThrows<UniqueConstraintException> {
-            db.batchUpdate(
+    @Nested
+    inner class BatchUpdate {
+
+        @Test
+        @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
+        fun listener() {
+            val db = Db(config.copy(listener = object : EntityListener {
+                override fun <T> preUpdate(entity: T, meta: EntityMeta<T>): T {
+                    return when (entity) {
+                        is Address -> entity.copy(street = "*${entity.street}")
+                        else -> entity
+                    } as T
+                }
+
+                override fun <T> postUpdate(entity: T, meta: EntityMeta<T>): T {
+                    return when (entity) {
+                        is Address -> entity.copy(street = "${entity.street}*")
+                        else -> entity
+                    } as T
+                }
+            }))
+
+            val sql = "select * from address where address_id in (1,2,3)"
+            val addressList = db.select<Address>(sql)
+            val list = db.batchUpdate(addressList)
+            assertEquals(
                 listOf(
-                    Address(1, "A", 1),
-                    Address(2, "B", 1),
-                    Address(3, "B", 1)
-                )
+                    Address(1, "*STREET 1*", 2),
+                    Address(2, "*STREET 2*", 2),
+                    Address(3, "*STREET 3*", 2)
+                ), list
+            )
+            val list2 = db.select<Address>(sql)
+            assertEquals(
+                listOf(
+                    Address(1, "*STREET 1", 2),
+                    Address(2, "*STREET 2", 2),
+                    Address(3, "*STREET 3", 2)
+                ), list2
             )
         }
-    }
 
-    @Test
-    fun batchUpdate_OptimisticLockException() {
-        val db = Db(config)
-        assertThrows<OptimisticLockException> {
-            db.batchUpdate(
-                listOf(
-                    Address(1, "A", 1),
-                    Address(2, "B", 1),
-                    Address(3, "C", 2)
-                )
+        @Test
+        fun updatedAt() {
+            val db = Db(config)
+            val personList = listOf(
+                Person(1, "A"),
+                Person(2, "B"),
+                Person(3, "C")
             )
+            db.batchInsert(personList)
+            db.select<Person>("select * from person").let {
+                db.batchUpdate(it)
+            }
+            val list = db.select<Person>("select * from person")
+            assertTrue(list.all { it.updatedAt > LocalDateTime.MIN })
+        }
+
+        @Test
+        fun uniqueConstraintException() {
+            val db = Db(config)
+            assertThrows<UniqueConstraintException> {
+                db.batchUpdate(
+                    listOf(
+                        Address(1, "A", 1),
+                        Address(2, "B", 1),
+                        Address(3, "B", 1)
+                    )
+                )
+            }
+        }
+
+        @Test
+        fun optimisticLockException() {
+            val db = Db(config)
+            assertThrows<OptimisticLockException> {
+                db.batchUpdate(
+                    listOf(
+                        Address(1, "A", 1),
+                        Address(2, "B", 1),
+                        Address(3, "C", 2)
+                    )
+                )
+            }
         }
     }
 
-    @Test
-    fun executeUpdate() {
-        val db = Db(config)
-        val count = db.executeUpdate("update address set street = /*street*/'' where address_id = /*id*/0", object {
-            val id = 15
-            val street = "NY street"
-        })
-        assertEquals(1, count)
-        val address = db.select<Address>("select * from address where address_id = 15").firstOrNull()
-        assertEquals(Address(15, "NY street", 1), address)
+    @Nested
+    inner class ExecuteUpdate {
+
+        @Test
+        fun test() {
+            val db = Db(config)
+            val count = db.executeUpdate("update address set street = /*street*/'' where address_id = /*id*/0", object {
+                val id = 15
+                val street = "NY street"
+            })
+            assertEquals(1, count)
+            val address = db.select<Address>("select * from address where address_id = 15").firstOrNull()
+            assertEquals(Address(15, "NY street", 1), address)
+        }
     }
 
-    @Test
-    fun execute() {
-        val db = Db(config)
-        db.execute(
-            """
-            create table execute_table(value varchar(20));
-            insert into execute_table(value) values('test');
-        """.trimIndent()
-        )
-        val value = db.selectOneColumn<String>("select value from execute_table").firstOrNull()
-        assertEquals("test", value)
+    @Nested
+    inner class Execute {
+
+        @Test
+        fun test() {
+            val db = Db(config)
+            db.execute(
+                """
+                create table execute_table(value varchar(20));
+                insert into execute_table(value) values('test');
+                """.trimIndent()
+            )
+            val value = db.selectOneColumn<String>("select value from execute_table").firstOrNull()
+            assertEquals("test", value)
+        }
     }
 
     @Nested

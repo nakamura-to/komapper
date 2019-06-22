@@ -31,6 +31,31 @@ class Db(val config: DbConfig) {
         return `access$stream`(sql, meta).toList().firstOrNull()
     }
 
+    inline fun <reified T : Any> query(
+        criteriaBlock: CriteriaScope.() -> Terminal = { where { } }
+    ): List<T> {
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        val criteria = criteriaBlock(CriteriaScope())()
+        val meta = config.entityMetaFactory.get(T::class)
+        val sql = config.queryBuilder.buildSelect(meta, criteria)
+        return `access$stream`(sql, meta).toList()
+    }
+
+    inline fun <reified T : Any, R> query(
+        criteriaBlock: CriteriaScope.() -> Terminal = { where { } },
+        block: (Sequence<T>) -> R
+    ): R {
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        val criteria = criteriaBlock(CriteriaScope())()
+        val meta = config.entityMetaFactory.get(T::class)
+        val sql = config.queryBuilder.buildSelect(meta, criteria)
+        return `access$stream`(sql, meta).use {
+            block(it.asSequence())
+        }
+    }
+
     inline fun <reified T : Any> select(
         template: CharSequence,
         condition: Any = empty
@@ -45,45 +70,7 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified T : Any?> selectOneColumn(
-        template: CharSequence,
-        condition: Any = empty
-    ): List<T> {
-        return `access$streamOneColumn`<T>(template, condition, T::class).use {
-            it.collect(Collectors.toList())
-        }
-    }
-
-    inline fun <reified A : Any?, reified B : Any?> selectTwoColumns(
-        template: CharSequence,
-        condition: Any = empty
-    ): List<Pair<A, B>> {
-        return `access$streamTwoColumns`<A, B>(template, condition, A::class, B::class).use {
-            it.collect(Collectors.toList())
-        }
-    }
-
-    inline fun <reified A : Any?, reified B : Any?, reified C : Any?> selectThreeColumns(
-        template: CharSequence,
-        condition: Any = empty
-    ): List<Triple<A, B, C>> {
-        return `access$streamThreeColumns`<A, B, C>(template, condition, A::class, B::class, C::class).use {
-            it.collect(Collectors.toList())
-        }
-    }
-
-    inline fun <reified T : Any> selectByCriteria(
-        criteriaBlock: CriteriaScope.() -> Terminal = { where { } }
-    ): List<T> {
-        require(T::class.isData) { "The T must be a data class." }
-        require(!T::class.isAbstract) { "The T must not be abstract." }
-        val criteria = criteriaBlock(CriteriaScope())()
-        val meta = config.entityMetaFactory.get(T::class)
-        val sql = config.queryBuilder.buildSelect(meta, criteria)
-        return `access$stream`(sql, meta).toList()
-    }
-
-    inline fun <reified T : Any, R> sequence(
+    inline fun <reified T : Any, R> select(
         template: CharSequence,
         condition: Any = empty,
         block: (Sequence<T>) -> R
@@ -98,7 +85,16 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified T : Any?, R> sequenceOneColumn(
+    inline fun <reified T : Any?> selectOneColumn(
+        template: CharSequence,
+        condition: Any = empty
+    ): List<T> {
+        return `access$streamOneColumn`<T>(template, condition, T::class).use {
+            it.collect(Collectors.toList())
+        }
+    }
+
+    inline fun <reified T : Any?, R> selectOneColumn(
         template: CharSequence,
         condition: Any = empty,
         block: (Sequence<T>) -> R
@@ -108,7 +104,16 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified A : Any?, reified B : Any?, R> sequenceTwoColumns(
+    inline fun <reified A : Any?, reified B : Any?> selectTwoColumns(
+        template: CharSequence,
+        condition: Any = empty
+    ): List<Pair<A, B>> {
+        return `access$streamTwoColumns`<A, B>(template, condition, A::class, B::class).use {
+            it.collect(Collectors.toList())
+        }
+    }
+
+    inline fun <reified A : Any?, reified B : Any?, R> selectTwoColumns(
         template: CharSequence,
         condition: Any = empty,
         block: (Sequence<Pair<A, B>>) -> R
@@ -118,26 +123,21 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified A : Any?, reified B : Any?, reified C : Any?, R> sequenceThreeColumns(
+    inline fun <reified A : Any?, reified B : Any?, reified C : Any?> selectThreeColumns(
+        template: CharSequence,
+        condition: Any = empty
+    ): List<Triple<A, B, C>> {
+        return `access$streamThreeColumns`<A, B, C>(template, condition, A::class, B::class, C::class).use {
+            it.collect(Collectors.toList())
+        }
+    }
+
+    inline fun <reified A : Any?, reified B : Any?, reified C : Any?, R> selectThreeColumns(
         template: CharSequence,
         condition: Any = empty,
         block: (Sequence<Triple<A, B, C>>) -> R
     ): R {
         return `access$streamThreeColumns`<A, B, C>(template, condition, A::class, B::class, C::class).use {
-            block(it.asSequence())
-        }
-    }
-
-    inline fun <reified T : Any, R> sequenceByCriteria(
-        criteriaBlock: CriteriaScope.() -> Terminal = { where { } },
-        block: (Sequence<T>) -> R
-    ): R {
-        require(T::class.isData) { "The T must be a data class." }
-        require(!T::class.isAbstract) { "The T must not be abstract." }
-        val criteria = criteriaBlock(CriteriaScope())()
-        val meta = config.entityMetaFactory.get(T::class)
-        val sql = config.queryBuilder.buildSelect(meta, criteria)
-        return `access$stream`(sql, meta).use {
             block(it.asSequence())
         }
     }
