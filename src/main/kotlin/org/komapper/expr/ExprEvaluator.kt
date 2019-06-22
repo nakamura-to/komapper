@@ -2,6 +2,7 @@ package org.komapper.expr
 
 import org.komapper.core.Value
 import kotlin.reflect.KCallable
+import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
@@ -153,9 +154,12 @@ class DefaultExprEvaluator(
     }
 
     private fun visitProperty(node: ExprNode.Property, ctx: Map<String, Value>): Value {
-        val (receiver) = visit(node.receiver, ctx)
-        val property = findProperty(node.name, receiver)
-            ?: throw ExprException("The receiver of the property \"${node.name}\" is null or the property is not found at ${node.location}")
+        val (receiver, receiverType) = visit(node.receiver, ctx)
+        val property = findProperty(node.name, receiverType)
+            ?: throw ExprException("The property \"${node.name}\" is not found at ${node.location}")
+        if (receiver == null && node.safeCall) {
+            return Value(null, property.returnType)
+        }
         try {
             return Value(property.call(receiver), property.returnType)
         } catch (cause: Exception) {
@@ -163,31 +167,30 @@ class DefaultExprEvaluator(
         }
     }
 
-    private fun findProperty(name: String, receiver: Any?): KCallable<*>? {
-        fun predicate(callable: KCallable<*>): Boolean {
-            return name == callable.name && callable.valueParameters.isEmpty()
-        }
+    private fun findProperty(name: String, receiverType: KClass<*>): KCallable<*>? {
+        fun predicate(callable: KCallable<*>) =
+            name == callable.name && callable.valueParameters.isEmpty()
 
-        if (receiver != null) {
-            val property = receiver::class.memberProperties.find(::predicate)
-            if (property != null) {
-                return property
-            }
+        val property = receiverType.memberProperties.find(::predicate)
+        if (property != null) {
+            return property
         }
         return extensions.find(::predicate)
     }
 
     private fun visitFunction(node: ExprNode.Function, ctx: Map<String, Value>): Value {
-        val (receiver) = visit(node.receiver, ctx)
-        // arguments for KCallable
+        val (receiver, receiverType) = visit(node.receiver, ctx)
         val (args) = visit(node.args, ctx)
         val arguments = when (args) {
             Unit -> listOf(receiver)
             is ArgList -> listOf(receiver) + args
             else -> listOf(receiver, args)
         }
-        val function = findFunction(node.name, receiver, arguments)
-            ?: throw ExprException("The receiver of the function \"${node.name}\" is null or the function is not found at ${node.location}")
+        val function = findFunction(node.name, receiverType, arguments)
+            ?: throw ExprException("The function \"${node.name}\" is not found at ${node.location}")
+        if (receiver == null && node.safeCall) {
+            return Value(null, function.returnType)
+        }
         try {
             return Value(function.call(*arguments.toTypedArray()), function.returnType)
         } catch (cause: Exception) {
@@ -195,20 +198,17 @@ class DefaultExprEvaluator(
         }
     }
 
-    private fun findFunction(name: String, receiver: Any?, args: List<*>): KCallable<*>? {
-        fun predicate(callable: KCallable<*>): Boolean {
-            return if (name == callable.name && args.size == callable.parameters.size) {
+    private fun findFunction(name: String, receiverType: KClass<*>, args: List<*>): KCallable<*>? {
+        fun predicate(callable: KCallable<*>) =
+            if (name == callable.name && args.size == callable.parameters.size) {
                 args.zip(callable.parameters).all { (arg, param) ->
                     arg == null || arg::class.isSubclassOf(param.type.jvmErasure)
                 }
             } else false
-        }
 
-        if (receiver != null) {
-            val function = receiver::class.memberFunctions.find(::predicate)
-            if (function != null) {
-                return function
-            }
+        val function = receiverType.memberFunctions.find(::predicate)
+        if (function != null) {
+            return function
         }
         return extensions.find(::predicate)
     }

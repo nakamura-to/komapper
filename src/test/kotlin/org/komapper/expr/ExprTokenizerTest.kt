@@ -153,6 +153,17 @@ class ExprTokenizerTest {
     }
 
     @Test
+    fun safeCallProperty() {
+        val tokenizer = ExprTokenizer("aaa?.bbb")
+        assertEquals(VALUE, tokenizer.next())
+        assertEquals("aaa", tokenizer.token)
+        assertEquals(SAFE_CALL_PROPERTY, tokenizer.next())
+        assertEquals("?.bbb", tokenizer.token)
+        assertEquals(EOE, tokenizer.next())
+        assertEquals("", tokenizer.token)
+    }
+
+    @Test
     fun `The end of single quotation mark is not found`() {
         val tokenizer = ExprTokenizer("'aaa")
         val exception = assertThrows<ExprException> { tokenizer.next() }

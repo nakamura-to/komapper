@@ -329,6 +329,13 @@ class ExprEvaluatorTest {
         }
 
         @Test
+        fun safeCall() {
+            val ctx = mapOf("a" to Value(null, String::class))
+            val result = evaluator.eval("a?.length", ctx)
+            assertEquals(Value(null, Int::class), result)
+        }
+
+        @Test
         fun extensionProperty() {
             val extensions = listOf(String::lastIndex)
             val ctx = mapOf("a" to Value("abc"))
@@ -337,10 +344,10 @@ class ExprEvaluatorTest {
         }
 
         @Test
-        fun `The receiver of the property is null`() {
-            val ctx = mapOf("a" to Value(null, Any::class))
+        fun `Failed to call the property`() {
+            val ctx = mapOf("a" to Value(null, String::class))
             val exception = assertThrows<ExprException> {
-                evaluator.eval("a.name", ctx)
+                evaluator.eval("a.length", ctx)
             }
             println(exception)
         }
@@ -376,6 +383,13 @@ class ExprEvaluatorTest {
         }
 
         @Test
+        fun safeCall() {
+            val ctx = mapOf("a" to Value(null, String::class))
+            val result = evaluator.eval("a?.subSequence(0, 1)", ctx)
+            assertEquals(Value(null, CharSequence::class), result)
+        }
+
+        @Test
         fun extensionFunction() {
             val extensionFunctions = listOf(String::isBlank)
             val ctx = mapOf("s" to Value(""))
@@ -393,11 +407,11 @@ class ExprEvaluatorTest {
         }
 
         @Test
-        fun `The receiver of the function is null`() {
-            val ctx = mapOf("a" to Value(null, Any::class))
+        fun `Failed to call the function`() {
+            val ctx = mapOf("a" to Value(null, String::class))
             val exception = assertThrows<ExprException> {
                 evaluator
-                    .eval("a.hello()", ctx)
+                    .eval("a.subSequence(0, 1)", ctx)
             }
             println(exception)
         }

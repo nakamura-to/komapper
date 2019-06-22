@@ -47,6 +47,8 @@ class ExprParser(
                 LE -> pushReducer(LeReducer(location))
                 GT -> pushReducer(GtReducer(location))
                 LT -> pushReducer(LtReducer(location))
+                SAFE_CALL_FUNCTION -> parseFunction(true)
+                SAFE_CALL_PROPERTY -> parseProperty(true)
                 FUNCTION -> parseFunction()
                 PROPERTY -> parseProperty()
                 ILLEGAL_NUMBER ->
@@ -143,17 +145,17 @@ class ExprParser(
         nodes.push(node)
     }
 
-    private fun parseFunction() {
-        val name = token.substring(1)
-        val reducer = FunctionReducer(location, name)
+    private fun parseFunction(safeCall: Boolean = false) {
+        val name = token.substring(if (safeCall) 2 else 1)
+        val reducer = FunctionReducer(location, name, safeCall)
         tokenType = tokenizer.next()
         parseParen()
         pushReducer(reducer)
     }
 
-    private fun parseProperty() {
-        val name = token.substring(1)
-        val reducer = PropertyReducer(location, name)
+    private fun parseProperty(safeCall: Boolean = false) {
+        val name = token.substring(if (safeCall) 2 else 1)
+        val reducer = PropertyReducer(location, name, safeCall)
         pushReducer(reducer)
     }
 

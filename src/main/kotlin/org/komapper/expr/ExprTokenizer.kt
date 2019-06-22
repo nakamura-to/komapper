@@ -104,6 +104,32 @@ class ExprTokenizer(private val expression: String) {
                 return
             }
         }
+        if (c[0] == '?' && c[1] == '.') {
+            type = SAFE_CALL_PROPERTY
+            binaryOpAvailable = true
+            if (!buf.hasRemaining()) {
+                throw ExprException("Either property or function name must follow the safe call operator at $location")
+            }
+            buf.mark()
+            val c1 = buf.get()
+            if (c1.isJavaIdentifierStart()) {
+                while (buf.hasRemaining()) {
+                    buf.mark()
+                    val c2 = buf.get()
+                    if (!c2.isJavaIdentifierPart()) {
+                        if (c2 == '(') {
+                            type = SAFE_CALL_FUNCTION
+                            binaryOpAvailable = false
+                        }
+                        buf.reset()
+                        return
+                    }
+                }
+            } else {
+                throw ExprException("The character \"$c1\" is illegal as an identifier start at $location")
+            }
+            return
+        }
         buf.position(buf.position() - 1)
         readOneChar(c[0])
     }

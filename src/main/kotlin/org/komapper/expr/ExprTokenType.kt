@@ -19,6 +19,8 @@ enum class ExprTokenType {
     NOT,
     AND,
     OR,
+    SAFE_CALL_FUNCTION,
+    SAFE_CALL_PROPERTY,
     FUNCTION,
     PROPERTY,
     COMMA,
