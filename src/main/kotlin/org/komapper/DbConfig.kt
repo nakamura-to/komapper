@@ -20,7 +20,7 @@ import org.komapper.tx.TransactionScope
 import javax.sql.DataSource
 
 data class DbConfig(
-    val name: String = "",
+    val name: String = System.identityHashCode(object {}).toString(),
     private val dataSource: DataSource,
     val dialect: Dialect,
     val namingStrategy: NamingStrategy = CamelToSnake(),
