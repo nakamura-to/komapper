@@ -136,7 +136,7 @@ internal class DbTest {
 
     @BeforeEach
     fun before() {
-        config.connectionProvider.connection.use { con ->
+        config.connection.use { con ->
             con.createStatement().use { stmt ->
                 stmt.execute(
                     """
@@ -274,7 +274,7 @@ internal class DbTest {
 
     @AfterEach
     fun after() {
-        config.connectionProvider.connection.use { con ->
+        config.connection.use { con ->
             con.createStatement().use { stmt ->
                 stmt.execute("DROP ALL OBJECTS")
             }

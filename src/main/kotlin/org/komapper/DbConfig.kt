@@ -17,11 +17,12 @@ import org.komapper.sql.SqlNodeFactory
 import org.komapper.tx.TransactionIsolationLevel
 import org.komapper.tx.TransactionManager
 import org.komapper.tx.TransactionScope
+import java.sql.Connection
 import javax.sql.DataSource
 
 data class DbConfig(
     val name: String = System.identityHashCode(object {}).toString(),
-    private val dataSource: DataSource,
+    val dataSource: DataSource,
     val dialect: Dialect,
     val namingStrategy: NamingStrategy = CamelToSnake(),
     val objectMetaFactory: ObjectMetaFactory = DefaultObjectMetaFactory(),
@@ -44,7 +45,6 @@ data class DbConfig(
 ) {
 
     private val transactionManager: TransactionManager by lazy {
-        check(useTransaction)
         TransactionManager(dataSource, logger)
     }
 
@@ -56,9 +56,10 @@ data class DbConfig(
         }
     }
 
-    val connectionProvider: DataSource =
-        if (useTransaction)
-            transactionManager.getDataSource()
+    val connection: Connection
+        get() = if (useTransaction)
+            transactionManager.getDataSource().connection
         else
-            dataSource
+            dataSource.connection
 }
+

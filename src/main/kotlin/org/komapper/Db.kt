@@ -224,7 +224,7 @@ class Db(val config: DbConfig) {
         handler: (rs: ResultSet) -> Stream<T>
     ): Stream<T> {
         var stream: Stream<T>? = null
-        val con = config.connectionProvider.connection
+        val con = config.connection
         try {
             val ps = con.prepareStatement(sql.text)
             try {
@@ -332,7 +332,7 @@ class Db(val config: DbConfig) {
     }
 
     private fun executeUpdate(sql: Sql): Int {
-        return config.connectionProvider.connection.use { con ->
+        return config.connection.use { con ->
             con.prepareStatement(sql.text).use { ps ->
                 log(sql)
                 ps.setUp()
@@ -435,7 +435,7 @@ class Db(val config: DbConfig) {
     }
 
     private fun executeBatch(sqls: Collection<Sql>): IntArray {
-        return config.connectionProvider.connection.use { con ->
+        return config.connection.use { con ->
             con.prepareStatement(sqls.first().text).use { ps ->
                 val batchSize = config.batchSize
                 val allCounts = IntArray(sqls.size)
@@ -467,31 +467,31 @@ class Db(val config: DbConfig) {
     }
 
     fun createArrayOf(typeName: String, elements: List<*>): java.sql.Array {
-        return config.connectionProvider.connection.use {
+        return config.connection.use {
             it.createArrayOf(typeName, elements.toTypedArray())
         }
     }
 
     fun createBlob(): Blob {
-        return config.connectionProvider.connection.use {
+        return config.connection.use {
             it.createBlob()
         }
     }
 
     fun createClob(): Clob {
-        return config.connectionProvider.connection.use {
+        return config.connection.use {
             it.createClob()
         }
     }
 
     fun createNClob(): NClob {
-        return config.connectionProvider.connection.use {
+        return config.connection.use {
             it.createNClob()
         }
     }
 
     fun createSQLXML(): SQLXML {
-        return config.connectionProvider.connection.use {
+        return config.connection.use {
             it.createSQLXML()
         }
     }

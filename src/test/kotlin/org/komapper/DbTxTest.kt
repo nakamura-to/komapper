@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test
 import org.komapper.jdbc.H2Dialect
 import org.komapper.jdbc.SimpleDataSource
 import org.komapper.tx.TransactionIsolationLevel
-import java.lang.IllegalStateException
 import java.sql.Blob
 import java.sql.Clob
 import java.sql.NClob
