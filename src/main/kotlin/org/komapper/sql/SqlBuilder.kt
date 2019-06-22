@@ -75,8 +75,8 @@ open class DefaultSqlBuilder(
             node.nodeList.fold(state, ::visit)
         }
         is SqlNode.EmbeddedValueDirective -> {
-            val (value) = eval(node.location, node.expression, state.ctx)
-            val s = value?.toString()
+            val (obj) = eval(node.location, node.expression, state.ctx)
+            val s = obj?.toString()
             if (!s.isNullOrEmpty()) {
                 state.available = true
                 state.append(s)
@@ -84,14 +84,14 @@ open class DefaultSqlBuilder(
             state
         }
         is SqlNode.LiteralValueDirective -> {
-            val (value, type) = eval(node.location, node.expression, state.ctx)
-            val literal = formatter(value, type)
+            val (obj, type) = eval(node.location, node.expression, state.ctx)
+            val literal = formatter(obj, type)
             state.append(literal)
             node.nodeList.fold(state, ::visit)
         }
         is SqlNode.ExpandDirective -> {
             state.available = true
-            val (obj, _) = eval(node.location, node.expression, state.ctx)
+            val (obj) = eval(node.location, node.expression, state.ctx)
             if (obj == null) {
                 throw SqlException("The alias expression \"${node.expression}\" cannot be resolved at ${node.location}.")
             }
