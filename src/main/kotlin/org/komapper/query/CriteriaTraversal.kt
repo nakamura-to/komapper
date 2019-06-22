@@ -53,8 +53,15 @@ class CriteriaTraversal<T>(private val entityMeta: EntityMeta<T>, private val bu
     }
 
     private fun visitBinaryOp(op: String, prop: KProperty1<*, *>, obj: Any?) {
-        val value = Value(obj, prop.returnType)
-        buf.append(resolveColumnName(prop)).append(" $op ").bind(value)
+        buf.append(resolveColumnName(prop))
+        when {
+            op == "=" && obj == null -> buf.append(" is null")
+            op == "<>" && obj == null -> buf.append(" is not null")
+            else -> {
+                val value = Value(obj, prop.returnType)
+                buf.append(" $op ").bind(value)
+            }
+        }
     }
 
     private fun visitInOp(op: String, prop: KProperty1<*, *>, values: Iterable<*>) {

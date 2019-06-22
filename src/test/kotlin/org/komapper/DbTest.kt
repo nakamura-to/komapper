@@ -499,6 +499,29 @@ internal class DbTest {
         }
 
         @Test
+        fun isNull() {
+            val db = Db(config)
+            val idList = db.query<Employee> {
+                where {
+                    Employee::managerId eq null
+                }
+            }.map { it.employeeId }
+            assertEquals(listOf(9), idList)
+        }
+
+        @Test
+        fun isNotNull() {
+            val db = Db(config)
+            val idList = db.query<Employee> {
+                where {
+                    Employee::managerId ne null
+                }
+            }.map { it.employeeId }
+            assertTrue(9 !in idList)
+        }
+
+
+        @Test
         fun sequence() {
             val db = Db(config)
             val list = db.query<Address, List<Address>>({
