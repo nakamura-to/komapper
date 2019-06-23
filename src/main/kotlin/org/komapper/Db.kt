@@ -28,7 +28,9 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
         val sql = config.entitySqlBuilder.buildFindById(meta, id, version)
-        return `access$stream`(sql, meta).toList().firstOrNull()
+        return `access$stream`(sql, meta).use {
+            it.toList().firstOrNull()
+        }
     }
 
     inline fun <reified T : Any> query(
@@ -39,7 +41,9 @@ class Db(val config: DbConfig) {
         val meta = config.entityMetaFactory.get(T::class)
         val scope = CriteriaScope().also { it.criteriaBlock() }
         val sql = config.entitySqlBuilder.buildSelect(meta, scope())
-        return `access$stream`(sql, meta).toList()
+        return `access$stream`(sql, meta).use {
+            it.toList()
+        }
     }
 
     inline fun <reified T : Any, R> query(
