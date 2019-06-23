@@ -10,6 +10,7 @@ interface EntityMetaFactory {
 }
 
 open class DefaultEntityMetaFactory(
+    private val quote: (String) -> String,
     private val namingStrategy: NamingStrategy,
     private val propMetaFactory: PropMetaFactory
 ) : EntityMetaFactory {
@@ -26,7 +27,8 @@ open class DefaultEntityMetaFactory(
     protected open fun <T : Any> create(clazz: KClass<T>): EntityMeta<T> {
         val meta = DataClassMeta(clazz, propMetaFactory, listOf(clazz))
         val table = clazz.findAnnotation<Table>()
-        val tableName = table?.name ?: namingStrategy.fromKotlinToDb(clazz.simpleName!!)
+        val name = table?.name ?: namingStrategy.fromKotlinToDb(clazz.simpleName!!)
+        val tableName = if (table?.quote == true) quote(name) else name
         return EntityMeta(clazz, meta.cons, meta.copy, meta.propMetaList, tableName)
     }
 

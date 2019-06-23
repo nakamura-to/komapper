@@ -2,6 +2,8 @@ package org.komapper
 
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import org.komapper.core.LogKind
+import org.komapper.core.Logger
 import org.komapper.jdbc.H2Dialect
 import org.komapper.jdbc.SimpleDataSource
 import org.komapper.meta.EntityListener
@@ -51,6 +53,16 @@ internal class DbTest {
         @Id
         @SequenceGenerator(name = "MY_SEQUENCE_STRATEGY_ID", incrementBy = 100)
         val value: Long
+    )
+
+    @Table(name = "SEQUENCE_STRATEGY", quote = true)
+    data class Quotes(
+        @Id
+        @SequenceGenerator(name = "SEQUENCE_STRATEGY_ID", incrementBy = 100, quote = true)
+        @Column(name = "ID", quote = true)
+        val id: Int,
+        @Column(name = "VALUE", quote = true)
+        val value: String
     )
 
     data class Person(
@@ -1561,7 +1573,39 @@ internal class DbTest {
             val data2 = db.findById<StringTest>(1)
             assertEquals(data, data2)
         }
+    }
 
+    @Nested
+    inner class QuotesTest {
+
+        @Test
+        fun test() {
+            val messages = mutableListOf<String>()
+            val logger = object : Logger {
+                override fun log(kind: LogKind, lazyMessage: () -> String) {
+                    val message = lazyMessage()
+                    println(message)
+                    messages.add(message)
+                }
+            }
+            val myConfig = config.copy(logger = logger)
+            val db = Db(myConfig)
+            db.insert(Quotes(id = 0, value = "aaa"))
+            assertEquals(
+                listOf(
+                    "call next value for \"SEQUENCE_STRATEGY_ID\"",
+                    "insert into \"SEQUENCE_STRATEGY\" (\"ID\", \"VALUE\") values(1, 'aaa')"
+                ), messages
+            )
+
+            messages.clear()
+            db.query<Quotes>().first()
+            assertEquals(
+                listOf(
+                    "select \"ID\", \"VALUE\" from \"SEQUENCE_STRATEGY\""
+                ), messages
+            )
+        }
     }
 
 }

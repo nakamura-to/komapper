@@ -153,7 +153,7 @@ class Db(val config: DbConfig) {
             val count = metaData.columnCount
             for (i in 1..count) {
                 val label = metaData.getColumnLabel(i).toLowerCase()
-                val propMeta = meta.columnNameMap[label] ?: continue
+                val propMeta = meta.columnLabelMap[label] ?: continue
                 propMetaMap[i] = propMeta
             }
             fromResultSetToStream(rs) {

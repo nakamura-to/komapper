@@ -10,8 +10,9 @@ internal class DefaultEntityMetaFactoryTest {
     private val namingStrategy = CamelToSnake()
 
     private val factory = DefaultEntityMetaFactory(
+        { it },
         namingStrategy,
-        DefaultPropMetaFactory(namingStrategy, DefaultEmbeddedMetaFactory())
+        DefaultPropMetaFactory({ it }, namingStrategy, DefaultEmbeddedMetaFactory())
     )
 
     private data class Person(@Embedded val nested: Person)

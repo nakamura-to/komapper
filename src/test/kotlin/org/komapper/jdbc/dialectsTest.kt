@@ -1,5 +1,6 @@
 package org.komapper.jdbc
 
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.sql.SQLException
@@ -32,5 +33,11 @@ internal class AbstractDialectTest {
     fun getJdbcType() {
         val jdbcType = dialect.getJdbcType(Direction::class)
         assertTrue(EnumType::class.isInstance(jdbcType))
+    }
+
+    @Test
+    fun quote() {
+        assertEquals("\"aaa\"", dialect.quote("aaa"))
+        assertEquals("\"aaa\".\"bbb\".\"ccc\"", dialect.quote("aaa.bbb.ccc"))
     }
 }

@@ -11,6 +11,7 @@ class PropMeta<T, R : Any?>(
     val copyParam: KParameter,
     val prop: KProperty1<T, R>,
     val kind: PropKind<R>,
+    val columnLabel: String,
     val columnName: String
 ) {
 

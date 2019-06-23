@@ -27,8 +27,12 @@ data class DbConfig(
     val namingStrategy: NamingStrategy = CamelToSnake(),
     val objectMetaFactory: ObjectMetaFactory = DefaultObjectMetaFactory(),
     val embeddedMetaFactory: EmbeddedMetaFactory = DefaultEmbeddedMetaFactory(),
-    val propMetaFactory: PropMetaFactory = DefaultPropMetaFactory(namingStrategy, embeddedMetaFactory),
-    val entityMetaFactory: EntityMetaFactory = DefaultEntityMetaFactory(namingStrategy, propMetaFactory),
+    val propMetaFactory: PropMetaFactory = DefaultPropMetaFactory(dialect::quote, namingStrategy, embeddedMetaFactory),
+    val entityMetaFactory: EntityMetaFactory = DefaultEntityMetaFactory(
+        dialect::quote,
+        namingStrategy,
+        propMetaFactory
+    ),
     val listener: EntityListener = DefaultEntityListener(),
     val queryBuilder: QueryBuilder = DefaultQueryBuilder(dialect),
     val exprNodeFactory: ExprNodeFactory = CacheExprNodeFactory(),

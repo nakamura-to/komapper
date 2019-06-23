@@ -10,19 +10,20 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 
 interface Dialect {
-
+    val openQuote: String
+    val closeQuote: String
     fun getValue(rs: ResultSet, index: Int, valueClass: KClass<*>): Any?
-
     fun setValue(stmt: PreparedStatement, index: Int, value: Any?, valueClass: KClass<*>)
-
     fun formatValue(value: Any?, valueClass: KClass<*>): String
-
     fun isUniqueConstraintViolation(exception: SQLException): Boolean
-
     fun getSequenceSql(sequenceName: String): String
+    fun quote(name: String): String
 }
 
 abstract class AbstractDialect : Dialect {
+
+    override val openQuote: String = "\""
+    override val closeQuote: String = "\""
 
     override fun getValue(rs: ResultSet, index: Int, valueClass: KClass<*>): Any? {
         val jdbcType = getJdbcType(valueClass)
@@ -72,6 +73,9 @@ abstract class AbstractDialect : Dialect {
 
     protected fun getCause(exception: SQLException): SQLException =
         exception.filterIsInstance(SQLException::class.java).first()
+
+    override fun quote(name: String): String =
+        name.split('.').joinToString(".") { openQuote + it + closeQuote }
 }
 
 open class H2Dialect : AbstractDialect() {

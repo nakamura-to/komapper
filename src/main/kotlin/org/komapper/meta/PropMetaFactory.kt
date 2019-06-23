@@ -18,6 +18,7 @@ interface PropMetaFactory {
 }
 
 open class DefaultPropMetaFactory(
+    private val quote: (String) -> String,
     private val namingStrategy: NamingStrategy,
     private val embeddedMetaFactory: EmbeddedMetaFactory
 ) : PropMetaFactory {
@@ -32,8 +33,10 @@ open class DefaultPropMetaFactory(
         @Suppress("UNCHECKED_CAST")
         val kind = determineKind(type, consParam, prop, hierarchy) as PropKind<R>
         val column = consParam.findAnnotation<Column>()
-        val columnName = column?.name ?: namingStrategy.fromKotlinToDb(consParam.name!!)
-        return PropMeta(type, consParam, copyParam, prop, kind, columnName)
+        val name = column?.name ?: namingStrategy.fromKotlinToDb(consParam.name!!)
+        val columnLabel = name.split('.').first().toLowerCase()
+        val columnName = if (column?.quote == true) quote(name) else name
+        return PropMeta(type, consParam, copyParam, prop, kind, columnLabel, columnName)
     }
 
     protected open fun determineKind(
@@ -71,10 +74,13 @@ open class DefaultPropMetaFactory(
         consParam: KParameter,
         prop: KProperty1<*, *>,
         generator: SequenceGenerator
-    ): PropKind<*> = when (type) {
-        Int::class -> PropKind.Id.Sequence(generator.name, generator.incrementBy) { it.toInt() }
-        Long::class -> PropKind.Id.Sequence(generator.name, generator.incrementBy) { it }
-        else -> error("The @SequenceGenerator parameter must be Int or Long.")
+    ): PropKind<*> {
+        val quotedName = if (generator.quote) quote(generator.name) else generator.name
+        return when (type) {
+            Int::class -> PropKind.Id.Sequence(quotedName, generator.incrementBy) { it.toInt() }
+            Long::class -> PropKind.Id.Sequence(quotedName, generator.incrementBy) { it }
+            else -> error("The @SequenceGenerator parameter must be Int or Long.")
+        }
     }
 
     protected open fun versionKind(type: KClass<*>, consParam: KParameter, prop: KProperty1<*, *>): PropKind<*> =
