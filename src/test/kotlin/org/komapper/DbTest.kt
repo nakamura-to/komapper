@@ -349,9 +349,12 @@ internal class DbTest {
             val list = db.query<Address> {
                 where {
                     Address::addressId ge 1
-                }.orderBy {
+                }
+                orderBy {
                     Address::addressId.desc()
-                }.limit(2).offset(5)
+                }
+                limit { 2 }
+                offset { 5 }
             }
             assertEquals(
                 listOf(
@@ -367,7 +370,8 @@ internal class DbTest {
             val idList = db.query<Address> {
                 where {
                     Address::street like "STREET 1_"
-                }.orderBy {
+                }
+                orderBy {
                     Address::addressId.asc()
                 }
             }.map { it.addressId }
@@ -380,7 +384,8 @@ internal class DbTest {
             val idList = db.query<Address> {
                 where {
                     Address::street notLike "STREET 1_"
-                }.orderBy {
+                }
+                orderBy {
                     Address::addressId.asc()
                 }
             }.map { it.addressId }
@@ -403,7 +408,8 @@ internal class DbTest {
                     not {
                         Address::addressId ge 10
                     }
-                }.orderBy {
+                }
+                orderBy {
                     Address::addressId.asc()
                 }
             }.map { it.addressId }
@@ -419,9 +425,12 @@ internal class DbTest {
                     and {
                         Address::addressId ge 1
                     }
-                }.orderBy {
+                }
+                orderBy {
                     Address::addressId.desc()
-                }.limit(2).offset(5)
+                }
+                limit { 2 }
+                offset { 5 }
             }
             assertEquals(
                 listOf(
@@ -441,9 +450,12 @@ internal class DbTest {
                         Address::addressId ge 1
                         Address::addressId ge 1
                     }
-                }.orderBy {
+                }
+                orderBy {
                     Address::addressId.desc()
-                }.limit(2).offset(5)
+                }
+                limit { 2 }
+                offset { 5 }
             }
             assertEquals(
                 listOf(
@@ -459,7 +471,8 @@ internal class DbTest {
             val list = db.query<Address> {
                 where {
                     Address::addressId `in` listOf(9, 10)
-                }.orderBy {
+                }
+                orderBy {
                     Address::addressId.desc()
                 }
             }
@@ -477,7 +490,8 @@ internal class DbTest {
             val idList = db.query<Address> {
                 where {
                     Address::addressId notIn (1..9).toList()
-                }.orderBy {
+                }
+                orderBy {
                     Address::addressId.asc()
                 }
             }.map { it.addressId }
@@ -490,7 +504,8 @@ internal class DbTest {
             val list = db.query<Address> {
                 where {
                     Address::addressId `in` emptyList()
-                }.orderBy {
+                }
+                orderBy {
                     Address::addressId.desc()
                 }
             }
@@ -503,7 +518,8 @@ internal class DbTest {
             val idList = db.query<Address> {
                 where {
                     Address::addressId between (5 to 10)
-                }.orderBy {
+                }
+                orderBy {
                     Address::addressId.asc()
                 }
             }.map { it.addressId }
@@ -539,9 +555,12 @@ internal class DbTest {
             val list = db.query<Address, List<Address>>({
                 where {
                     Address::addressId ge 1
-                }.orderBy {
+                }
+                orderBy {
                     Address::addressId.desc()
-                }.limit(2).offset(5)
+                }
+                limit { 2 }
+                offset { 5 }
             }) {
                 it.toList()
             }

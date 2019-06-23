@@ -1,53 +1,26 @@
 package org.komapper.criteria
 
-interface Terminal {
-    operator fun invoke(): Criteria
-}
-
-interface OffsetBuilder : Terminal {
-    fun offset(value: Int): Terminal
-}
-
-interface LimitBuilder : OffsetBuilder {
-    fun limit(value: Int): OffsetBuilder
-}
-
-interface OrderByBuilder : LimitBuilder {
-    fun orderBy(block: OrderByScope.() -> Unit): LimitBuilder
-}
-
-interface WhereBuilder : OrderByBuilder {
-    fun where(block: WhereScope.() -> Unit): OrderByBuilder
-}
-
-class CriteriaScope : WhereBuilder {
+@CriteriaMarker
+class CriteriaScope {
 
     private val whereScope = WhereScope()
     private val orderByScope = OrderByScope()
     private var limit: Int? = null
     private var offset: Int? = null
 
-    override fun where(block: WhereScope.() -> Unit): OrderByBuilder {
-        block(whereScope)
-        return this
+    fun where(block: WhereScope.() -> Unit) = whereScope.block()
+
+    fun orderBy(block: OrderByScope.() -> Unit) = orderByScope.block()
+
+    fun limit(block: LimitScope.() -> Int) {
+        limit = LimitScope.block()
     }
 
-    override fun orderBy(block: OrderByScope.() -> Unit): LimitBuilder {
-        block(orderByScope)
-        return this
+    fun offset(block: OffsetScope.() -> Int) {
+        offset = OffsetScope.block()
     }
 
-    override fun limit(value: Int): OffsetBuilder {
-        limit = value
-        return this
-    }
-
-    override fun offset(value: Int): Terminal {
-        offset = value
-        return this
-    }
-
-    override operator fun invoke(): Criteria {
+    internal operator fun invoke(): Criteria {
         return Criteria(whereScope, orderByScope, limit, offset)
     }
 }

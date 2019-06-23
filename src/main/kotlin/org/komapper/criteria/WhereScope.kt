@@ -11,6 +11,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import kotlin.reflect.KProperty1
 
+@CriteriaMarker
 @Suppress("FunctionName")
 class WhereScope {
 
@@ -188,7 +189,7 @@ class WhereScope {
 
     fun not(block: WhereScope.() -> Unit) {
         val scope = WhereScope()
-        block(scope)
+        scope.block()
         if (scope.criterionList.isNotEmpty()) {
             criterionList.add(Criterion.Not(scope.criterionList))
         }
@@ -196,7 +197,7 @@ class WhereScope {
 
     fun and(block: WhereScope.() -> Unit) {
         val scope = WhereScope()
-        block(scope)
+        scope.block()
         if (scope.criterionList.isNotEmpty()) {
             criterionList.add(Criterion.And(scope.criterionList))
         }
@@ -204,7 +205,7 @@ class WhereScope {
 
     fun or(block: WhereScope.() -> Unit) {
         val scope = WhereScope()
-        block(scope)
+        scope.block()
         if (scope.criterionList.isNotEmpty()) {
             criterionList.add(Criterion.Or(scope.criterionList))
         }

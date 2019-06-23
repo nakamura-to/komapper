@@ -70,7 +70,7 @@ internal class CriteriaScopeTest {
     @Test
     fun limit() {
         val scope = CriteriaScope()
-        scope.limit(10)
+        scope.limit { 10 }
         val criteria = scope()
         assertEquals(10, criteria.limit)
     }
@@ -78,19 +78,30 @@ internal class CriteriaScopeTest {
     @Test
     fun offset() {
         val scope = CriteriaScope()
-        scope.offset(100)
+        scope.offset { 100 }
         val criteria = scope()
         assertEquals(100, criteria.offset)
     }
 
     @Test
     fun where_orderBy_limit_offset() {
-        val scope = CriteriaScope()
-        scope.where {
-            Address::aaa eq 1
-        }.orderBy {
-            Address::bbb.desc()
-        }.limit(5).offset(15)
+        fun test(block: CriteriaScope.() -> Unit): CriteriaScope {
+            val scope = CriteriaScope()
+            scope.block()
+            return scope
+        }
+
+        val scope = test {
+            where {
+                Address::aaa eq 1
+            }
+            orderBy {
+                Address::bbb.desc()
+            }
+            limit { 5 }
+            offset { 15 }
+        }
+
         val criteria = scope()
         val whereScope = criteria.whereScope
         val orderByScope = criteria.orderByScope

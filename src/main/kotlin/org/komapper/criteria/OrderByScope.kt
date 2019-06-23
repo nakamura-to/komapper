@@ -2,6 +2,7 @@ package org.komapper.criteria
 
 import kotlin.reflect.KProperty1
 
+@CriteriaMarker
 class OrderByScope {
 
     internal val items = ArrayList<Pair<KProperty1<*, *>, String>>()

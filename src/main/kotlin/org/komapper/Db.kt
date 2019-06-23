@@ -3,7 +3,6 @@ package org.komapper
 import org.komapper.core.LogKind
 import org.komapper.core.Value
 import org.komapper.criteria.CriteriaScope
-import org.komapper.criteria.Terminal
 import org.komapper.meta.EntityMeta
 import org.komapper.meta.PropMeta
 import org.komapper.sql.Sql
@@ -33,25 +32,25 @@ class Db(val config: DbConfig) {
     }
 
     inline fun <reified T : Any> query(
-        criteriaBlock: CriteriaScope.() -> Terminal = { where { } }
+        criteriaBlock: CriteriaScope.() -> Unit = { }
     ): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
-        val criteria = criteriaBlock(CriteriaScope())()
-        val sql = config.entitySqlBuilder.buildSelect(meta, criteria)
+        val scope = CriteriaScope().also { it.criteriaBlock() }
+        val sql = config.entitySqlBuilder.buildSelect(meta, scope())
         return `access$stream`(sql, meta).toList()
     }
 
     inline fun <reified T : Any, R> query(
-        criteriaBlock: CriteriaScope.() -> Terminal = { where { } },
+        criteriaBlock: CriteriaScope.() -> Unit = { },
         block: (Sequence<T>) -> R
     ): R {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
-        val criteria = criteriaBlock(CriteriaScope())()
-        val sql = config.entitySqlBuilder.buildSelect(meta, criteria)
+        val scope = CriteriaScope().also { it.criteriaBlock() }
+        val sql = config.entitySqlBuilder.buildSelect(meta, scope())
         return `access$stream`(sql, meta).use {
             block(it.asSequence())
         }
