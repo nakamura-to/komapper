@@ -9,7 +9,6 @@ import org.komapper.sql.Sql
 import org.komapper.tx.TransactionScope
 import java.sql.*
 import java.util.*
-import java.util.stream.Collectors
 import java.util.stream.Stream
 import java.util.stream.StreamSupport
 import kotlin.reflect.KClass
@@ -87,6 +86,21 @@ class Db(val config: DbConfig) {
         return `access$stream`(sql, meta).use {
             block(it.asSequence())
         }
+    }
+
+    inline fun <reified T : Any> paginate(
+        template: CharSequence,
+        condition: Any = empty,
+        limit: Int?,
+        offset: Int?
+    ): Pair<List<T>, Int> {
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        val paginationTemplate = config.sqlRewriter.rewriteForPagination(template, limit, offset)
+        val countTemplate = config.sqlRewriter.rewriteForCount(template)
+        val list = select<T>(paginationTemplate, condition)
+        val count = selectOneColumn<Int>(countTemplate, condition).first()
+        return list to count
     }
 
     inline fun <reified T : Any?> selectOneColumn(

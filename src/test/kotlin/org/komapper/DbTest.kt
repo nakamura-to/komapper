@@ -691,6 +691,21 @@ internal class DbTest {
     }
 
     @Nested
+    inner class PaginateTest {
+
+        @Test
+        fun test() {
+            val db = Db(config)
+            val (list, count) = db.paginate<Address>("select * from address", limit = 3, offset = 5)
+            assertEquals(3, list.size)
+            assertEquals(Address(6, "STREET 6", 1), list[0])
+            assertEquals(Address(7, "STREET 7", 1), list[1])
+            assertEquals(Address(8, "STREET 8", 1), list[2])
+            assertEquals(15, count)
+        }
+    }
+
+    @Nested
     inner class SelectOneColumnTest {
 
         @Test

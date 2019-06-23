@@ -8,10 +8,7 @@ import org.komapper.expr.ExprEvaluator
 import org.komapper.expr.ExprNodeFactory
 import org.komapper.jdbc.Dialect
 import org.komapper.meta.*
-import org.komapper.sql.CacheSqlNodeFactory
-import org.komapper.sql.DefaultSqlBuilder
-import org.komapper.sql.SqlBuilder
-import org.komapper.sql.SqlNodeFactory
+import org.komapper.sql.*
 import org.komapper.tx.TransactionIsolationLevel
 import org.komapper.tx.TransactionManager
 import org.komapper.tx.TransactionScope
@@ -36,6 +33,7 @@ data class DbConfig(
     val exprNodeFactory: ExprNodeFactory = CacheExprNodeFactory(),
     val exprEvaluator: ExprEvaluator = DefaultExprEvaluator(exprNodeFactory),
     val sqlNodeFactory: SqlNodeFactory = CacheSqlNodeFactory(),
+    val sqlRewriter: SqlRewriter = DefaultSqlRewriter(sqlNodeFactory),
     val sqlBuilder: SqlBuilder = DefaultSqlBuilder(dialect::formatValue, sqlNodeFactory, exprEvaluator),
     val logger: Logger = StdoutLogger(),
     val useTransaction: Boolean = false,
