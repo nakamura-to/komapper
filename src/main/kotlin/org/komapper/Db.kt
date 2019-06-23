@@ -70,7 +70,7 @@ class Db(val config: DbConfig) {
         val ctx = config.objectMetaFactory.toMap(condition)
         val sql = config.sqlBuilder.build(template, ctx, meta.expander)
         return `access$stream`(sql, meta).use {
-            it.collect(Collectors.toList())
+            it.toList()
         }
     }
 
@@ -94,7 +94,7 @@ class Db(val config: DbConfig) {
         condition: Any = empty
     ): List<T> {
         return `access$streamOneColumn`<T>(template, condition, T::class).use {
-            it.collect(Collectors.toList())
+            it.toList()
         }
     }
 
@@ -113,7 +113,7 @@ class Db(val config: DbConfig) {
         condition: Any = empty
     ): List<Pair<A, B>> {
         return `access$streamTwoColumns`<A, B>(template, condition, A::class, B::class).use {
-            it.collect(Collectors.toList())
+            it.toList()
         }
     }
 
@@ -132,7 +132,7 @@ class Db(val config: DbConfig) {
         condition: Any = empty
     ): List<Triple<A, B, C>> {
         return `access$streamThreeColumns`<A, B, C>(template, condition, A::class, B::class, C::class).use {
-            it.collect(Collectors.toList())
+            it.toList()
         }
     }
 
