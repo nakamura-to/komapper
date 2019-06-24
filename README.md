@@ -29,8 +29,8 @@ dependencies {
 package example
 
 import org.komapper.*
-import org.komapper.jdbc.H2Dialect
-import org.komapper.jdbc.SimpleDataSource
+import H2Dialect
+import SimpleDataSource
 import java.time.LocalDateTime
 
 data class Address(
