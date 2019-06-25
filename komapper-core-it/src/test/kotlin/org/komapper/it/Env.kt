@@ -5,7 +5,6 @@ import org.komapper.Db
 import org.komapper.DbConfig
 import org.komapper.jdbc.PostgreSqlDialect
 import org.komapper.jdbc.SimpleDataSource
-import org.komapper.tx.TransactionManager
 
 class Env : BeforeAllCallback,
     AfterAllCallback,
