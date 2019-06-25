@@ -1,11 +1,8 @@
-package org.komapper.it
-
 import org.junit.jupiter.api.Test
 
-class FirstTest {
-
+class StudyTest {
     @Test
     fun test() {
-        println("test")
+        println("study")
     }
 }

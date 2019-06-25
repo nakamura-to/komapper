@@ -1,3 +1,3 @@
 rootProject.name = "komapper"
-include("komapper")
-include("komapper-it")
+include("komapper-core")
+include("komapper-core-it")

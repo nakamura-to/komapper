@@ -12,7 +12,7 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation(kotlin("reflect"))
-    implementation(project(":komapper"))
+    implementation(project(":komapper-core"))
     testRuntime("org.postgresql:postgresql:42.2.6")
     testRuntime("org.junit.platform:junit-platform-launcher:1.4.2")
     testImplementation("org.junit.jupiter:junit-jupiter:5.4.2")
