@@ -1,38 +1,34 @@
 package org.komapper.it
 
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.komapper.Db
-import org.komapper.UniqueConstraintException
+import org.komapper.OptimisticLockException
 
 @ExtendWith(Env::class)
-class InsertTest {
+class DeleteTest {
 
     @Test
     fun test(db: Db) {
         db.transaction {
             val address = Address(100, "a", 0)
             db.insert(address)
+            db.delete(address)
+            assertNull(db.findById<Address>(100))
         }
     }
 
     @Test
-    fun uniqueConstraintException(db: Db) {
+    fun optimisticException(db: Db) {
         db.transaction {
             val address = Address(100, "a", 0)
             db.insert(address)
-            assertThrows<UniqueConstraintException> { db.insert(address) }
+            db.delete(address)
+            assertNull(db.findById<Address>(100))
+            assertThrows<OptimisticLockException> { db.delete(address) }
         }
     }
 
-    @Test
-    fun sequence(db: Db) {
-        db.transaction {
-            for (i in 0..200) {
-                val strategy = SequenceStrategy(i, "value$i")
-                db.insert(strategy)
-            }
-        }
-    }
 }

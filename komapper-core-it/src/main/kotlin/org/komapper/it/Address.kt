@@ -1,6 +1,7 @@
 package org.komapper.it
 
-import org.komapper.*
+import org.komapper.Id
+import org.komapper.Version
 
 data class Address(
     @Id
