@@ -1,5 +1,6 @@
 package org.komapper.it
 
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
@@ -28,5 +29,7 @@ class InsertTest {
             val strategy = SequenceStrategy(i, "value$i")
             db.insert(strategy)
         }
+        val idList = db.query<SequenceStrategy>().map { it.id }
+        assertEquals((1..201).toList(), idList)
     }
 }
