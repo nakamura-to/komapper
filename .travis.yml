@@ -17,5 +17,8 @@ addons:
 env:
   global:
     - PGPORT=5433
+sudo: true
+before_install:
+  - sudo -u postgres psql -c "grant ALL on DATABASE postgres to travis WITH GRANT OPTION;"
 before_script:
   - psql -c 'create database komapper;' -U postgres
