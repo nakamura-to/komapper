@@ -12,7 +12,7 @@ class Env : BeforeAllCallback,
 
     val db = Db(
         DbConfig(
-            dataSource = SimpleDataSource(url = "jdbc:postgresql://127.0.0.1/komapper", user = "postgres"),
+            dataSource = SimpleDataSource(url = "jdbc:postgresql://127.0.0.1:5433/komapper", user = "postgres"),
             dialect = PostgreSqlDialect(),
             useTransaction = true
         )

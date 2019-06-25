@@ -19,6 +19,8 @@ env:
     - PGPORT=5433
 sudo: true
 before_install:
-  - sudo -u postgres psql -c "grant ALL on DATABASE postgres to travis WITH GRANT OPTION;"
+  - sudo sed -i -e '/local.*peer/s/postgres/all/' -e 's/peer\|md5/trust/g' /etc/postgresql/*/main/pg_hba.conf
+  - sudo service postgresql restart
+  - sleep 1
 before_script:
   - psql -c 'create database komapper;' -U postgres
