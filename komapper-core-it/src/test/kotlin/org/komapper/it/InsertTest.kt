@@ -11,28 +11,22 @@ class InsertTest {
 
     @Test
     fun test(db: Db) {
-        db.transaction {
-            val address = Address(100, "a", 0)
-            db.insert(address)
-        }
+        val address = Address(100, "a", 0)
+        db.insert(address)
     }
 
     @Test
     fun uniqueConstraintException(db: Db) {
-        db.transaction {
-            val address = Address(100, "a", 0)
-            db.insert(address)
-            assertThrows<UniqueConstraintException> { db.insert(address) }
-        }
+        val address = Address(100, "a", 0)
+        db.insert(address)
+        assertThrows<UniqueConstraintException> { db.insert(address) }
     }
 
     @Test
     fun sequence(db: Db) {
-        db.transaction {
-            for (i in 0..200) {
-                val strategy = SequenceStrategy(i, "value$i")
-                db.insert(strategy)
-            }
+        for (i in 0..200) {
+            val strategy = SequenceStrategy(i, "value$i")
+            db.insert(strategy)
         }
     }
 }

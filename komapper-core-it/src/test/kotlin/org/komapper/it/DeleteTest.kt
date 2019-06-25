@@ -12,23 +12,19 @@ class DeleteTest {
 
     @Test
     fun test(db: Db) {
-        db.transaction {
-            val address = Address(100, "a", 0)
-            db.insert(address)
-            db.delete(address)
-            assertNull(db.findById<Address>(100))
-        }
+        val address = Address(100, "a", 0)
+        db.insert(address)
+        db.delete(address)
+        assertNull(db.findById<Address>(100))
     }
 
     @Test
     fun optimisticException(db: Db) {
-        db.transaction {
-            val address = Address(100, "a", 0)
-            db.insert(address)
-            db.delete(address)
-            assertNull(db.findById<Address>(100))
-            assertThrows<OptimisticLockException> { db.delete(address) }
-        }
+        val address = Address(100, "a", 0)
+        db.insert(address)
+        db.delete(address)
+        assertNull(db.findById<Address>(100))
+        assertThrows<OptimisticLockException> { db.delete(address) }
     }
 
 }

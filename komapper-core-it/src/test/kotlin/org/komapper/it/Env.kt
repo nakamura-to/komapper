@@ -5,9 +5,12 @@ import org.komapper.Db
 import org.komapper.DbConfig
 import org.komapper.jdbc.PostgreSqlDialect
 import org.komapper.jdbc.SimpleDataSource
+import org.komapper.tx.TransactionManager
 
 class Env : BeforeAllCallback,
     AfterAllCallback,
+    BeforeTestExecutionCallback,
+    AfterTestExecutionCallback,
     ParameterResolver {
 
     val db = Db(
@@ -176,6 +179,12 @@ class Env : BeforeAllCallback,
             """.trimIndent()
             )
         }
+
+    override fun beforeTestExecution(context: ExtensionContext?) =
+        db.config.transactionManager.begin(db.config.isolationLevel)
+
+    override fun afterTestExecution(context: ExtensionContext?) =
+        db.config.transactionManager.rollback()
 
     override fun supportsParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Boolean =
         parameterContext!!.parameter.type === Db::class.java

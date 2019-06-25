@@ -12,27 +12,21 @@ class UpdateTest {
 
     @Test
     fun test(db: Db) {
-        db.transaction {
-            val address = db.findById<Address>(1)!!
-            db.update(address.copy(street = "a"))
-        }
+        val address = db.findById<Address>(1)!!
+        db.update(address.copy(street = "a"))
     }
 
     @Test
     fun optimisticException(db: Db) {
-        db.transaction {
-            val address = db.findById<Address>(1)!!
-            db.update(address)
-            assertThrows<OptimisticLockException> { db.update(address) }
-        }
+        val address = db.findById<Address>(1)!!
+        db.update(address)
+        assertThrows<OptimisticLockException> { db.update(address) }
     }
 
     @Test
     fun uniqueConstraintException(db: Db) {
-        db.transaction {
-            val department = db.findById<Department>(1)!!
-            assertThrows<UniqueConstraintException> { db.update(department.copy(departmentNo = 20)) }
-        }
+        val department = db.findById<Department>(1)!!
+        assertThrows<UniqueConstraintException> { db.update(department.copy(departmentNo = 20)) }
     }
 
 }

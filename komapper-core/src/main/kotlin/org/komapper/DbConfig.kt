@@ -44,7 +44,8 @@ data class DbConfig(
     val queryTimeout: Int? = null
 ) {
 
-    private val transactionManager: TransactionManager by lazy {
+    val transactionManager: TransactionManager by lazy {
+        check(useTransaction) {"To use transaction, specify \"useTransaction = true\" at DbConfig."}
         TransactionManager(dataSource, logger)
     }
 
