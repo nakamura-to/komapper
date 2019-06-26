@@ -12,9 +12,11 @@ class Env : BeforeAllCallback,
     AfterTestExecutionCallback,
     ParameterResolver {
 
+    val port: String = System.getenv("PGPORT") ?: "5432"
+
     val db = Db(
         DbConfig(
-            dataSource = SimpleDataSource(url = "jdbc:postgresql://127.0.0.1:5433/komapper", user = "postgres"),
+            dataSource = SimpleDataSource(url = "jdbc:postgresql://127.0.0.1:$port/komapper", user = "postgres"),
             dialect = PostgreSqlDialect(),
             useTransaction = true
         )
