@@ -11,8 +11,8 @@ repositories {
 }
 
 dependencies {
-    implementation(kotlin("stdlib-jdk8"))
-    implementation(kotlin("reflect"))
+    api(kotlin("stdlib-jdk8"))
+    api(kotlin("reflect"))
     testRuntime("com.h2database:h2:1.4.199")
     testRuntime("org.junit.platform:junit-platform-launcher:1.4.2")
     testImplementation("org.junit.jupiter:junit-jupiter:5.4.2")

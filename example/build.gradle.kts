@@ -10,8 +10,6 @@ repositories {
 }
 
 dependencies {
-    implementation(kotlin("stdlib-jdk8"))
-    implementation(kotlin("reflect"))
     implementation(project(":komapper-core"))
     runtime("com.h2database:h2:1.4.199")
 }

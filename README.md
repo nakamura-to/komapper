@@ -13,13 +13,13 @@ Currently supported database is H2 Database only.
 
 ```groovy
 repositories {
-  mavenCentral()
-  jcenter()
+    mavenCentral()
+    jcenter()
 }
 
 dependencies {
-  implementation 'org.komapper:komapper:0.1.2'
-  runtime 'com.h2database:h2:1.4.199'
+    implementation("org.komapper:komapper-core:0.1.3")
+    runtime("com.h2database:h2:1.4.199")
 }
 ```
 
@@ -29,8 +29,8 @@ dependencies {
 package example
 
 import org.komapper.*
-import H2Dialect
-import SimpleDataSource
+import org.komapper.jdbc.H2Dialect
+import org.komapper.jdbc.SimpleDataSource
 import java.time.LocalDateTime
 
 data class Address(
@@ -72,7 +72,6 @@ fun main() {
         )
     }
 
-    // query
     db.transaction {
         // insert into address (address_id, street, created_at, updated_at, version) values(1, 'street A', '2019-06-02 18:15:36.561', null, 0)
         val addressA = db.insert(Address(street = "street A"))
@@ -93,7 +92,7 @@ fun main() {
         println(addressB)
 
         // select address_id, street, created_at, updated_at, version from address where street = 'street B'
-        val foundB = db.query<Address> {
+        val foundB = db.select<Address> {
             where {
                 Address::street eq "street B"
             }
@@ -106,7 +105,7 @@ fun main() {
         db.delete(addressB)
 
         // select address_id, street, created_at, updated_at, version from address
-        val addressList = db.query<Address>()
+        val addressList = db.select<Address>()
 
         // 0
         println(addressList.size)

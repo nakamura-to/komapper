@@ -1,4 +1,4 @@
-package org.komapper.example
+package example
 
 import org.komapper.*
 import org.komapper.jdbc.H2Dialect
