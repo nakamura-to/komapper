@@ -170,7 +170,7 @@ internal class DbTxTest {
     fun select() {
         val db = Db(config)
         val list = db.transaction.required {
-            db.select<DbTest.Address>("select * from address")
+            db.query<DbTest.Address>("select * from address")
         }
         assertEquals(15, list.size)
         assertEquals(DbTest.Address(1, "STREET 1", 1), list[0])
@@ -181,11 +181,11 @@ internal class DbTxTest {
         val sql = "select * from address where address_id = 15"
         val db = Db(config)
         db.transaction.required {
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             db.delete(address)
         }
         db.transaction.required {
-            val address = db.select<Address>(sql).firstOrNull()
+            val address = db.query<Address>(sql).firstOrNull()
             assertNull(address)
         }
     }
@@ -196,14 +196,14 @@ internal class DbTxTest {
         val db = Db(config)
         try {
             db.transaction.required {
-                val address = db.select<Address>(sql).first()
+                val address = db.query<Address>(sql).first()
                 db.delete(address)
                 throw Exception()
             }
         } catch (ignored: Exception) {
         }
         db.transaction.required {
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             assertNotNull(address)
         }
     }
@@ -213,14 +213,14 @@ internal class DbTxTest {
         val sql = "select * from address where address_id = 15"
         val db = Db(config)
         db.transaction.required {
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             db.delete(address)
             assertFalse(isRollbackOnly())
             setRollbackOnly()
             assertTrue(isRollbackOnly())
         }
         db.transaction.required {
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             assertNotNull(address)
         }
     }
@@ -230,11 +230,11 @@ internal class DbTxTest {
         val sql = "select * from address where address_id = 15"
         val db = Db(config)
         db.transaction.required(TransactionIsolationLevel.SERIALIZABLE) {
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             db.delete(address)
         }
         db.transaction.required {
-            val address = db.select<Address>(sql).firstOrNull()
+            val address = db.query<Address>(sql).firstOrNull()
             assertNull(address)
         }
     }
@@ -245,15 +245,15 @@ internal class DbTxTest {
         val sql = "select * from address where address_id = 15"
         val db = Db(config)
         db.transaction.required {
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             db.delete(address)
             required {
-                val address2 = db.select<Address>(sql).firstOrNull()
+                val address2 = db.query<Address>(sql).firstOrNull()
                 assertNull(address2)
             }
         }
         db.transaction.required {
-            val address = db.select<Address>(sql).firstOrNull()
+            val address = db.query<Address>(sql).firstOrNull()
             assertNull(address)
         }
     }
@@ -263,13 +263,13 @@ internal class DbTxTest {
         val sql = "select * from address where address_id = 15"
         val db = Db(config)
         db.transaction.requiresNew {
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             db.delete(address)
-            val address2 = db.select<Address>(sql).firstOrNull()
+            val address2 = db.query<Address>(sql).firstOrNull()
             assertNull(address2)
         }
         db.transaction.required {
-            val address = db.select<Address>(sql).firstOrNull()
+            val address = db.query<Address>(sql).firstOrNull()
             assertNull(address)
         }
     }
@@ -279,15 +279,15 @@ internal class DbTxTest {
         val sql = "select * from address where address_id = 15"
         val db = Db(config)
         db.transaction.required {
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             db.delete(address)
             requiresNew {
-                val address2 = db.select<Address>(sql).firstOrNull()
+                val address2 = db.query<Address>(sql).firstOrNull()
                 assertNotNull(address2)
             }
         }
         db.transaction.required {
-            val address = db.select<Address>(sql).firstOrNull()
+            val address = db.query<Address>(sql).firstOrNull()
             assertNull(address)
         }
     }
@@ -297,11 +297,11 @@ internal class DbTxTest {
         val sql = "select * from address where address_id = 15"
         val db = Db(config)
         db.transaction {
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             db.delete(address)
         }
         db.transaction {
-            val address = db.select<Address>(sql).firstOrNull()
+            val address = db.query<Address>(sql).firstOrNull()
             assertNull(address)
         }
     }

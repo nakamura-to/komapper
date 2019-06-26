@@ -341,12 +341,12 @@ internal class DbTest {
     }
 
     @Nested
-    inner class QueryTest {
+    inner class SelectTest {
 
         @Test
         fun test() {
             val db = Db(config)
-            val list = db.query<Address> {
+            val list = db.select<Address> {
                 where {
                     Address::addressId ge 1
                 }
@@ -367,7 +367,7 @@ internal class DbTest {
         @Test
         fun like() {
             val db = Db(config)
-            val idList = db.query<Address> {
+            val idList = db.select<Address> {
                 where {
                     Address::street like "STREET 1_"
                 }
@@ -381,7 +381,7 @@ internal class DbTest {
         @Test
         fun notLike() {
             val db = Db(config)
-            val idList = db.query<Address> {
+            val idList = db.select<Address> {
                 where {
                     Address::street notLike "STREET 1_"
                 }
@@ -395,14 +395,14 @@ internal class DbTest {
         @Test
         fun noArg() {
             val db = Db(config)
-            val list = db.query<Address>()
+            val list = db.select<Address>()
             assertEquals(15, list.size)
         }
 
         @Test
         fun not() {
             val db = Db(config)
-            val idList = db.query<Address> {
+            val idList = db.select<Address> {
                 where {
                     Address::addressId gt 5
                     not {
@@ -419,7 +419,7 @@ internal class DbTest {
         @Test
         fun and() {
             val db = Db(config)
-            val list = db.query<Address> {
+            val list = db.select<Address> {
                 where {
                     Address::addressId ge 1
                     and {
@@ -443,7 +443,7 @@ internal class DbTest {
         @Test
         fun or() {
             val db = Db(config)
-            val list = db.query<Address> {
+            val list = db.select<Address> {
                 where {
                     Address::addressId ge 1
                     or {
@@ -468,7 +468,7 @@ internal class DbTest {
         @Test
         fun `in`() {
             val db = Db(config)
-            val list = db.query<Address> {
+            val list = db.select<Address> {
                 where {
                     Address::addressId `in` listOf(9, 10)
                 }
@@ -487,7 +487,7 @@ internal class DbTest {
         @Test
         fun notIn() {
             val db = Db(config)
-            val idList = db.query<Address> {
+            val idList = db.select<Address> {
                 where {
                     Address::addressId notIn (1..9).toList()
                 }
@@ -501,7 +501,7 @@ internal class DbTest {
         @Test
         fun in_empty() {
             val db = Db(config)
-            val list = db.query<Address> {
+            val list = db.select<Address> {
                 where {
                     Address::addressId `in` emptyList()
                 }
@@ -515,7 +515,7 @@ internal class DbTest {
         @Test
         fun between() {
             val db = Db(config)
-            val idList = db.query<Address> {
+            val idList = db.select<Address> {
                 where {
                     Address::addressId between (5 to 10)
                 }
@@ -529,7 +529,7 @@ internal class DbTest {
         @Test
         fun isNull() {
             val db = Db(config)
-            val idList = db.query<Employee> {
+            val idList = db.select<Employee> {
                 where {
                     Employee::managerId eq null
                 }
@@ -540,7 +540,7 @@ internal class DbTest {
         @Test
         fun isNotNull() {
             val db = Db(config)
-            val idList = db.query<Employee> {
+            val idList = db.select<Employee> {
                 where {
                     Employee::managerId ne null
                 }
@@ -552,7 +552,7 @@ internal class DbTest {
         @Test
         fun sequence() {
             val db = Db(config)
-            val list = db.query<Address, List<Address>>({
+            val list = db.select<Address, List<Address>>({
                 where {
                     Address::addressId ge 1
                 }
@@ -575,7 +575,7 @@ internal class DbTest {
         @Test
         fun embedded() {
             val db = Db(config)
-            val list = db.query<Employee> {
+            val list = db.select<Employee> {
                 where {
                     EmployeeDetail::salary ge BigDecimal("2000.00")
                 }
@@ -586,7 +586,7 @@ internal class DbTest {
         @Test
         fun nestedEmbedded() {
             val db = Db(config)
-            val list = db.query<Worker> {
+            val list = db.select<Worker> {
                 where {
                     WorkerSalary::salary ge BigDecimal("2000.00")
                 }
@@ -597,12 +597,12 @@ internal class DbTest {
     }
 
     @Nested
-    inner class SelectTest {
+    inner class QueryTest {
 
         @Test
         fun test() {
             val db = Db(config)
-            val list = db.select<Address>("select * from address")
+            val list = db.query<Address>("select * from address")
             assertEquals(15, list.size)
             assertEquals(Address(1, "STREET 1", 1), list[0])
         }
@@ -610,7 +610,7 @@ internal class DbTest {
         @Test
         fun expand() {
             val db = Db(config)
-            val list = db.select<Address>("select /*%expand*/* from address")
+            val list = db.query<Address>("select /*%expand*/* from address")
             assertEquals(15, list.size)
             assertEquals(Address(1, "STREET 1", 1), list[0])
         }
@@ -618,7 +618,7 @@ internal class DbTest {
         @Test
         fun sequence() {
             val db = Db(config)
-            val list = db.select<Address, List<Address>>("select * from address") {
+            val list = db.query<Address, List<Address>>("select * from address") {
                 it.toList()
             }
             assertEquals(15, list.size)
@@ -628,7 +628,7 @@ internal class DbTest {
         @Test
         fun sequence_expand() {
             val db = Db(config)
-            val list = db.select<Address, List<Address>>("select /*%expand*/* from address") {
+            val list = db.query<Address, List<Address>>("select /*%expand*/* from address") {
                 it.toList()
             }
             assertEquals(15, list.size)
@@ -639,7 +639,7 @@ internal class DbTest {
         fun condition_objectExpression() {
             val db = Db(config)
             val list =
-                db.select<Address>(
+                db.query<Address>(
                     "select * from address where street = /*street*/'test'"
                     , object {
                         val street = "STREET 10"
@@ -655,7 +655,7 @@ internal class DbTest {
 
             val db = Db(config)
             val list =
-                db.select<Address>(
+                db.query<Address>(
                     "select * from address where street = /*street*/'test'"
                     , Condition("STREET 10")
                 )
@@ -667,7 +667,7 @@ internal class DbTest {
         fun embedded() {
             val db = Db(config)
             val list =
-                db.select<Employee>(
+                db.query<Employee>(
                     """
                 select employee_id, employee_no, employee_name, manager_id,
                 hiredate, salary, department_id, address_id, version from employee
@@ -680,7 +680,7 @@ internal class DbTest {
         fun nestedEmbedded() {
             val db = Db(config)
             val list =
-                db.select<Worker>(
+                db.query<Worker>(
                     """
                 select employee_id, employee_no, employee_name, manager_id,
                 hiredate, salary, department_id, address_id, version from employee
@@ -711,7 +711,7 @@ internal class DbTest {
         @Test
         fun test() {
             val db = Db(config)
-            val list = db.selectOneColumn<String>("select street from address")
+            val list = db.queryOneColumn<String>("select street from address")
             assertEquals(15, list.size)
             assertEquals("STREET 1", list[0])
         }
@@ -719,7 +719,7 @@ internal class DbTest {
         @Test
         fun sequence() {
             val db = Db(config)
-            val list = db.selectOneColumn<String?, List<String?>>("select street from address") {
+            val list = db.queryOneColumn<String?, List<String?>>("select street from address") {
                 it.toList()
             }
             assertEquals(15, list.size)
@@ -733,7 +733,7 @@ internal class DbTest {
         @Test
         fun test() {
             val db = Db(config)
-            val list = db.selectTwoColumns<Int, String>("select address_id, street from address")
+            val list = db.queryTwoColumns<Int, String>("select address_id, street from address")
             assertEquals(15, list.size)
             assertEquals(1, list[0].first)
             assertEquals("STREET 1", list[0].second)
@@ -742,7 +742,7 @@ internal class DbTest {
         @Test
         fun sequence() {
             val db = Db(config)
-            val list = db.selectTwoColumns<Int, String?, List<Pair<Int, String?>>>(
+            val list = db.queryTwoColumns<Int, String?, List<Pair<Int, String?>>>(
                 "select address_id, street from address"
             ) { it.toList() }
             assertEquals(15, list.size)
@@ -757,7 +757,7 @@ internal class DbTest {
         @Test
         fun test() {
             val db = Db(config)
-            val list = db.selectThreeColumns<Int, String, Int>("select address_id, street, version from address")
+            val list = db.queryThreeColumns<Int, String, Int>("select address_id, street, version from address")
             assertEquals(15, list.size)
             assertEquals(15, list[14].first)
             assertEquals("STREET 15", list[14].second)
@@ -767,7 +767,7 @@ internal class DbTest {
         @Test
         fun sequence() {
             val db = Db(config)
-            val list = db.selectThreeColumns<Int, String?, Int, List<Triple<Int, String?, Int>>>(
+            val list = db.queryThreeColumns<Int, String?, Int, List<Triple<Int, String?, Int>>>(
                 "select address_id, street, version from address"
             ) { it.toList() }
             assertEquals(15, list.size)
@@ -784,9 +784,9 @@ internal class DbTest {
         fun test() {
             val sql = "select * from address where address_id = 15"
             val db = Db(config)
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             db.delete(address)
-            val address2 = db.select<Address>(sql).firstOrNull()
+            val address2 = db.query<Address>(sql).firstOrNull()
             assertNull(address2)
         }
 
@@ -810,10 +810,10 @@ internal class DbTest {
             }))
 
             val sql = "select * from address where address_id = 15"
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             val address2 = db.delete(address)
             assertEquals(Address(15, "*STREET 15*", 1), address2)
-            val address3 = db.select<Address>(sql).firstOrNull()
+            val address3 = db.query<Address>(sql).firstOrNull()
             assertNull(address3)
         }
 
@@ -821,7 +821,7 @@ internal class DbTest {
         fun optimisticLockException() {
             val sql = "select * from address where address_id = 15"
             val db = Db(config)
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             db.delete(address)
             assertThrows<OptimisticLockException> { db.delete(address) }
         }
@@ -891,7 +891,7 @@ internal class DbTest {
             val db = Db(config)
             val address = Address(16, "STREET 16", 0)
             db.insert(address)
-            val address2 = db.select<Address>("select * from address where address_id = 16").firstOrNull()
+            val address2 = db.query<Address>("select * from address where address_id = 16").firstOrNull()
             assertEquals(address, address2)
         }
 
@@ -917,7 +917,7 @@ internal class DbTest {
             val address = Address(16, "STREET 16", 0)
             val address2 = db.insert(address)
             assertEquals(Address(16, "*STREET 16*", 0), address2)
-            val address3 = db.select<Address>("select * from address where address_id = 16").firstOrNull()
+            val address3 = db.query<Address>("select * from address where address_id = 16").firstOrNull()
             assertEquals(Address(16, "*STREET 16", 0), address3)
         }
 
@@ -1014,10 +1014,10 @@ internal class DbTest {
         fun test() {
             val sql = "select * from address where address_id = 15"
             val db = Db(config)
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             val newAddress = address.copy(street = "NY street")
             db.update(newAddress)
-            val address2 = db.select<Address>(sql).firstOrNull()
+            val address2 = db.query<Address>(sql).firstOrNull()
             assertEquals(Address(15, "NY street", 2), address2)
         }
 
@@ -1051,11 +1051,11 @@ internal class DbTest {
             }))
 
             val sql = "select * from address where address_id = 15"
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             val newAddress = address.copy(street = "NY street")
             val address2 = db.update(newAddress)
             assertEquals(Address(15, "*NY street*", 2), address2)
-            val address3 = db.select<Address>(sql).firstOrNull()
+            val address3 = db.query<Address>(sql).firstOrNull()
             assertEquals(Address(15, "*NY street", 2), address3)
         }
 
@@ -1070,7 +1070,7 @@ internal class DbTest {
         fun optimisticLockException() {
             val sql = "select * from address where address_id = 15"
             val db = Db(config)
-            val address = db.select<Address>(sql).first()
+            val address = db.query<Address>(sql).first()
             db.update(address)
             assertThrows<OptimisticLockException> { db.update(address) }
         }
@@ -1155,9 +1155,9 @@ internal class DbTest {
             )
             db.batchInsert(addressList)
             val sql = "select * from address where address_id in (16, 17, 18)"
-            assertEquals(addressList, db.select<Address>(sql))
+            assertEquals(addressList, db.query<Address>(sql))
             db.batchDelete(addressList)
-            assertTrue(db.select<Address>(sql).isEmpty())
+            assertTrue(db.query<Address>(sql).isEmpty())
         }
 
         @Test
@@ -1186,7 +1186,7 @@ internal class DbTest {
             )
             db.batchInsert(addressList)
             val sql = "select * from address where address_id in (16, 17, 18)"
-            assertEquals(addressList, db.select<Address>(sql))
+            assertEquals(addressList, db.query<Address>(sql))
             val list = db.batchDelete(addressList)
             assertEquals(
                 listOf(
@@ -1195,7 +1195,7 @@ internal class DbTest {
                     Address(18, "*STREET 18*", 0)
                 ), list
             )
-            assertTrue(db.select<Address>(sql).isEmpty())
+            assertTrue(db.query<Address>(sql).isEmpty())
         }
 
         @Test
@@ -1231,7 +1231,7 @@ internal class DbTest {
                 Address(18, "STREET 18", 0)
             )
             db.batchInsert(addressList)
-            val list = db.select<Address>("select * from address where address_id in (16, 17, 18)")
+            val list = db.query<Address>("select * from address where address_id in (16, 17, 18)")
             assertEquals(addressList, list)
         }
 
@@ -1267,7 +1267,7 @@ internal class DbTest {
                     Address(18, "*STREET 18*", 0)
                 ), list
             )
-            val list2 = db.select<Address>("select * from address where address_id in (16, 17, 18)")
+            val list2 = db.query<Address>("select * from address where address_id in (16, 17, 18)")
             assertEquals(
                 listOf(
                     Address(16, "*STREET 16", 0),
@@ -1286,7 +1286,7 @@ internal class DbTest {
                 Person(3, "C")
             )
             db.batchInsert(personList)
-            val list = db.select<Person>("select * from person")
+            val list = db.query<Person>("select * from person")
             assertTrue(list.all { it.createdAt > LocalDateTime.MIN })
         }
 
@@ -1329,7 +1329,7 @@ internal class DbTest {
             }))
 
             val sql = "select * from address where address_id in (1,2,3)"
-            val addressList = db.select<Address>(sql)
+            val addressList = db.query<Address>(sql)
             val list = db.batchUpdate(addressList)
             assertEquals(
                 listOf(
@@ -1338,7 +1338,7 @@ internal class DbTest {
                     Address(3, "*STREET 3*", 2)
                 ), list
             )
-            val list2 = db.select<Address>(sql)
+            val list2 = db.query<Address>(sql)
             assertEquals(
                 listOf(
                     Address(1, "*STREET 1", 2),
@@ -1357,10 +1357,10 @@ internal class DbTest {
                 Person(3, "C")
             )
             db.batchInsert(personList)
-            db.select<Person>("select * from person").let {
+            db.query<Person>("select * from person").let {
                 db.batchUpdate(it)
             }
-            val list = db.select<Person>("select * from person")
+            val list = db.query<Person>("select * from person")
             assertTrue(list.all { it.updatedAt > LocalDateTime.MIN })
         }
 
@@ -1404,7 +1404,7 @@ internal class DbTest {
                 val street = "NY street"
             })
             assertEquals(1, count)
-            val address = db.select<Address>("select * from address where address_id = 15").firstOrNull()
+            val address = db.query<Address>("select * from address where address_id = 15").firstOrNull()
             assertEquals(Address(15, "NY street", 1), address)
         }
     }
@@ -1421,7 +1421,7 @@ internal class DbTest {
                 insert into execute_table(value) values('test');
                 """.trimIndent()
             )
-            val value = db.selectOneColumn<String>("select value from execute_table").firstOrNull()
+            val value = db.queryOneColumn<String>("select value from execute_table").firstOrNull()
             assertEquals("test", value)
         }
     }
@@ -1633,7 +1633,7 @@ internal class DbTest {
             )
 
             messages.clear()
-            db.query<Quotes>().first()
+            db.select<Quotes>().first()
             assertEquals(
                 listOf(
                     "select \"ID\", \"VALUE\" from \"SEQUENCE_STRATEGY\""

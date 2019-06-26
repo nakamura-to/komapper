@@ -29,7 +29,7 @@ class InsertTest {
             val strategy = SequenceStrategy(i, "value$i")
             db.insert(strategy)
         }
-        val idList = db.query<SequenceStrategy>().map { it.id }
+        val idList = db.select<SequenceStrategy>().map { it.id }
         assertEquals((1..201).toList(), idList)
     }
 }

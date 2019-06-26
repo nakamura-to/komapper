@@ -12,14 +12,14 @@ class BatchDeleteTest {
 
     @Test
     fun test(db: Db) {
-        val list = db.query<Employee>()
+        val list = db.select<Employee>()
         db.batchDelete(list)
-        assertEquals(0, db.query<Employee>().size)
+        assertEquals(0, db.select<Employee>().size)
     }
 
     @Test
     fun optimisticException(db: Db) {
-        val list = db.query<Employee>()
+        val list = db.select<Employee>()
         db.batchDelete(list)
         assertThrows<OptimisticLockException> { db.batchDelete(list) }
     }

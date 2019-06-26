@@ -7,11 +7,11 @@ import org.komapper.Db
 import java.math.BigDecimal
 
 @ExtendWith(Env::class)
-class QueryTest {
+class SelectTest {
 
     @Test
     fun test(db: Db) {
-        val list = db.query<Employee> {
+        val list = db.select<Employee> {
             where {
                 Employee::salary ge BigDecimal(1000)
             }

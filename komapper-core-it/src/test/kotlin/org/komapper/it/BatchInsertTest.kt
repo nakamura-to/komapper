@@ -28,7 +28,7 @@ class BatchInsertTest {
     fun sequence(db: Db) {
         val list = (0..200).map { SequenceStrategy(it, "value$it") }
         db.batchInsert(list)
-        val idList = db.query<SequenceStrategy>().map { it.id }
+        val idList = db.select<SequenceStrategy>().map { it.id }
         Assertions.assertEquals((1..201).toList(), idList)
     }
     

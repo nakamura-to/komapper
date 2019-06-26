@@ -32,7 +32,7 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified T : Any> query(
+    inline fun <reified T : Any> select(
         criteriaBlock: CriteriaScope.() -> Unit = { }
     ): List<T> {
         require(T::class.isData) { "The T must be a data class." }
@@ -45,7 +45,7 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified T : Any, R> query(
+    inline fun <reified T : Any, R> select(
         criteriaBlock: CriteriaScope.() -> Unit = { },
         block: (Sequence<T>) -> R
     ): R {
@@ -59,7 +59,7 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified T : Any> select(
+    inline fun <reified T : Any> query(
         template: CharSequence,
         condition: Any = empty
     ): List<T> {
@@ -73,7 +73,7 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified T : Any, R> select(
+    inline fun <reified T : Any, R> query(
         template: CharSequence,
         condition: Any = empty,
         block: (Sequence<T>) -> R
@@ -98,12 +98,12 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val paginationTemplate = config.sqlRewriter.rewriteForPagination(template, limit, offset)
         val countTemplate = config.sqlRewriter.rewriteForCount(template)
-        val list = select<T>(paginationTemplate, condition)
-        val count = selectOneColumn<Int>(countTemplate, condition).first()
+        val list = query<T>(paginationTemplate, condition)
+        val count = queryOneColumn<Int>(countTemplate, condition).first()
         return list to count
     }
 
-    inline fun <reified T : Any?> selectOneColumn(
+    inline fun <reified T : Any?> queryOneColumn(
         template: CharSequence,
         condition: Any = empty
     ): List<T> {
@@ -112,7 +112,7 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified T : Any?, R> selectOneColumn(
+    inline fun <reified T : Any?, R> queryOneColumn(
         template: CharSequence,
         condition: Any = empty,
         block: (Sequence<T>) -> R
@@ -122,7 +122,7 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified A : Any?, reified B : Any?> selectTwoColumns(
+    inline fun <reified A : Any?, reified B : Any?> queryTwoColumns(
         template: CharSequence,
         condition: Any = empty
     ): List<Pair<A, B>> {
@@ -131,7 +131,7 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified A : Any?, reified B : Any?, R> selectTwoColumns(
+    inline fun <reified A : Any?, reified B : Any?, R> queryTwoColumns(
         template: CharSequence,
         condition: Any = empty,
         block: (Sequence<Pair<A, B>>) -> R
@@ -141,7 +141,7 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified A : Any?, reified B : Any?, reified C : Any?> selectThreeColumns(
+    inline fun <reified A : Any?, reified B : Any?, reified C : Any?> queryThreeColumns(
         template: CharSequence,
         condition: Any = empty
     ): List<Triple<A, B, C>> {
@@ -150,7 +150,7 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified A : Any?, reified B : Any?, reified C : Any?, R> selectThreeColumns(
+    inline fun <reified A : Any?, reified B : Any?, reified C : Any?, R> queryThreeColumns(
         template: CharSequence,
         condition: Any = empty,
         block: (Sequence<Triple<A, B, C>>) -> R
@@ -286,7 +286,7 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
         return meta.assignId(entity, config.name) { sequenceName ->
-            selectOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
+            queryOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
         }.let { newEntity ->
             meta.assignTimestamp(newEntity)
         }.let { newEntity ->
@@ -368,7 +368,7 @@ class Db(val config: DbConfig) {
         val size = entities.size
         val (newEntities, sqls) = entities.map { entity ->
             meta.assignId(entity, config.name) { sequenceName ->
-                selectOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
+                queryOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
             }.let { newEntity ->
                 meta.assignTimestamp(newEntity)
             }.let { newEntity ->
