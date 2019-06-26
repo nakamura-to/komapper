@@ -1,4 +1,4 @@
-package example
+package org.komapper.example
 
 import org.komapper.*
 import org.komapper.jdbc.H2Dialect
@@ -44,7 +44,6 @@ fun main() {
         )
     }
 
-    // query
     db.transaction {
         // insert into address (address_id, street, created_at, updated_at, version) values(1, 'street A', '2019-06-02 18:15:36.561', null, 0)
         val addressA = db.insert(Address(street = "street A"))
