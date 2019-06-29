@@ -67,16 +67,18 @@ class EntityMeta<T>(
         return copy.callBy(mapOf(receiverArg) + valueArgs)
     }
 
-    fun getValues(entity: T): List<Value> =
-        propMetaList.flatMap { it.getValues(entity, { true }) }
+    fun getValues(entity: T): List<Value> = getValues(entity, {true})
 
     fun getIdValues(entity: T): List<Value> =
-        propMetaList.flatMap { meta -> meta.getValues(entity, { it in idList }) }
+        getValues(entity, {it in idList})
 
     fun getNonIdValues(entity: T): List<Value> =
-        propMetaList.flatMap { meta -> meta.getValues(entity, { it !in idList }) }
+        getValues(entity, {it !in idList})
 
     fun getVersionValue(entity: T): Value =
-        propMetaList.flatMap { meta -> meta.getValues(entity, { it == version }) }.first()
+        getValues(entity, { it == version }).first()
+
+    fun getValues(entity: T, predicate: (PropMeta<*, *>) -> Boolean): List<Value> =
+        propMetaList.flatMap { meta -> meta.getValues(entity, predicate) }
 
 }

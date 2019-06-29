@@ -12,6 +12,7 @@ import java.util.*
 import java.util.stream.Stream
 import java.util.stream.StreamSupport
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 import kotlin.streams.asSequence
 import kotlin.streams.toList
 
@@ -346,6 +347,30 @@ class Db(val config: DbConfig) {
             }
             check(count == 1)
             config.listener.postUpdate(newEntity, meta)
+        }
+    }
+
+    inline fun <reified T : Any> merge(entity: T, vararg keys: KProperty1<*, *>): T {
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        val meta = config.entityMetaFactory.get(T::class)
+        return config.listener.preMerge(entity, meta).let { newEntity ->
+            val sql = when {
+                config.dialect.supportsMerge() -> config.entitySqlBuilder.buildMerge(meta, newEntity, keys.toList())
+                config.dialect.supportsUpsert() -> config.entitySqlBuilder.buildUpsert(meta, newEntity, keys.toList())
+                else -> error("The merge command is not supported.")
+            }
+            val count = try {
+                `access$executeUpdate`(sql)
+            } catch (e: SQLException) {
+                if (config.dialect.isUniqueConstraintViolation(e)) {
+                    throw UniqueConstraintException(e)
+                } else {
+                    throw e
+                }
+            }
+            check(count == 1)
+            config.listener.postMerge(newEntity, meta)
         }
     }
 

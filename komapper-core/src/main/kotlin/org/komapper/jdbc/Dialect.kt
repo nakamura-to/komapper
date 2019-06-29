@@ -18,6 +18,8 @@ interface Dialect {
     fun isUniqueConstraintViolation(exception: SQLException): Boolean
     fun getSequenceSql(sequenceName: String): String
     fun quote(name: String): String
+    fun supportsMerge(): Boolean
+    fun supportsUpsert(): Boolean
 }
 
 abstract class AbstractDialect : Dialect {
@@ -76,6 +78,10 @@ abstract class AbstractDialect : Dialect {
 
     override fun quote(name: String): String =
         name.split('.').joinToString(".") { openQuote + it + closeQuote }
+
+    override fun supportsMerge(): Boolean = false
+
+    override fun supportsUpsert(): Boolean = false
 }
 
 open class H2Dialect : AbstractDialect() {
@@ -93,6 +99,10 @@ open class H2Dialect : AbstractDialect() {
     override fun getSequenceSql(sequenceName: String): String {
         return "call next value for $sequenceName"
     }
+
+    override fun supportsMerge(): Boolean = true
+
+    override fun supportsUpsert(): Boolean = false
 }
 
 open class PostgreSqlDialect : AbstractDialect() {
@@ -110,4 +120,8 @@ open class PostgreSqlDialect : AbstractDialect() {
     override fun getSequenceSql(sequenceName: String): String {
         return "select nextval('$sequenceName')"
     }
+
+    override fun supportsMerge(): Boolean = false
+
+    override fun supportsUpsert(): Boolean = true
 }

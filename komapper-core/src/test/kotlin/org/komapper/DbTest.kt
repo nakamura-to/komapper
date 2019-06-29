@@ -140,6 +140,16 @@ internal class DbTest {
         val common: Common
     )
 
+    data class Department(
+        @Id
+        val departmentId: Int,
+        val departmentNo: Int,
+        val departmentName: String,
+        val Location: String,
+        @Version
+        val version: Int
+    )
+
     private val config = DbConfig(
         dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"),
         dialect = H2Dialect(),
@@ -1140,6 +1150,54 @@ internal class DbTest {
             assertEquals(human4, human5)
             println(human4)
         }
+    }
+
+    @Nested
+    inner class MergeTest {
+
+        @Test
+        fun insert_keys() {
+            val db = Db(config)
+            val department = Department(5, 50, "PLANNING", "TOKYO", 0)
+            db.merge(department, Department::departmentNo)
+            val department2 = db.findById<Department>(5)
+            assertEquals(department, department2)
+        }
+
+        @Test
+        fun insert_noKeys() {
+            val db = Db(config)
+            val department = Department(5, 50, "PLANNING", "TOKYO", 0)
+            db.merge(department)
+            val department2 = db.findById<Department>(5)
+            assertEquals(department, department2)
+        }
+
+        @Test
+        fun update_keys() {
+            val db = Db(config)
+            val department = Department(5, 10, "PLANNING", "TOKYO", 0)
+            db.merge(department, Department::departmentNo)
+            assertNull(db.findById<Department>(5))
+            assertEquals(department.copy(departmentId = 1), db.findById<Department>(1))
+        }
+
+        @Test
+        fun update_noKeys() {
+            val db = Db(config)
+            val department = Department(1, 50, "PLANNING", "TOKYO", 0)
+            db.merge(department)
+            val department2 = db.findById<Department>(1)
+            assertEquals(department, department2)
+        }
+
+        @Test
+        fun uniqueConstraintException() {
+            val db = Db(config)
+            val department = db.findById<Department>(1)!!
+            assertThrows<UniqueConstraintException> { db.merge(department.copy(departmentId = 2)) }
+        }
+
     }
 
     @Nested

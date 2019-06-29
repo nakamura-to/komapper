@@ -16,6 +16,8 @@ interface EntitySqlBuilder {
     fun <T> buildInsert(entityMeta: EntityMeta<T>, newEntity: T): Sql
     fun <T> buildDelete(entityMeta: EntityMeta<T>, entity: T): Sql
     fun <T> buildUpdate(entityMeta: EntityMeta<T>, entity: T, newEntity: T): Sql
+    fun <T> buildMerge(entityMeta: EntityMeta<T>, newEntity: T, keys: List<KProperty1<*, *>>): Sql
+    fun <T> buildUpsert(entityMeta: EntityMeta<T>, newEntity: T, keys: List<KProperty1<*, *>>): Sql
 }
 
 open class DefaultEntitySqlBuilder(
@@ -91,6 +93,69 @@ open class DefaultEntitySqlBuilder(
             }
             buf.cutBack(2)
             buildWhereClauseForIdAndVersion(entityMeta, entity, buf)
+            return buf.toSql()
+        }
+    }
+
+    override fun <T> buildMerge(entityMeta: EntityMeta<T>, newEntity: T, keys: List<KProperty1<*, *>>): Sql {
+        with(entityMeta) {
+            val buf = newSqlBuffer().append("merge into $tableName using dual on ")
+            if (keys.isNotEmpty()) {
+                val leafPropMetaList = keys.map { prop ->
+                    propMap[prop] ?: error(
+                        "The property \"${prop.name}\" is not found " +
+                                "in the class \"${entityMeta.type.qualifiedName}\""
+                    )
+                }
+                val values = entityMeta.getValues(newEntity, { it in leafPropMetaList })
+                leafPropMetaList.zip(values).forEach { (propMeta, value) ->
+                    buf.append("${propMeta.columnName} = ").bind(value).append(" and ")
+                }
+            } else {
+                idColumnNames.zip(getIdValues(newEntity)).forEach { (columnName, value) ->
+                    buf.append("$columnName = ").bind(value).append(" and ")
+                }
+            }
+            buf.cutBack(5)
+            buf.append(" when not matched then insert (")
+            columnNames.forEach { buf.append("$it, ") }
+            buf.cutBack(2).append(") values (")
+            getValues(newEntity).forEach { buf.bind(it).append(", ") }
+            buf.cutBack(2).append(")")
+            buf.append(" when matched then update set ")
+            nonIdColumnNames.zip(getNonIdValues(newEntity)).forEach { (columnName, value) ->
+                buf.append("$columnName = ").bind(value).append(", ")
+            }
+            buf.cutBack(2)
+            return buf.toSql()
+        }
+    }
+
+    override fun <T> buildUpsert(entityMeta: EntityMeta<T>, newEntity: T, keys: List<KProperty1<*, *>>): Sql {
+        with(entityMeta) {
+            val buf = newSqlBuffer().append("insert into $tableName as t_ (")
+            columnNames.forEach { buf.append("$it, ") }
+            buf.cutBack(2).append(") values(")
+            getValues(newEntity).forEach { buf.bind(it).append(", ") }
+            buf.cutBack(2).append(") on conflict (")
+            if (keys.isNotEmpty()) {
+                keys.map { prop ->
+                    propMap[prop] ?: error(
+                        "The property \"${prop.name}\" is not found " +
+                                "in the class \"${entityMeta.type.qualifiedName}\""
+                    )
+                }.forEach { propMeta ->
+                    buf.append("${propMeta.columnName}, ")
+                }
+            } else {
+                idColumnNames.forEach { columnName -> buf.append("$columnName, ") }
+            }
+            buf.cutBack(2).append(")")
+            buf.append(" do update set ")
+            nonIdColumnNames.zip(getNonIdValues(newEntity)).forEach { (columnName, value) ->
+                buf.append("$columnName = ").bind(value).append(", ")
+            }
+            buf.cutBack(2)
             return buf.toSql()
         }
     }

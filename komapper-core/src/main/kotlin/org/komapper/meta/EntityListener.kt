@@ -25,6 +25,15 @@ interface EntityListener {
     fun <T> postUpdate(entity: T, meta: EntityMeta<T>): T {
         return entity
     }
+
+    fun <T> preMerge(entity: T, meta: EntityMeta<T>): T {
+        return entity
+    }
+
+    fun <T> postMerge(entity: T, meta: EntityMeta<T>): T {
+        return entity
+    }
+
 }
 
 open class DefaultEntityListener : EntityListener
