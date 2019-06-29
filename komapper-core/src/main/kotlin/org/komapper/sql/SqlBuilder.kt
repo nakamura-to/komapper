@@ -1,8 +1,8 @@
 package org.komapper.sql
 
-import org.komapper.core.Value
 import org.komapper.expr.ExprEvaluator
 import org.komapper.expr.ExprException
+import org.komapper.value.Value
 import kotlin.reflect.KClass
 
 interface SqlBuilder {

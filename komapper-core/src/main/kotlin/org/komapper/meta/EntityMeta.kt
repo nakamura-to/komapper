@@ -1,6 +1,6 @@
 package org.komapper.meta
 
-import org.komapper.core.Value
+import org.komapper.value.Value
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 
@@ -67,13 +67,13 @@ class EntityMeta<T>(
         return copy.callBy(mapOf(receiverArg) + valueArgs)
     }
 
-    fun getValues(entity: T): List<Value> = getValues(entity, {true})
+    fun getValues(entity: T): List<Value> = getValues(entity, { true })
 
     fun getIdValues(entity: T): List<Value> =
-        getValues(entity, {it in idList})
+        getValues(entity, { it in idList })
 
     fun getNonIdValues(entity: T): List<Value> =
-        getValues(entity, {it !in idList})
+        getValues(entity, { it !in idList })
 
     fun getVersionValue(entity: T): Value =
         getValues(entity, { it == version }).first()

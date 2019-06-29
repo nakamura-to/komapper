@@ -1,12 +1,11 @@
 package org.komapper
 
-import org.komapper.core.LogKind
-import org.komapper.core.Value
 import org.komapper.criteria.CriteriaScope
 import org.komapper.meta.EntityMeta
 import org.komapper.meta.PropMeta
 import org.komapper.sql.Sql
 import org.komapper.tx.TransactionScope
+import org.komapper.value.Value
 import java.sql.*
 import java.util.*
 import java.util.stream.Stream
@@ -573,9 +572,7 @@ class Db(val config: DbConfig) {
         }
     }
 
-    private fun log(sql: Sql) {
-        sql.log?.let { message -> config.logger.log(LogKind.SQL) { message } }
-    }
+    private fun log(sql: Sql) = config.logger.logSql(sql)
 
     private fun PreparedStatement.setUp() {
         config.fetchSize?.let { if (it > 0) this.fetchSize = it }

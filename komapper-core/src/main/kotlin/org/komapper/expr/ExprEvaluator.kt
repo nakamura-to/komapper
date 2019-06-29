@@ -1,6 +1,6 @@
 package org.komapper.expr
 
-import org.komapper.core.Value
+import org.komapper.value.Value
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf

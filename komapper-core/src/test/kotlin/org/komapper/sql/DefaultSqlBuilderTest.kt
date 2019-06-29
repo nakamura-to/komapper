@@ -5,9 +5,9 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.komapper.core.Value
 import org.komapper.expr.DefaultExprEvaluator
 import org.komapper.expr.NoCacheExprNodeFactory
+import org.komapper.value.Value
 
 class DefaultSqlBuilderTest {
 
@@ -64,7 +64,13 @@ class DefaultSqlBuilderTest {
             val template = "select name, age from person where name in /*name*/('a', 'b') and age > 1"
             val sql = sqlBuilder.build(template, mapOf("name" to Value(listOf("x", "y", "z"))))
             assertEquals("select name, age from person where name in (?, ?, ?) and age > 1", sql.text)
-            assertEquals(listOf(Value("x"), Value("y"), Value("z")), sql.values)
+            assertEquals(
+                listOf(
+                    Value("x"),
+                    Value("y"),
+                    Value("z")
+                ), sql.values
+            )
         }
 
         @Test

@@ -1,4 +1,4 @@
-package org.komapper.core
+package org.komapper.value
 
 import kotlin.reflect.KClass
 import kotlin.reflect.KType

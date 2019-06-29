@@ -1,11 +1,11 @@
 package org.komapper.meta
 
-import org.komapper.core.Value
 import org.komapper.criteria.Criteria
 import org.komapper.criteria.Criterion
 import org.komapper.jdbc.Dialect
 import org.komapper.sql.Sql
 import org.komapper.sql.SqlBuffer
+import org.komapper.value.Value
 import kotlin.reflect.KProperty1
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.jvmErasure

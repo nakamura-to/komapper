@@ -1,6 +1,6 @@
 package org.komapper.meta
 
-import org.komapper.core.Value
+import org.komapper.value.Value
 import kotlin.reflect.KProperty1
 
 data class ObjectMeta(val props: Collection<KProperty1<*, *>>) {

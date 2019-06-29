@@ -1,11 +1,9 @@
 package org.komapper.tx
 
-import org.komapper.core.LogKind
-import org.komapper.core.Logger
+import org.komapper.logging.Logger
 import java.sql.Connection
 import java.sql.SQLException
 import javax.sql.DataSource
-
 
 class TransactionManager(
     internal val dataSource: DataSource,
@@ -69,7 +67,7 @@ class TransactionManager(
             }
         }
         threadLocal.set(tx)
-        logger.log(LogKind.TRANSACTION) { "The transaction \"$tx\" has begun." }
+        logger.log { "The transaction \"$tx\" has begun." }
     }
 
     fun commit() {
@@ -81,7 +79,7 @@ class TransactionManager(
             val connection = tx.connection
             try {
                 connection.commit()
-                logger.log(LogKind.TRANSACTION) { "The transaction \"$tx\" has committed." }
+                logger.log { "The transaction \"$tx\" has committed." }
             } catch (e: SQLException) {
                 rollbackInternal(tx)
                 throw TransactionException(e)
@@ -123,7 +121,7 @@ class TransactionManager(
             val connection = tx.connection
             try {
                 connection.rollback()
-                logger.log(LogKind.TRANSACTION) { "The transaction \"$tx\" has rolled back." }
+                logger.log { "The transaction \"$tx\" has rolled back." }
             } catch (ignored: SQLException) {
             } finally {
                 release(tx)

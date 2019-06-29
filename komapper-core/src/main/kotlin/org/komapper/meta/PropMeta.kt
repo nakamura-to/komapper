@@ -1,6 +1,6 @@
 package org.komapper.meta
 
-import org.komapper.core.Value
+import org.komapper.value.Value
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1

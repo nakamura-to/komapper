@@ -1,12 +1,12 @@
 package org.komapper
 
-import org.komapper.core.Logger
-import org.komapper.core.StdoutLogger
 import org.komapper.expr.CacheExprNodeFactory
 import org.komapper.expr.DefaultExprEvaluator
 import org.komapper.expr.ExprEvaluator
 import org.komapper.expr.ExprNodeFactory
 import org.komapper.jdbc.Dialect
+import org.komapper.logging.Logger
+import org.komapper.logging.StdoutLogger
 import org.komapper.meta.*
 import org.komapper.sql.*
 import org.komapper.tx.TransactionIsolationLevel
@@ -45,7 +45,7 @@ data class DbConfig(
 ) {
 
     val transactionManager: TransactionManager by lazy {
-        check(useTransaction) {"To use transaction, specify \"useTransaction = true\" at DbConfig."}
+        check(useTransaction) { "To use transaction, specify \"useTransaction = true\" at DbConfig." }
         TransactionManager(dataSource, logger)
     }
 

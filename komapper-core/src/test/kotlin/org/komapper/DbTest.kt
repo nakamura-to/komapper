@@ -2,14 +2,14 @@ package org.komapper
 
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
-import org.komapper.core.LogKind
-import org.komapper.core.Logger
 import org.komapper.criteria.OrderByScope
 import org.komapper.criteria.WhereScope
 import org.komapper.jdbc.H2Dialect
 import org.komapper.jdbc.SimpleDataSource
+import org.komapper.logging.StdoutLogger
 import org.komapper.meta.EntityListener
 import org.komapper.meta.EntityMeta
+import org.komapper.sql.Sql
 import java.io.Serializable
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -1733,9 +1733,9 @@ internal class DbTest {
         @Test
         fun test() {
             val messages = mutableListOf<String>()
-            val logger = object : Logger {
-                override fun log(kind: LogKind, lazyMessage: () -> String) {
-                    val message = lazyMessage()
+            val logger = object : StdoutLogger() {
+                override fun logSql(sql: Sql) {
+                    val message = sql.log!!
                     println(message)
                     messages.add(message)
                 }
