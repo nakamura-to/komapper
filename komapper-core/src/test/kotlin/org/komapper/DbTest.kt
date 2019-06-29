@@ -4,6 +4,8 @@ import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import org.komapper.core.LogKind
 import org.komapper.core.Logger
+import org.komapper.criteria.OrderByScope
+import org.komapper.criteria.WhereScope
 import org.komapper.jdbc.H2Dialect
 import org.komapper.jdbc.SimpleDataSource
 import org.komapper.meta.EntityListener
@@ -365,6 +367,27 @@ internal class DbTest {
                 }
                 limit { 2 }
                 offset { 5 }
+            }
+            assertEquals(
+                listOf(
+                    Address(10, "STREET 10", 1),
+                    Address(9, "STREET 9", 1)
+                ), list
+            )
+        }
+
+        @Test
+        fun criteriaScopeProperties() {
+            val db = Db(config)
+            val list = db.select<Address> {
+                where = WhereScope().apply {
+                    Address::addressId ge 1
+                }
+                orderBy = OrderByScope().apply {
+                    Address::addressId.desc()
+                }
+                limit = 2
+                offset = 5
             }
             assertEquals(
                 listOf(
