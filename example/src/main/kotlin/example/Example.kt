@@ -1,8 +1,8 @@
 package example
 
-import org.komapper.*
-import org.komapper.jdbc.H2Dialect
-import org.komapper.jdbc.SimpleDataSource
+import org.komapper.core.*
+import org.komapper.core.jdbc.H2Dialect
+import org.komapper.core.jdbc.SimpleDataSource
 import java.time.LocalDateTime
 
 data class Address(
