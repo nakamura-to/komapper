@@ -355,11 +355,12 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
         return config.listener.preMerge(entity, meta).let { newEntity ->
-            val sql = when {
-                config.dialect.supportsMerge() -> config.entitySqlBuilder.buildMerge(meta, newEntity, keys.toList())
-                config.dialect.supportsUpsert() -> config.entitySqlBuilder.buildUpsert(meta, newEntity, keys.toList())
+            val buildMerge: (EntityMeta<T>, T, List<KProperty1<*, *>>) -> Sql = when {
+                config.dialect.supportsMerge() -> config.entitySqlBuilder::buildMerge
+                config.dialect.supportsUpsert() -> config.entitySqlBuilder::buildUpsert
                 else -> error("The merge command is not supported.")
             }
+            val sql = buildMerge(meta, newEntity, keys.toList())
             val count = try {
                 `access$executeUpdate`(sql)
             } catch (e: SQLException) {
@@ -475,6 +476,39 @@ class Db(val config: DbConfig) {
         }
         check(counts.all { it == 1 })
         return newEntities.map { config.listener.postUpdate(it, meta) }
+    }
+
+    inline fun <reified T : Any> batchMerge(entities: List<T>, vararg keys: KProperty1<*, *>): List<T> {
+        require(T::class.isData) { "The T must be a data class." }
+        require(!T::class.isAbstract) { "The T must not be abstract." }
+        if (entities.isEmpty()) return entities
+        val meta = config.entityMetaFactory.get(T::class)
+        val size = entities.size
+        val (newEntities, sqls) = entities.map { entity ->
+            config.listener.preMerge(entity, meta).let { newEntity ->
+                val buildMerge: (EntityMeta<T>, T, List<KProperty1<*, *>>) -> Sql = when {
+                    config.dialect.supportsMerge() -> config.entitySqlBuilder::buildMerge
+                    config.dialect.supportsUpsert() -> config.entitySqlBuilder::buildUpsert
+                    else -> error("The merge command is not supported.")
+                }
+                newEntity to buildMerge(meta, newEntity, keys.toList())
+            }
+        }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
+            acc.first.add(e)
+            acc.second.add(s)
+            acc
+        }
+        val counts = try {
+            `access$executeBatch`(sqls)
+        } catch (e: SQLException) {
+            if (config.dialect.isUniqueConstraintViolation(e)) {
+                throw UniqueConstraintException(e)
+            } else {
+                throw e
+            }
+        }
+        check(counts.all { it == 1 })
+        return newEntities.map { config.listener.postMerge(it, meta) }
     }
 
     private fun executeBatch(sqls: Collection<Sql>): IntArray {

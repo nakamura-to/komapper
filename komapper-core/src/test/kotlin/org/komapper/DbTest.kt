@@ -1452,6 +1452,43 @@ internal class DbTest {
     }
 
     @Nested
+    inner class BatchMergeTest {
+
+        @Test
+        fun keys() {
+            val db = Db(config)
+            val departments = listOf(
+                Department(5, 50, "PLANNING", "TOKYO", 0),
+                Department(6, 10, "DEVELOPMENT", "KYOTO", 0)
+            )
+            db.batchMerge(departments, Department::departmentNo)
+            assertEquals(departments[0], db.findById<Department>(5))
+            assertNull(db.findById<Department>(6))
+            assertEquals(departments[1].copy(departmentId = 1), db.findById<Department>(1))
+        }
+
+        @Test
+        fun noKeys() {
+            val db = Db(config)
+            val departments = listOf(
+                Department(5, 50, "PLANNING", "TOKYO", 0),
+                Department(1, 60, "DEVELOPMENT", "KYOTO", 0)
+            )
+            db.batchMerge(departments)
+            assertEquals(departments[0], db.findById<Department>(5))
+            assertEquals(departments[1], db.findById<Department>(1))
+        }
+
+        @Test
+        fun uniqueConstraintException() {
+            val db = Db(config)
+            val department = db.findById<Department>(1)!!
+            assertThrows<UniqueConstraintException> { db.batchMerge(listOf(department.copy(departmentId = 2))) }
+        }
+
+    }
+
+    @Nested
     inner class ExecuteUpdateTest {
 
         @Test
