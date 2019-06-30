@@ -18,7 +18,7 @@ repositories {
 }
 
 dependencies {
-    implementation("org.komapper:komapper-core:0.1.3")
+    implementation("org.komapper:komapper:0.1.3")
     runtime("com.h2database:h2:1.4.199")
 }
 ```
