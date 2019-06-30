@@ -606,6 +606,33 @@ internal class DbTest {
         }
 
         @Test
+        fun join() {
+            val addressMap: MutableMap<Employee, Address> = mutableMapOf()
+            val departmentMap: MutableMap<Employee, Department> = mutableMapOf()
+            val db = Db(config)
+            val employees = db.select<Employee> {
+                leftJoin<Address>({ Employee::addressId eq Address::addressId }) { employee, address ->
+                    addressMap[employee] = address
+                }
+                innerJoin<Department>({ Employee::departmentId eq Department::departmentId }) { employee, department ->
+                    departmentMap[employee] = department
+                }
+                where {
+                    Address::addressId ge 1
+                }
+                orderBy {
+                    Address::addressId.desc()
+                }
+                limit { 2 }
+                offset { 5 }
+            }
+            assertEquals(2, employees.size)
+            assertEquals(2, addressMap.size)
+            assertEquals(2, departmentMap.size)
+            assertEquals(listOf(9, 8), employees.map { it.employeeId })
+        }
+
+        @Test
         fun embedded() {
             val db = Db(config)
             val list = db.select<Employee> {
@@ -1373,7 +1400,7 @@ internal class DbTest {
                 Person(3, "C")
             )
             db.batchInsert(personList)
-            val list = db.query<Person>("select * from person")
+            val list = db.query<Person>("select /*%expand*/* from person")
             assertTrue(list.all { it.createdAt > LocalDateTime.MIN })
         }
 
@@ -1444,10 +1471,10 @@ internal class DbTest {
                 Person(3, "C")
             )
             db.batchInsert(personList)
-            db.query<Person>("select * from person").let {
+            db.query<Person>("select /*%expand*/* from person").let {
                 db.batchUpdate(it)
             }
-            val list = db.query<Person>("select * from person")
+            val list = db.query<Person>("select /*%expand*/* from person")
             assertTrue(list.all { it.updatedAt > LocalDateTime.MIN })
         }
 
@@ -1760,7 +1787,7 @@ internal class DbTest {
             db.select<Quotes>().first()
             assertEquals(
                 listOf(
-                    "select \"ID\", \"VALUE\" from \"SEQUENCE_STRATEGY\""
+                    "select t0_.\"ID\", t0_.\"VALUE\" from \"SEQUENCE_STRATEGY\" t0_"
                 ), messages
             )
         }

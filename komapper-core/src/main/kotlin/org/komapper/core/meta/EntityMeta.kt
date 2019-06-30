@@ -11,7 +11,7 @@ class EntityMeta<T>(
     val propMetaList: List<PropMeta<T, *>>,
     val tableName: String
 ) {
-    private val leafPropMetaList = propMetaList.flatMap { it.getLeafPropMetaList() }
+    val leafPropMetaList = propMetaList.flatMap { it.getLeafPropMetaList() }
     val idList = leafPropMetaList.filter { it.kind is PropKind.Id }
     val sequenceIdList = leafPropMetaList.filter { it.kind is PropKind.Id.Sequence }
     val version = leafPropMetaList.find { it.kind is PropKind.Version }

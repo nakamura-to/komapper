@@ -1,5 +1,6 @@
 package org.komapper.core
 
+import org.komapper.core.criteria.CriteriaProcessor
 import org.komapper.core.criteria.CriteriaScope
 import org.komapper.core.meta.EntityMeta
 import org.komapper.core.meta.PropMeta
@@ -27,35 +28,45 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
         val sql = config.entitySqlBuilder.buildFindById(meta, id, version)
-        return `access$stream`(sql, meta).use {
-            it.toList().firstOrNull()
+        return `access$streamEntity`(sql, meta).use { stream ->
+            stream.toList().firstOrNull()
         }
     }
 
     inline fun <reified T : Any> select(
-        criteriaBlock: CriteriaScope.() -> Unit = { }
+        criteriaBlock: CriteriaScope<T>.() -> Unit = { }
     ): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = config.entityMetaFactory.get(T::class)
-        val scope = CriteriaScope().also { it.criteriaBlock() }
-        val sql = config.entitySqlBuilder.buildSelect(meta, scope())
-        return `access$stream`(sql, meta).use {
-            it.toList()
+        val scope = CriteriaScope(T::class).also { it.criteriaBlock() }
+        val processor = CriteriaProcessor(config.dialect, config.entityMetaFactory, scope())
+        val sql = processor.buildSelect()
+        return `access$streamMultiEntity`(sql, processor.leafPropMetaList, processor::new).use { stream ->
+            stream.asSequence().map { entities ->
+                val entity = entities.first()
+                val joinedEntities = entities.subList(1, entities.size)
+                processor.associate(entity, joinedEntities)
+                entity as T
+            }.toList()
         }
     }
 
     inline fun <reified T : Any, R> select(
-        criteriaBlock: CriteriaScope.() -> Unit = { },
-        block: (Sequence<T>) -> R
+        criteriaBlock: CriteriaScope<T>.() -> Unit = { },
+        sequenceBlock: (Sequence<T>) -> R
     ): R {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = config.entityMetaFactory.get(T::class)
-        val scope = CriteriaScope().also { it.criteriaBlock() }
-        val sql = config.entitySqlBuilder.buildSelect(meta, scope())
-        return `access$stream`(sql, meta).use {
-            block(it.asSequence())
+        val scope = CriteriaScope(T::class).also { it.criteriaBlock() }
+        val processor = CriteriaProcessor(config.dialect, config.entityMetaFactory, scope())
+        val sql = processor.buildSelect()
+        return `access$streamMultiEntity`(sql, processor.leafPropMetaList, processor::new).use { stream ->
+            stream.asSequence().map { entities ->
+                val entity = entities.first()
+                val joinedEntities = entities.subList(1, entities.size)
+                processor.associate(entity, joinedEntities)
+                entity as T
+            }.let { sequenceBlock(it) }
         }
     }
 
@@ -68,7 +79,7 @@ class Db(val config: DbConfig) {
         val meta = config.entityMetaFactory.get(T::class)
         val ctx = config.objectMetaFactory.toMap(condition)
         val sql = config.sqlBuilder.build(template, ctx, meta.expander)
-        return `access$stream`(sql, meta).use {
+        return `access$streamEntity`(sql, meta).use {
             it.toList()
         }
     }
@@ -83,7 +94,7 @@ class Db(val config: DbConfig) {
         val meta = config.entityMetaFactory.get(T::class)
         val ctx = config.objectMetaFactory.toMap(condition)
         val sql = config.sqlBuilder.build(template, ctx, meta.expander)
-        return `access$stream`(sql, meta).use {
+        return `access$streamEntity`(sql, meta).use {
             block(it.asSequence())
         }
     }
@@ -160,7 +171,7 @@ class Db(val config: DbConfig) {
         }
     }
 
-    private fun <T : Any> stream(
+    private fun <T : Any> streamEntity(
         sql: Sql,
         meta: EntityMeta<T>
     ): Stream<T> {
@@ -180,6 +191,26 @@ class Db(val config: DbConfig) {
                     row[propMeta] = value
                 }
                 meta.new(row)
+            }
+        }
+    }
+
+    private fun streamMultiEntity(
+        sql: Sql,
+        propMetaList: List<PropMeta<*, *>>,
+        provider: (leaves: Map<PropMeta<*, *>, Any?>) -> List<Any>
+    ): Stream<List<Any>> {
+        return executeQuery(sql) { rs ->
+            fromResultSetToStream(rs) {
+                val row = mutableMapOf<PropMeta<*, *>, Any?>()
+                val metaData = rs.metaData
+                val count = metaData.columnCount
+                for (i in 1..count) {
+                    val propMeta = propMetaList[i - 1]
+                    val value = config.dialect.getValue(it, i, propMeta.type)
+                    row[propMeta] = value
+                }
+                provider(row)
             }
         }
     }
@@ -599,7 +630,14 @@ class Db(val config: DbConfig) {
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
-    internal fun <T : Any> `access$stream`(sql: Sql, meta: EntityMeta<T>) = stream(sql, meta)
+    internal fun <T : Any> `access$streamEntity`(sql: Sql, meta: EntityMeta<T>) = streamEntity(sql, meta)
+
+    @PublishedApi
+    @Suppress("UNUSED", "FunctionName")
+    internal fun `access$streamMultiEntity`(
+        sql: Sql, propMetaList: List<PropMeta<*, *>>,
+        provider: (leaves: Map<PropMeta<*, *>, Any?>) -> List<Any>
+    ) = streamMultiEntity(sql, propMetaList, provider)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
