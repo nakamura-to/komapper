@@ -174,7 +174,7 @@ class CriteriaProcessor(
         }
     }
 
-    fun associate(entity: Any, joinedEntities: List<Any>) {
+    override fun associate(entity: Any, joinedEntities: List<Any>) {
         joinedEntities.zip(criteria.joins).forEach { (joinedEntity, join) ->
             join.block(entity, joinedEntity)
         }

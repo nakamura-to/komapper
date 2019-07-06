@@ -787,6 +787,7 @@ internal class DbTest {
             assertEquals(Address(8, "STREET 8", 1), list[2])
             assertEquals(15, count)
         }
+
     }
 
     @Nested
@@ -1599,6 +1600,149 @@ internal class DbTest {
             val value = db.queryOneColumn<String>("select value from execute_table").firstOrNull()
             assertEquals("test", value)
         }
+    }
+
+    @Nested
+    inner class DryRunTest {
+
+        @Test
+        fun findById() {
+            val db = Db(config)
+            val (sql) = db.dryRun.findById<Address>(2)
+            println(sql)
+        }
+
+        @Test
+        fun select() {
+            val db = Db(config)
+            val (sql) = db.dryRun.select<Address> {
+                where {
+                    Address::addressId ge 1
+                }
+                orderBy {
+                    Address::addressId.desc()
+                }
+                limit { 2 }
+                offset { 5 }
+            }
+            println(sql)
+        }
+
+        @Test
+        fun query() {
+            val db = Db(config)
+            val (sql) = db.dryRun.query<Address>("select * from address")
+            println(sql)
+        }
+
+        @Test
+        fun paginate() {
+            val db = Db(config)
+            val (sql) = db.dryRun.paginate<Address>("select * from address", limit = 3, offset = 5)
+            println(sql)
+        }
+
+        @Test
+        fun queryOneColumn() {
+            val db = Db(config)
+            val sql = db.dryRun.queryOneColumn("select street from address")
+            println(sql)
+        }
+
+        @Test
+        fun queryTwoColumns() {
+            val db = Db(config)
+            val sql = db.dryRun.queryTwoColumns("select address_id, street from address")
+            println(sql)
+        }
+
+        @Test
+        fun queryThreeColumns() {
+            val db = Db(config)
+            val sql = db.dryRun.queryThreeColumns("select address_id, street, version from address")
+            println(sql)
+        }
+
+        @Test
+        fun delete() {
+            val db = Db(config)
+            val address = db.query<Address>("select * from address where address_id = 15").first()
+            val (sql) = db.dryRun.delete(address)
+            println(sql)
+        }
+
+        @Test
+        fun insert() {
+            val db = Db(config)
+            val strategy = SequenceStrategy(-100, "a")
+            val (sql) = db.dryRun.insert(strategy)
+            assertEquals("insert into SEQUENCE_STRATEGY (id, value) values (0, 'a')", sql.log)
+        }
+
+        @Test
+        fun update() {
+            val db = Db(config)
+            val address = db.query<Address>("select * from address where address_id = 15").first()
+            val newAddress = address.copy(street = "NY street")
+            val (sql) = db.dryRun.update(newAddress)
+            println(sql)
+        }
+
+        @Test
+        fun merge() {
+            val db = Db(config)
+            val department = Department(5, 50, "PLANNING", "TOKYO", 0)
+            val (sql) = db.dryRun.merge(department, Department::departmentNo)
+            println(sql)
+        }
+
+        @Test
+        fun batchDelete() {
+            val db = Db(config)
+            val addressList = listOf(
+                Address(16, "STREET 16", 0),
+                Address(17, "STREET 17", 0),
+                Address(18, "STREET 18", 0)
+            )
+            val (sqls) = db.dryRun.batchDelete(addressList)
+            assertEquals(3, sqls.size)
+        }
+
+        @Test
+        fun batchInsert() {
+            val db = Db(config)
+            val addressList = listOf(
+                Address(16, "STREET 16", 0),
+                Address(17, "STREET 17", 0),
+                Address(18, "STREET 18", 0)
+            )
+            val (sqls) = db.dryRun.batchInsert(addressList)
+            assertEquals(3, sqls.size)
+        }
+
+        @Test
+        fun batchUpdate() {
+            val db = Db(config)
+            val personList = listOf(
+                Person(1, "A"),
+                Person(2, "B"),
+                Person(3, "C")
+            )
+            val (sqls) = db.dryRun.batchUpdate(personList)
+            assertEquals(3, sqls.size)
+        }
+
+        @Test
+        fun batchMerge() {
+            val db = Db(config)
+            val departments = listOf(
+                Department(5, 50, "PLANNING", "TOKYO", 0),
+                Department(6, 10, "DEVELOPMENT", "KYOTO", 0)
+            )
+            val (sqls) = db.dryRun.batchMerge(departments, Department::departmentNo)
+            assertEquals(2, sqls.size)
+        }
+
     }
 
     @Nested
