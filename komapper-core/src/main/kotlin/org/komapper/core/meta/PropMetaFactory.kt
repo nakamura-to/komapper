@@ -13,7 +13,8 @@ interface PropMetaFactory {
         consParam: KParameter,
         copyParam: KParameter,
         prop: KProperty1<T, R>,
-        hierarchy: List<KClass<*>>
+        hierarchy: List<KClass<*>>,
+        receiverResolver: (Any) -> Any?
     ): PropMeta<T, R>
 }
 
@@ -27,23 +28,26 @@ open class DefaultPropMetaFactory(
         consParam: KParameter,
         copyParam: KParameter,
         prop: KProperty1<T, R>,
-        hierarchy: List<KClass<*>>
+        hierarchy: List<KClass<*>>,
+        receiverResolver: (Any) -> Any?
     ): PropMeta<T, R> {
         val type = consParam.type.jvmErasure
         @Suppress("UNCHECKED_CAST")
-        val kind = determineKind(type, consParam, prop, hierarchy) as PropKind<R>
+        val deepGetter: (Any) -> Any? = { entity -> receiverResolver(entity)?.let { prop.call(it) } }
+        val kind = determineKind(type, consParam, prop, hierarchy, deepGetter) as PropKind<R>
         val column = consParam.findAnnotation<Column>()
         val name = column?.name ?: namingStrategy.fromKotlinToDb(consParam.name!!)
         val columnLabel = name.split('.').first().toLowerCase()
         val columnName = if (column?.quote == true) quote(name) else name
-        return PropMeta(type, consParam, copyParam, prop, kind, columnLabel, columnName)
+        return PropMeta(type, consParam, copyParam, prop, deepGetter, kind, columnLabel, columnName)
     }
 
     protected open fun determineKind(
         type: KClass<*>,
         consParam: KParameter,
         prop: KProperty1<*, *>,
-        hierarchy: List<KClass<*>>
+        hierarchy: List<KClass<*>>,
+        deepGetter: (Any) -> Any?
     ): PropKind<*> {
         val id = consParam.findAnnotation<Id>()
         val version = consParam.findAnnotation<Version>()
@@ -55,7 +59,7 @@ open class DefaultPropMetaFactory(
             version != null -> versionKind(type, consParam, prop)
             createdAt != null -> createdAtKind(type, consParam, prop)
             updatedAt != null -> updatedAtKind(type, consParam, prop)
-            embedded != null -> embeddedKind(type, consParam, prop, hierarchy)
+            embedded != null -> embeddedKind(type, consParam, prop, hierarchy, deepGetter)
             else -> PropKind.Basic
         }
     }
@@ -106,7 +110,8 @@ open class DefaultPropMetaFactory(
         type: KClass<*>,
         consParam: KParameter,
         prop: KProperty1<*, *>,
-        hierarchy: List<KClass<*>>
+        hierarchy: List<KClass<*>>,
+        deepGetter: (Any) -> Any?
     ): PropKind<*> =
         when {
             !type.isData -> error("The @Embedded parameter must be a data class.")
@@ -118,7 +123,7 @@ open class DefaultPropMetaFactory(
                                 "The type \"${type.qualifiedName}\" is circularly referenced in the hierarchy."
                     )
                 }
-                val meta = embeddedMetaFactory.create(type, this, hierarchy)
+                val meta = embeddedMetaFactory.create(type, this, hierarchy, deepGetter)
                 PropKind.Embedded(meta)
             }
         }

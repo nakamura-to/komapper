@@ -25,7 +25,7 @@ open class DefaultEntityMetaFactory(
     }
 
     protected open fun <T : Any> create(clazz: KClass<T>): EntityMeta<T> {
-        val meta = DataClassMeta(clazz, propMetaFactory, listOf(clazz))
+        val meta = DataClassMeta(clazz, propMetaFactory, listOf(clazz)) { it }
         val table = clazz.findAnnotation<Table>()
         val name = table?.name ?: namingStrategy.fromKotlinToDb(clazz.simpleName!!)
         val tableName = if (table?.quote == true) quote(name) else name

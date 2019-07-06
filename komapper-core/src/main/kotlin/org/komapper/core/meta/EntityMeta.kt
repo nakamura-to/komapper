@@ -1,6 +1,5 @@
 package org.komapper.core.meta
 
-import org.komapper.core.value.Value
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 
@@ -13,16 +12,14 @@ class EntityMeta<T>(
 ) {
     val leafPropMetaList = propMetaList.flatMap { it.getLeafPropMetaList() }
     val idList = leafPropMetaList.filter { it.kind is PropKind.Id }
-    val sequenceIdList = leafPropMetaList.filter { it.kind is PropKind.Id.Sequence }
+    val sequenceIdList = idList.filter { it.kind is PropKind.Id.Sequence }
+    val nonIdList = leafPropMetaList - idList
     val version = leafPropMetaList.find { it.kind is PropKind.Version }
     val createdAt = leafPropMetaList.find { it.kind is PropKind.CreatedAt }
     val updatedAt = leafPropMetaList.find { it.kind is PropKind.UpdatedAt }
-    val columnNames = leafPropMetaList.map { it.columnName }
-    val idColumnNames = idList.map { it.columnName }
-    val nonIdColumnNames = (leafPropMetaList - idList).map { it.columnName }
     val columnLabelMap = leafPropMetaList.associateBy { it.columnLabel }
     val propMap = leafPropMetaList.associateBy { it.prop }
-    val expander: (String) -> List<String> = { prefix -> columnNames.map { prefix + it } }
+    val expander: (String) -> List<String> = { prefix -> leafPropMetaList.map { prefix + it.columnName } }
 
     fun new(leaves: Map<PropMeta<*, *>, Any?>): T {
         val args = propMetaList.map { it.consParam to it.new(leaves) }.toMap()
@@ -66,19 +63,5 @@ class EntityMeta<T>(
         val valueArgs = propMetaList.mapNotNull { it.copy(entity, predicate, block) }.toMap()
         return copy.callBy(mapOf(receiverArg) + valueArgs)
     }
-
-    fun getValues(entity: T): List<Value> = getValues(entity, { true })
-
-    fun getIdValues(entity: T): List<Value> =
-        getValues(entity, { it in idList })
-
-    fun getNonIdValues(entity: T): List<Value> =
-        getValues(entity, { it !in idList })
-
-    fun getVersionValue(entity: T): Value =
-        getValues(entity, { it == version }).first()
-
-    fun getValues(entity: T, predicate: (PropMeta<*, *>) -> Boolean): List<Value> =
-        propMetaList.flatMap { meta -> meta.getValues(entity, predicate) }
 
 }

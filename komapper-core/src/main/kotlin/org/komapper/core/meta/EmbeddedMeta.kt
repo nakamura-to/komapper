@@ -1,6 +1,5 @@
 package org.komapper.core.meta
 
-import org.komapper.core.value.Value
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 
@@ -25,9 +24,6 @@ class EmbeddedMeta<T>(
             copy.callBy(mapOf(receiverArg) + valueArgs)
         }
     }
-
-    fun getValues(embedded: T, predicate: (PropMeta<*, *>) -> Boolean): List<Value> =
-        propMetaList.flatMap { it.getValues(embedded, predicate) }
 
     fun getLeafPropMetaList(): List<PropMeta<*, *>> =
         propMetaList.flatMap { it.getLeafPropMetaList() }

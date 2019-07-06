@@ -34,7 +34,7 @@ data class DbConfig(
     ),
     val listener: EntityListener = DefaultEntityListener(),
     val entitySqlBuilder: EntitySqlBuilder = DefaultEntitySqlBuilder(
-        dialect
+        dialect::formatValue
     ),
     val exprNodeFactory: ExprNodeFactory = CacheExprNodeFactory(),
     val exprEvaluator: ExprEvaluator = DefaultExprEvaluator(

@@ -7,7 +7,12 @@ import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.jvmErasure
 
-class DataClassMeta<T : Any>(clazz: KClass<T>, propMetaFactory: PropMetaFactory, hierarchy: List<KClass<*>>) {
+class DataClassMeta<T : Any>(
+    clazz: KClass<T>,
+    propMetaFactory: PropMetaFactory,
+    hierarchy: List<KClass<*>>,
+    receiverResolver: (Any) -> Any?
+) {
     val cons = clazz.primaryConstructor ?: error("The clazz has no primary constructor.")
     val copy = clazz.memberFunctions.find {
         it.name == "copy" && it.returnType.jvmErasure == clazz && it.parameters.size == cons.parameters.size + 1
@@ -22,6 +27,6 @@ class DataClassMeta<T : Any>(clazz: KClass<T>, propMetaFactory: PropMetaFactory,
             val prop = clazz.memberProperties.find { it.name == consParam.name!! }
                 ?: error("The property \"${consParam.name}\" is not found.")
             check(consParam.type == prop.returnType) { "${consParam.type} is not equal to ${prop.returnType}" }
-            propMetaFactory.create(consParam, copyParam, prop, hierarchy)
+            propMetaFactory.create(consParam, copyParam, prop, hierarchy, receiverResolver)
         }
 }

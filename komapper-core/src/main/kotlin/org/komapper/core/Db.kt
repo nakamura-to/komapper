@@ -312,18 +312,22 @@ class Db(val config: DbConfig) {
         )
     }
 
-    inline fun <reified T : Any> insert(entity: T): T {
+    inline fun <reified T : Any> insert(entity: T, option: InsertOption = InsertOption()): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
-        return meta.assignId(entity, config.name) { sequenceName ->
-            queryOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
+        return if (option.assignId) {
+            meta.assignId(entity, config.name) { sequenceName ->
+                queryOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
+            }
+        } else {
+            entity
         }.let { newEntity ->
-            meta.assignTimestamp(newEntity)
+            if (option.assignTimestamp) meta.assignTimestamp(newEntity) else newEntity
         }.let { newEntity ->
             config.listener.preInsert(newEntity, meta)
         }.let { newEntity ->
-            val sql = config.entitySqlBuilder.buildInsert(meta, newEntity)
+            val sql = config.entitySqlBuilder.buildInsert(meta, newEntity, option)
             val count = try {
                 `access$executeUpdate`(sql)
             } catch (e: SQLException) {
@@ -338,31 +342,30 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified T : Any> delete(entity: T): T {
+    inline fun <reified T : Any> delete(entity: T, option: DeleteOption = DeleteOption()): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
         return config.listener.preDelete(entity, meta).let { newEntity ->
-            val sql = config.entitySqlBuilder.buildDelete(meta, newEntity)
+            val sql = config.entitySqlBuilder.buildDelete(meta, newEntity, option)
             val count = `access$executeUpdate`(sql)
-            if (meta.version != null && count != 1) {
+            if (!option.ignoreVersion && meta.version != null && count != 1) {
                 throw OptimisticLockException()
             }
-            check(count == 1)
             config.listener.postDelete(newEntity, meta)
         }
     }
 
-    inline fun <reified T : Any> update(entity: T): T {
+    inline fun <reified T : Any> update(entity: T, option: UpdateOption = UpdateOption()): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
-        return meta.incrementVersion(entity).let { newEntity ->
-            meta.updateTimestamp(newEntity)
+        return (if (option.incrementVersion) meta.incrementVersion(entity) else entity).let { newEntity ->
+            if (option.updateTimestamp) meta.updateTimestamp(newEntity) else newEntity
         }.let { newEntity ->
             config.listener.preUpdate(newEntity, meta)
         }.let { newEntity ->
-            val sql = config.entitySqlBuilder.buildUpdate(meta, entity, newEntity)
+            val sql = config.entitySqlBuilder.buildUpdate(meta, entity, newEntity, option)
             val count = try {
                 `access$executeUpdate`(sql)
             } catch (e: SQLException) {
@@ -372,25 +375,52 @@ class Db(val config: DbConfig) {
                     throw e
                 }
             }
-            if (meta.version != null && count != 1) {
+            if (!option.ignoreVersion && meta.version != null && count != 1) {
                 throw OptimisticLockException()
             }
-            check(count == 1)
             config.listener.postUpdate(newEntity, meta)
         }
     }
 
-    inline fun <reified T : Any> merge(entity: T, vararg keys: KProperty1<*, *>): T {
+    inline fun <reified T : Any> merge(
+        entity: T,
+        vararg keys: KProperty1<*, *>,
+        insertOption: InsertOption = InsertOption(
+            assignId = false,
+            assignTimestamp = false
+        ),
+        updateOption: UpdateOption = UpdateOption(
+            incrementVersion = false,
+            updateTimestamp = false,
+            ignoreVersion = true
+        )
+    ): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val meta = config.entityMetaFactory.get(T::class)
-        return config.listener.preMerge(entity, meta).let { newEntity ->
-            val buildMerge: (EntityMeta<T>, T, List<KProperty1<*, *>>) -> Sql = when {
+        return if (insertOption.assignId) {
+            meta.assignId(entity, config.name) { sequenceName ->
+                queryOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
+            }
+        } else {
+            entity
+        }.let { newEntity ->
+            if (insertOption.assignTimestamp) meta.assignTimestamp(newEntity) else newEntity
+        }.let { newEntity ->
+            if (updateOption.incrementVersion) meta.incrementVersion(newEntity) else newEntity
+        }.let { newEntity ->
+            if (updateOption.incrementVersion) meta.incrementVersion(newEntity) else newEntity
+        }.let { newEntity ->
+            if (updateOption.updateTimestamp) meta.updateTimestamp(newEntity) else newEntity
+        }.let { newEntity ->
+            config.listener.preMerge(newEntity, meta)
+        }.let { newEntity ->
+            val buildMerge: (EntityMeta<T>, T, T, List<KProperty1<*, *>>, InsertOption, UpdateOption) -> Sql = when {
                 config.dialect.supportsMerge() -> config.entitySqlBuilder::buildMerge
                 config.dialect.supportsUpsert() -> config.entitySqlBuilder::buildUpsert
                 else -> error("The merge command is not supported.")
             }
-            val sql = buildMerge(meta, newEntity, keys.toList())
+            val sql = buildMerge(meta, entity, newEntity, keys.toList(), insertOption, updateOption)
             val count = try {
                 `access$executeUpdate`(sql)
             } catch (e: SQLException) {
@@ -400,7 +430,9 @@ class Db(val config: DbConfig) {
                     throw e
                 }
             }
-            check(count == 1)
+            if (!updateOption.ignoreVersion && meta.version != null && count != 1) {
+                throw OptimisticLockException()
+            }
             config.listener.postMerge(newEntity, meta)
         }
     }
@@ -416,21 +448,25 @@ class Db(val config: DbConfig) {
         }
     }
 
-    inline fun <reified T : Any> batchInsert(entities: List<T>): List<T> {
+    inline fun <reified T : Any> batchInsert(entities: List<T>, option: InsertOption = InsertOption()): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         if (entities.isEmpty()) return entities
         val meta = config.entityMetaFactory.get(T::class)
         val size = entities.size
         val (newEntities, sqls) = entities.map { entity ->
-            meta.assignId(entity, config.name) { sequenceName ->
-                queryOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
+            if (option.assignId) {
+                meta.assignId(entity, config.name) { sequenceName ->
+                    queryOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
+                }
+            } else {
+                entity
             }.let { newEntity ->
-                meta.assignTimestamp(newEntity)
+                if (option.assignTimestamp) meta.assignTimestamp(newEntity) else newEntity
             }.let { newEntity ->
                 config.listener.preInsert(newEntity, meta)
             }.let { newEntity ->
-                newEntity to config.entitySqlBuilder.buildInsert(meta, newEntity)
+                newEntity to config.entitySqlBuilder.buildInsert(meta, newEntity, option)
             }
         }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
             acc.first.add(e)
@@ -450,7 +486,7 @@ class Db(val config: DbConfig) {
         return newEntities.map { config.listener.postInsert(it, meta) }
     }
 
-    inline fun <reified T : Any> batchDelete(entities: List<T>): List<T> {
+    inline fun <reified T : Any> batchDelete(entities: List<T>, option: DeleteOption = DeleteOption()): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         if (entities.isEmpty()) return entities
@@ -458,7 +494,7 @@ class Db(val config: DbConfig) {
         val size = entities.size
         val (newEntities, sqls) = entities.map { entity ->
             config.listener.preDelete(entity, meta).let { newEntity ->
-                newEntity to config.entitySqlBuilder.buildDelete(meta, newEntity)
+                newEntity to config.entitySqlBuilder.buildDelete(meta, newEntity, option)
             }
         }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
             acc.first.add(e)
@@ -466,26 +502,25 @@ class Db(val config: DbConfig) {
             acc
         }
         val counts = `access$executeBatch`(sqls)
-        if (meta.version != null && counts.any { it != 1 }) {
+        if (!option.ignoreVersion && meta.version != null && counts.any { it != 1 }) {
             throw OptimisticLockException()
         }
-        check(counts.all { it == 1 })
         return newEntities.map { config.listener.postDelete(it, meta) }
     }
 
-    inline fun <reified T : Any> batchUpdate(entities: List<T>): List<T> {
+    inline fun <reified T : Any> batchUpdate(entities: List<T>, option: UpdateOption = UpdateOption()): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         if (entities.isEmpty()) return entities
         val meta = config.entityMetaFactory.get(T::class)
         val size = entities.size
         val (newEntities, sqls) = entities.map { entity ->
-            meta.incrementVersion(entity).let { newEntity ->
-                meta.updateTimestamp(newEntity)
+            (if (option.incrementVersion) meta.incrementVersion(entity) else entity).let { newEntity ->
+                if (option.updateTimestamp) meta.updateTimestamp(newEntity) else newEntity
             }.let { newEntity ->
                 config.listener.preUpdate(newEntity, meta)
             }.let { newEntity ->
-                newEntity to config.entitySqlBuilder.buildUpdate(meta, entity, newEntity)
+                newEntity to config.entitySqlBuilder.buildUpdate(meta, entity, newEntity, option)
             }
         }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
             acc.first.add(e)
@@ -501,27 +536,54 @@ class Db(val config: DbConfig) {
                 throw e
             }
         }
-        if (meta.version != null && counts.any { it != 1 }) {
+        if (!option.ignoreVersion && meta.version != null && counts.any { it != 1 }) {
             throw OptimisticLockException()
         }
-        check(counts.all { it == 1 })
         return newEntities.map { config.listener.postUpdate(it, meta) }
     }
 
-    inline fun <reified T : Any> batchMerge(entities: List<T>, vararg keys: KProperty1<*, *>): List<T> {
+    inline fun <reified T : Any> batchMerge(
+        entities: List<T>, vararg keys: KProperty1<*, *>,
+        insertOption: InsertOption = InsertOption(
+            assignId = false,
+            assignTimestamp = false
+        ),
+        updateOption: UpdateOption = UpdateOption(
+            incrementVersion = false,
+            updateTimestamp = false,
+            ignoreVersion = true
+        )
+    ): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
         if (entities.isEmpty()) return entities
         val meta = config.entityMetaFactory.get(T::class)
         val size = entities.size
         val (newEntities, sqls) = entities.map { entity ->
-            config.listener.preMerge(entity, meta).let { newEntity ->
-                val buildMerge: (EntityMeta<T>, T, List<KProperty1<*, *>>) -> Sql = when {
-                    config.dialect.supportsMerge() -> config.entitySqlBuilder::buildMerge
-                    config.dialect.supportsUpsert() -> config.entitySqlBuilder::buildUpsert
-                    else -> error("The merge command is not supported.")
+            if (insertOption.assignId) {
+                meta.assignId(entity, config.name) { sequenceName ->
+                    queryOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
                 }
-                newEntity to buildMerge(meta, newEntity, keys.toList())
+            } else {
+                entity
+            }.let { newEntity ->
+                if (insertOption.assignTimestamp) meta.assignTimestamp(newEntity) else newEntity
+            }.let { newEntity ->
+                if (updateOption.incrementVersion) meta.incrementVersion(newEntity) else newEntity
+            }.let { newEntity ->
+                if (updateOption.incrementVersion) meta.incrementVersion(newEntity) else newEntity
+            }.let { newEntity ->
+                if (updateOption.updateTimestamp) meta.updateTimestamp(newEntity) else newEntity
+            }.let { newEntity ->
+                config.listener.preMerge(newEntity, meta)
+            }.let { newEntity ->
+                val buildMerge: (EntityMeta<T>, T, T, List<KProperty1<*, *>>, InsertOption, UpdateOption) -> Sql =
+                    when {
+                        config.dialect.supportsMerge() -> config.entitySqlBuilder::buildMerge
+                        config.dialect.supportsUpsert() -> config.entitySqlBuilder::buildUpsert
+                        else -> error("The merge command is not supported.")
+                    }
+                newEntity to buildMerge(meta, entity, newEntity, keys.toList(), insertOption, updateOption)
             }
         }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
             acc.first.add(e)
@@ -537,7 +599,9 @@ class Db(val config: DbConfig) {
                 throw e
             }
         }
-        check(counts.all { it == 1 })
+        if (!updateOption.ignoreVersion && meta.version != null && counts.any { it != 1 }) {
+            throw OptimisticLockException()
+        }
         return newEntities.map { config.listener.postMerge(it, meta) }
     }
 

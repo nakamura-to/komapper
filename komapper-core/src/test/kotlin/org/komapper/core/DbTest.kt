@@ -1779,7 +1779,7 @@ internal class DbTest {
             assertEquals(
                 listOf(
                     "call next value for \"SEQUENCE_STRATEGY_ID\"",
-                    "insert into \"SEQUENCE_STRATEGY\" (\"ID\", \"VALUE\") values(1, 'aaa')"
+                    "insert into \"SEQUENCE_STRATEGY\" (\"ID\", \"VALUE\") values (1, 'aaa')"
                 ), messages
             )
 

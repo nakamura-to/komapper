@@ -1,6 +1,5 @@
 package org.komapper.core.meta
 
-import org.komapper.core.value.Value
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
@@ -10,6 +9,7 @@ class PropMeta<T, R : Any?>(
     val consParam: KParameter,
     val copyParam: KParameter,
     val prop: KProperty1<T, R>,
+    val deepGetter: (Any) -> Any?,
     val kind: PropKind<R>,
     val columnLabel: String,
     val columnName: String
@@ -27,36 +27,19 @@ class PropMeta<T, R : Any?>(
         block: (PropMeta<*, *>, () -> Any?) -> Any?
     ): Pair<KParameter, Any?>? = when (kind) {
         is PropKind.Embedded -> {
-            val embedded = call(owner)
+            val embedded = prop.call(owner)
             val newEmbedded = kind.embeddedMeta.copy(embedded, predicate, block)
             if (newEmbedded == null) null else copyParam to newEmbedded
         }
         else -> {
             if (predicate(this)) {
-                val newValue = block(this) { call(owner) }
+                val newValue = block(this) { prop.call(owner) }
                 copyParam to newValue
             } else {
                 null
             }
         }
     }
-
-    fun getValues(owner: T, predicate: (PropMeta<*, *>) -> Boolean): List<Value> = when (kind) {
-        is PropKind.Embedded -> {
-            val embedded = call(owner)
-            kind.embeddedMeta.getValues(embedded, predicate)
-        }
-        else -> {
-            if (predicate(this)) {
-                val obj = prop.call(owner)
-                listOf(Value(obj, type))
-            } else {
-                emptyList()
-            }
-        }
-    }
-
-    private fun call(owner: T): R = prop.call(owner)
 
     fun getLeafPropMetaList(): List<PropMeta<*, *>> = when (kind) {
         is PropKind.Embedded -> kind.embeddedMeta.getLeafPropMetaList()
