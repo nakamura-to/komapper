@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.3.40" apply true
+    kotlin("jvm") version "1.3.41" apply true
     id("tanvd.kosogor") version "1.0.4" apply true
 }
 
