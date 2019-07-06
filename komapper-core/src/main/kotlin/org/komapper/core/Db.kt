@@ -230,9 +230,9 @@ class Db(val config: DbConfig) {
         var stream: Stream<T>? = null
         val con = config.connection
         try {
+            log(sql)
             val ps = con.prepareStatement(sql.text)
             try {
-                log(sql)
                 ps.setUp()
                 ps.bind(sql.values)
                 val rs = ps.executeQuery()
@@ -394,8 +394,8 @@ class Db(val config: DbConfig) {
 
     private fun executeUpdate(sql: Sql): Int {
         return config.connection.use { con ->
+            log(sql)
             con.prepareStatement(sql.text).use { ps ->
-                log(sql)
                 ps.setUp()
                 ps.bind(sql.values)
                 ps.executeUpdate()
@@ -554,12 +554,16 @@ class Db(val config: DbConfig) {
 
     private fun executeBatch(sqls: Collection<Sql>): IntArray {
         return config.connection.use { con ->
-            con.prepareStatement(sqls.first().text).use { ps ->
+            val firstSql = sqls.first()
+            log(firstSql)
+            con.prepareStatement(firstSql.text).use { ps ->
                 val batchSize = config.batchSize
                 val allCounts = IntArray(sqls.size)
                 var offset = 0
                 for ((i, sql) in sqls.withIndex()) {
-                    log(sql)
+                    if (i > 0) {
+                        log(sql)
+                    }
                     ps.setUp()
                     ps.bind(sql.values)
                     ps.addBatch()
