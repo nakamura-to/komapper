@@ -15,7 +15,7 @@ class CriteriaProcessor(
     dialect: Dialect,
     private val entityMetaFactory: EntityMetaFactory,
     private val criteria: Criteria
-) {
+) : MultiEntityMeta {
 
     private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
 
@@ -32,7 +32,7 @@ class CriteriaProcessor(
         entityMeta.leafPropMetaList.map { it.prop to "$alias.${it.columnName}" }
     }.toMap()
 
-    val leafPropMetaList: List<PropMeta<*, *>> = entityMetaList.flatMap { it.leafPropMetaList }
+    override val leafPropMetaList: List<PropMeta<*, *>> = entityMetaList.flatMap { it.leafPropMetaList }
 
     fun buildSelect(): Sql {
         buf.append("select ")
@@ -162,9 +162,9 @@ class CriteriaProcessor(
             .bind(Value(range.second, prop.returnType))
     }
 
-    fun new(leaves: Map<PropMeta<*, *>, Any?>): List<Any> {
+    override fun new(leafValues: Map<PropMeta<*, *>, Any?>): List<Any> {
         return entityMetaList.map { entityMeta ->
-            entityMeta.new(leaves) as Any
+            entityMeta.new(leafValues) as Any
         }
     }
 

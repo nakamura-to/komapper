@@ -16,9 +16,9 @@ class PropMeta<T, R : Any?>(
 ) {
 
     @Suppress("UNCHECKED_CAST")
-    fun new(leaves: Map<PropMeta<*, *>, Any?>): R = when (kind) {
-        is PropKind.Embedded<R> -> kind.embeddedMeta.new(leaves)
-        else -> leaves[this] as R
+    fun new(leafValues: Map<PropMeta<*, *>, Any?>): R = when (kind) {
+        is PropKind.Embedded<R> -> kind.embeddedMeta.new(leafValues)
+        else -> leafValues[this] as R
     }
 
     fun copy(

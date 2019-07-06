@@ -2,6 +2,7 @@ package org.komapper.core
 
 import org.komapper.core.criteria.CriteriaProcessor
 import org.komapper.core.criteria.CriteriaScope
+import org.komapper.core.criteria.MultiEntityMeta
 import org.komapper.core.meta.EntityMeta
 import org.komapper.core.meta.PropMeta
 import org.komapper.core.sql.Sql
@@ -17,8 +18,6 @@ import kotlin.streams.asSequence
 import kotlin.streams.toList
 
 class Db(val config: DbConfig) {
-
-    val empty = object {}
 
     val transaction: TransactionScope
         get() = config.transactionScope
@@ -38,17 +37,7 @@ class Db(val config: DbConfig) {
     ): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val scope = CriteriaScope(T::class).also { it.criteriaBlock() }
-        val processor = CriteriaProcessor(config.dialect, config.entityMetaFactory, scope())
-        val sql = processor.buildSelect()
-        return `access$streamMultiEntity`(sql, processor.leafPropMetaList, processor::new).use { stream ->
-            stream.asSequence().map { entities ->
-                val entity = entities.first()
-                val joinedEntities = entities.subList(1, entities.size)
-                processor.associate(entity, joinedEntities)
-                entity as T
-            }.toList()
-        }
+        return select(criteriaBlock, Sequence<T>::toList)
     }
 
     inline fun <reified T : Any, R> select(
@@ -60,7 +49,7 @@ class Db(val config: DbConfig) {
         val scope = CriteriaScope(T::class).also { it.criteriaBlock() }
         val processor = CriteriaProcessor(config.dialect, config.entityMetaFactory, scope())
         val sql = processor.buildSelect()
-        return `access$streamMultiEntity`(sql, processor.leafPropMetaList, processor::new).use { stream ->
+        return `access$streamMultiEntity`(sql, processor).use { stream ->
             stream.asSequence().map { entities ->
                 val entity = entities.first()
                 val joinedEntities = entities.subList(1, entities.size)
@@ -72,21 +61,16 @@ class Db(val config: DbConfig) {
 
     inline fun <reified T : Any> query(
         template: CharSequence,
-        condition: Any = empty
+        condition: Any? = null
     ): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
-        val meta = config.entityMetaFactory.get(T::class)
-        val ctx = config.objectMetaFactory.toMap(condition)
-        val sql = config.sqlBuilder.build(template, ctx, meta.expander)
-        return `access$streamEntity`(sql, meta).use {
-            it.toList()
-        }
+        return query(template, condition, Sequence<T>::toList)
     }
 
     inline fun <reified T : Any, R> query(
         template: CharSequence,
-        condition: Any = empty,
+        condition: Any? = null,
         block: (Sequence<T>) -> R
     ): R {
         require(T::class.isData) { "The T must be a data class." }
@@ -94,14 +78,65 @@ class Db(val config: DbConfig) {
         val meta = config.entityMetaFactory.get(T::class)
         val ctx = config.objectMetaFactory.toMap(condition)
         val sql = config.sqlBuilder.build(template, ctx, meta.expander)
-        return `access$streamEntity`(sql, meta).use {
-            block(it.asSequence())
+        return `access$streamEntity`(sql, meta).use { stream ->
+            block(stream.asSequence())
+        }
+    }
+
+    inline fun <reified T : Any?> queryOneColumn(
+        template: CharSequence,
+        condition: Any? = null
+    ): List<T> = queryOneColumn(template, condition, Sequence<T>::toList)
+
+    inline fun <reified T : Any?, R> queryOneColumn(
+        template: CharSequence,
+        condition: Any? = null,
+        block: (Sequence<T>) -> R
+    ): R {
+        val ctx = config.objectMetaFactory.toMap(condition)
+        val sql = config.sqlBuilder.build(template, ctx)
+        return `access$streamOneColumn`<T>(sql, T::class).use { stream ->
+            block(stream.asSequence())
+        }
+    }
+
+    inline fun <reified A : Any?, reified B : Any?> queryTwoColumns(
+        template: CharSequence,
+        condition: Any? = null
+    ): List<Pair<A, B>> = queryTwoColumns(template, condition, Sequence<Pair<A, B>>::toList)
+
+    inline fun <reified A : Any?, reified B : Any?, R> queryTwoColumns(
+        template: CharSequence,
+        condition: Any? = null,
+        block: (Sequence<Pair<A, B>>) -> R
+    ): R {
+        val ctx = config.objectMetaFactory.toMap(condition)
+        val sql = config.sqlBuilder.build(template, ctx)
+        return `access$streamTwoColumns`<A, B>(sql, A::class, B::class).use { stream ->
+            block(stream.asSequence())
+        }
+    }
+
+    inline fun <reified A : Any?, reified B : Any?, reified C : Any?> queryThreeColumns(
+        template: CharSequence,
+        condition: Any? = null
+    ): List<Triple<A, B, C>> = queryThreeColumns(template, condition, Sequence<Triple<A, B, C>>::toList)
+
+    inline fun <reified A : Any?, reified B : Any?, reified C : Any?, R> queryThreeColumns(
+        template: CharSequence,
+        condition: Any? = null,
+        block: (Sequence<Triple<A, B, C>>) -> R
+    ): R {
+        val ctx = config.objectMetaFactory.toMap(condition)
+        val sql = config.sqlBuilder.build(template, ctx)
+        return `access$streamThreeColumns`<A, B, C>(sql, A::class, B::class, C::class).use { stream ->
+            block(stream.asSequence())
         }
     }
 
     inline fun <reified T : Any> paginate(
         template: CharSequence,
-        condition: Any = empty,
+        condition: Any? = null,
         limit: Int?,
         offset: Int?
     ): Pair<List<T>, Int> {
@@ -114,157 +149,77 @@ class Db(val config: DbConfig) {
         return list to count
     }
 
-    inline fun <reified T : Any?> queryOneColumn(
-        template: CharSequence,
-        condition: Any = empty
-    ): List<T> {
-        return `access$streamOneColumn`<T>(template, condition, T::class).use {
-            it.toList()
-        }
-    }
-
-    inline fun <reified T : Any?, R> queryOneColumn(
-        template: CharSequence,
-        condition: Any = empty,
-        block: (Sequence<T>) -> R
-    ): R {
-        return `access$streamOneColumn`<T>(template, condition, T::class).use {
-            block(it.asSequence())
-        }
-    }
-
-    inline fun <reified A : Any?, reified B : Any?> queryTwoColumns(
-        template: CharSequence,
-        condition: Any = empty
-    ): List<Pair<A, B>> {
-        return `access$streamTwoColumns`<A, B>(template, condition, A::class, B::class).use {
-            it.toList()
-        }
-    }
-
-    inline fun <reified A : Any?, reified B : Any?, R> queryTwoColumns(
-        template: CharSequence,
-        condition: Any = empty,
-        block: (Sequence<Pair<A, B>>) -> R
-    ): R {
-        return `access$streamTwoColumns`<A, B>(template, condition, A::class, B::class).use {
-            block(it.asSequence())
-        }
-    }
-
-    inline fun <reified A : Any?, reified B : Any?, reified C : Any?> queryThreeColumns(
-        template: CharSequence,
-        condition: Any = empty
-    ): List<Triple<A, B, C>> {
-        return `access$streamThreeColumns`<A, B, C>(template, condition, A::class, B::class, C::class).use {
-            it.toList()
-        }
-    }
-
-    inline fun <reified A : Any?, reified B : Any?, reified C : Any?, R> queryThreeColumns(
-        template: CharSequence,
-        condition: Any = empty,
-        block: (Sequence<Triple<A, B, C>>) -> R
-    ): R {
-        return `access$streamThreeColumns`<A, B, C>(template, condition, A::class, B::class, C::class).use {
-            block(it.asSequence())
+    private fun streamMultiEntity(
+        sql: Sql,
+        meta: MultiEntityMeta
+    ): Stream<List<Any>> = executeQuery(sql) { rs ->
+        fromResultSetToStream(rs) {
+            val row = mutableMapOf<PropMeta<*, *>, Any?>()
+            for ((i, propMeta) in meta.leafPropMetaList.withIndex()) {
+                val value = config.dialect.getValue(it, i + 1, propMeta.type)
+                row[propMeta] = value
+            }
+            meta.new(row)
         }
     }
 
     private fun <T : Any> streamEntity(
         sql: Sql,
         meta: EntityMeta<T>
-    ): Stream<T> {
-        return executeQuery(sql) { rs ->
-            val propMetaMap = mutableMapOf<Int, PropMeta<*, *>>()
-            val metaData = rs.metaData
-            val count = metaData.columnCount
-            for (i in 1..count) {
-                val label = metaData.getColumnLabel(i).toLowerCase()
-                val propMeta = meta.columnLabelMap[label] ?: continue
-                propMetaMap[i] = propMeta
-            }
-            fromResultSetToStream(rs) {
-                val row = mutableMapOf<PropMeta<*, *>, Any?>()
-                for ((index, propMeta) in propMetaMap) {
-                    val value = config.dialect.getValue(it, index, propMeta.type)
-                    row[propMeta] = value
-                }
-                meta.new(row)
-            }
+    ): Stream<T> = executeQuery(sql) { rs ->
+        val propMetaMap = mutableMapOf<Int, PropMeta<*, *>>()
+        val metaData = rs.metaData
+        val count = metaData.columnCount
+        for (i in 1..count) {
+            val label = metaData.getColumnLabel(i).toLowerCase()
+            val propMeta = meta.columnLabelMap[label] ?: continue
+            propMetaMap[i] = propMeta
         }
-    }
-
-    private fun streamMultiEntity(
-        sql: Sql,
-        propMetaList: List<PropMeta<*, *>>,
-        provider: (leaves: Map<PropMeta<*, *>, Any?>) -> List<Any>
-    ): Stream<List<Any>> {
-        return executeQuery(sql) { rs ->
-            fromResultSetToStream(rs) {
-                val row = mutableMapOf<PropMeta<*, *>, Any?>()
-                val metaData = rs.metaData
-                val count = metaData.columnCount
-                for (i in 1..count) {
-                    val propMeta = propMetaList[i - 1]
-                    val value = config.dialect.getValue(it, i, propMeta.type)
-                    row[propMeta] = value
-                }
-                provider(row)
+        fromResultSetToStream(rs) {
+            val row = mutableMapOf<PropMeta<*, *>, Any?>()
+            for ((index, propMeta) in propMetaMap) {
+                val value = config.dialect.getValue(it, index, propMeta.type)
+                row[propMeta] = value
             }
+            meta.new(row)
         }
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun <T : Any?> streamOneColumn(
-        template: CharSequence,
-        condition: Any = empty,
+        sql: Sql,
         type: KClass<*>
-    ): Stream<T> {
-        val ctx = config.objectMetaFactory.toMap(condition)
-        val sql = config.sqlBuilder.build(template, ctx)
-        return executeQuery(sql) { rs ->
-            fromResultSetToStream(rs) {
-                config.dialect.getValue(it, 1, type) as T
-            }
+    ): Stream<T> = executeQuery(sql) { rs ->
+        fromResultSetToStream(rs) {
+            config.dialect.getValue(it, 1, type) as T
         }
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun <A : Any?, B : Any?> streamTwoColumns(
-        template: CharSequence,
-        condition: Any = empty,
+        sql: Sql,
         firstType: KClass<*>,
         secondType: KClass<*>
-    ): Stream<Pair<A, B>> {
-        val ctx = config.objectMetaFactory.toMap(condition)
-        val sql = config.sqlBuilder.build(template, ctx)
-        return executeQuery(sql) { rs ->
-            fromResultSetToStream(rs) {
-                val first = config.dialect.getValue(it, 1, firstType) as A
-                val second = config.dialect.getValue(it, 2, secondType) as B
-                first to second
-            }
+    ): Stream<Pair<A, B>> = executeQuery(sql) { rs ->
+        fromResultSetToStream(rs) {
+            val first = config.dialect.getValue(it, 1, firstType) as A
+            val second = config.dialect.getValue(it, 2, secondType) as B
+            first to second
         }
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun <A : Any?, B : Any?, C : Any?> streamThreeColumns(
-        template: CharSequence,
-        condition: Any = empty,
+        sql: Sql,
         firstType: KClass<*>,
         secondType: KClass<*>,
         thirdType: KClass<*>
-    ): Stream<Triple<A, B, C>> {
-        val ctx = config.objectMetaFactory.toMap(condition)
-        val sql = config.sqlBuilder.build(template, ctx)
-        return executeQuery(sql) { rs ->
-            fromResultSetToStream(rs) {
-                val first = config.dialect.getValue(it, 1, firstType) as A
-                val second = config.dialect.getValue(it, 2, secondType) as B
-                val third = config.dialect.getValue(it, 3, thirdType) as C
-                Triple(first, second, third)
-            }
+    ): Stream<Triple<A, B, C>> = executeQuery(sql) { rs ->
+        fromResultSetToStream(rs) {
+            val first = config.dialect.getValue(it, 1, firstType) as A
+            val second = config.dialect.getValue(it, 2, secondType) as B
+            val third = config.dialect.getValue(it, 3, thirdType) as C
+            Triple(first, second, third)
         }
     }
 
@@ -469,9 +424,7 @@ class Db(val config: DbConfig) {
                 newEntity to config.entitySqlBuilder.buildInsert(meta, newEntity, option)
             }
         }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
-            acc.first.add(e)
-            acc.second.add(s)
-            acc
+            acc.also { it.first.add(e); it.second.add(s) }
         }
         val counts = try {
             `access$executeBatch`(sqls)
@@ -497,9 +450,7 @@ class Db(val config: DbConfig) {
                 newEntity to config.entitySqlBuilder.buildDelete(meta, newEntity, option)
             }
         }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
-            acc.first.add(e)
-            acc.second.add(s)
-            acc
+            acc.also { it.first.add(e); it.second.add(s) }
         }
         val counts = `access$executeBatch`(sqls)
         if (!option.ignoreVersion && meta.version != null && counts.any { it != 1 }) {
@@ -523,9 +474,7 @@ class Db(val config: DbConfig) {
                 newEntity to config.entitySqlBuilder.buildUpdate(meta, entity, newEntity, option)
             }
         }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
-            acc.first.add(e)
-            acc.second.add(s)
-            acc
+            acc.also { it.first.add(e); it.second.add(s) }
         }
         val counts = try {
             `access$executeBatch`(sqls)
@@ -586,9 +535,7 @@ class Db(val config: DbConfig) {
                 newEntity to buildMerge(meta, entity, newEntity, keys.toList(), insertOption, updateOption)
             }
         }.fold(ArrayList<T>(size) to ArrayList<Sql>(size)) { acc, (e, s) ->
-            acc.first.add(e)
-            acc.second.add(s)
-            acc
+            acc.also { it.first.add(e); it.second.add(s) }
         }
         val counts = try {
             `access$executeBatch`(sqls)
@@ -627,7 +574,7 @@ class Db(val config: DbConfig) {
         }
     }
 
-    fun executeUpdate(template: CharSequence, condition: Any = empty): Int {
+    fun executeUpdate(template: CharSequence, condition: Any? = null): Int {
         val ctx = config.objectMetaFactory.toMap(condition)
         val sql = config.sqlBuilder.build(template, ctx)
         return executeUpdate(sql)
@@ -637,34 +584,24 @@ class Db(val config: DbConfig) {
         executeUpdate(Sql(statements.toString(), emptyList(), null))
     }
 
-    fun createArrayOf(typeName: String, elements: List<*>): java.sql.Array {
-        return config.connection.use {
-            it.createArrayOf(typeName, elements.toTypedArray())
-        }
+    fun createArrayOf(typeName: String, elements: List<*>): java.sql.Array = config.connection.use {
+        it.createArrayOf(typeName, elements.toTypedArray())
     }
 
-    fun createBlob(): Blob {
-        return config.connection.use {
-            it.createBlob()
-        }
+    fun createBlob(): Blob = config.connection.use {
+        it.createBlob()
     }
 
-    fun createClob(): Clob {
-        return config.connection.use {
-            it.createClob()
-        }
+    fun createClob(): Clob = config.connection.use {
+        it.createClob()
     }
 
-    fun createNClob(): NClob {
-        return config.connection.use {
-            it.createNClob()
-        }
+    fun createNClob(): NClob = config.connection.use {
+        it.createNClob()
     }
 
-    fun createSQLXML(): SQLXML {
-        return config.connection.use {
-            it.createSQLXML()
-        }
+    fun createSQLXML(): SQLXML = config.connection.use {
+        it.createSQLXML()
     }
 
     private fun log(sql: Sql) = config.logger.logSql(sql)
@@ -694,40 +631,40 @@ class Db(val config: DbConfig) {
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
-    internal fun <T : Any> `access$streamEntity`(sql: Sql, meta: EntityMeta<T>) = streamEntity(sql, meta)
-
-    @PublishedApi
-    @Suppress("UNUSED", "FunctionName")
     internal fun `access$streamMultiEntity`(
-        sql: Sql, propMetaList: List<PropMeta<*, *>>,
-        provider: (leaves: Map<PropMeta<*, *>, Any?>) -> List<Any>
-    ) = streamMultiEntity(sql, propMetaList, provider)
+        sql: Sql,
+        meta: MultiEntityMeta
+    ) = streamMultiEntity(sql, meta)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
-    internal fun <T : Any?> `access$streamOneColumn`(template: CharSequence, condition: Any, type: KClass<*>) =
-        streamOneColumn<T>(template, condition, type)
+    internal fun <T : Any> `access$streamEntity`(
+        sql: Sql,
+        meta: EntityMeta<T>
+    ) = streamEntity(sql, meta)
+
+    @PublishedApi
+    @Suppress("UNUSED", "FunctionName")
+    internal fun <T : Any?> `access$streamOneColumn`(
+        sql: Sql, type: KClass<*>
+    ) = streamOneColumn<T>(sql, type)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
     internal fun <A : Any?, B : Any?> `access$streamTwoColumns`(
-        template: CharSequence,
-        condition: Any,
+        sql: Sql,
         firstType: KClass<*>,
         secondType: KClass<*>
-    ) =
-        streamTwoColumns<A, B>(template, condition, firstType, secondType)
+    ) = streamTwoColumns<A, B>(sql, firstType, secondType)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
     internal fun <A : Any?, B : Any?, C : Any?> `access$streamThreeColumns`(
-        template: CharSequence,
-        condition: Any,
+        sql: Sql,
         firstType: KClass<*>,
         secondType: KClass<*>,
         thirdType: KClass<*>
-    ) =
-        streamThreeColumns<A, B, C>(template, condition, firstType, secondType, thirdType)
+    ) = streamThreeColumns<A, B, C>(sql, firstType, secondType, thirdType)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")

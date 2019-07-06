@@ -9,23 +9,23 @@ import kotlin.reflect.full.memberProperties
 
 interface ObjectMetaFactory {
     fun <T : Any> get(clazz: KClass<T>): ObjectMeta
-    fun toMap(any: Any): Map<String, Value>
+    fun toMap(obj: Any?): Map<String, Value>
 }
 
 open class DefaultObjectMetaFactory : ObjectMetaFactory {
 
     private val cache = ConcurrentHashMap<KClass<*>, ObjectMeta>()
 
-    override fun <T : Any> get(clazz: KClass<T>): ObjectMeta {
-        return cache.computeIfAbsent(clazz) { c ->
-            val props: Collection<KProperty1<*, *>> = c.memberProperties.filter { it.visibility == KVisibility.PUBLIC }
-            ObjectMeta(props)
-        }
+    override fun <T : Any> get(clazz: KClass<T>): ObjectMeta = cache.computeIfAbsent(clazz) { c ->
+        val props: Collection<KProperty1<*, *>> = c.memberProperties.filter { it.visibility == KVisibility.PUBLIC }
+        ObjectMeta(props)
     }
 
-    override fun toMap(any: Any): Map<String, Value> {
-        val meta = get(any::class)
-        return meta.toMap(any)
+    override fun toMap(obj: Any?): Map<String, Value> = if (obj == null) {
+        emptyMap()
+    } else {
+        val meta = get(obj::class)
+        meta.toMap(obj)
     }
 
 }

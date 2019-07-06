@@ -34,6 +34,7 @@ open class DefaultPropMetaFactory(
         val type = consParam.type.jvmErasure
         @Suppress("UNCHECKED_CAST")
         val deepGetter: (Any) -> Any? = { entity -> receiverResolver(entity)?.let { prop.call(it) } }
+        @Suppress("UNCHECKED_CAST")
         val kind = determineKind(type, consParam, prop, hierarchy, deepGetter) as PropKind<R>
         val column = consParam.findAnnotation<Column>()
         val name = column?.name ?: namingStrategy.fromKotlinToDb(consParam.name!!)
