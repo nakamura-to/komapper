@@ -8,5 +8,6 @@ data class Criteria(
     val where: WhereScope,
     val orderBy: OrderByScope,
     val limit: Int?,
-    val offset: Int?
+    val offset: Int?,
+    val forUpdate: ForUpdateScope?
 )

@@ -55,6 +55,12 @@ class CriteriaProcessor(
             }
             limit?.let { buf.append(" limit $limit") }
             offset?.let { buf.append(" offset $offset") }
+            forUpdate?.let {
+                buf.append(" for update")
+                if (forUpdate.nowait) {
+                    buf.append(" nowait")
+                }
+            }
         }
 
         return buf.toSql()

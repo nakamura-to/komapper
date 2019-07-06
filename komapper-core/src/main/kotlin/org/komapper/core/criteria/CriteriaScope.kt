@@ -27,6 +27,8 @@ class CriteriaScope<T : Any>(private val type: KClass<T>) {
 
     var offset: Int? = null
 
+    var forUpdate: ForUpdateScope? = null
+
     inline fun <reified S : Any> innerJoin(
         on: OnScope.() -> Unit,
         noinline block: (T, S) -> Unit = { _, _ -> }
@@ -61,8 +63,14 @@ class CriteriaScope<T : Any>(private val type: KClass<T>) {
         offset = OffsetScope.block()
     }
 
+    fun forUpdate(block: ForUpdateScope.() -> Unit) {
+        val forUpdate = ForUpdateScope()
+        forUpdate.block()
+        this.forUpdate = forUpdate
+    }
+
     internal operator fun invoke(): Criteria {
-        return Criteria(type, joins, where, orderBy, limit, offset)
+        return Criteria(type, joins, where, orderBy, limit, offset, forUpdate)
     }
 }
 

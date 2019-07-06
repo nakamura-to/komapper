@@ -633,6 +633,30 @@ internal class DbTest {
         }
 
         @Test
+        fun forUpdate() {
+            val db = Db(config)
+            val list = db.select<Address> {
+                where {
+                    Address::addressId ge 1
+                }
+                orderBy {
+                    Address::addressId.desc()
+                }
+                limit { 2 }
+                offset { 5 }
+                forUpdate {
+                    nowait()
+                }
+            }
+            assertEquals(
+                listOf(
+                    Address(10, "STREET 10", 1),
+                    Address(9, "STREET 9", 1)
+                ), list
+            )
+        }
+
+        @Test
         fun embedded() {
             val db = Db(config)
             val list = db.select<Employee> {
