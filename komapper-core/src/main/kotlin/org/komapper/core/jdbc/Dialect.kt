@@ -84,9 +84,11 @@ abstract class AbstractDialect : Dialect {
     override fun supportsUpsert(): Boolean = false
 }
 
-open class H2Dialect : AbstractDialect() {
+open class H2Dialect(val version: Version = Version.V1_4) : AbstractDialect() {
 
     companion object {
+        enum class Version { V1_4 }
+
         /** the error code that represents unique violation  */
         const val UNIQUE_CONSTRAINT_VIOLATION_ERROR_CODE = 23505
     }
@@ -105,9 +107,11 @@ open class H2Dialect : AbstractDialect() {
     override fun supportsUpsert(): Boolean = false
 }
 
-open class PostgreSqlDialect : AbstractDialect() {
+open class PostgreSqlDialect(val version: Version = Version.V10) : AbstractDialect() {
 
     companion object {
+        enum class Version { V10 }
+
         /** the state code that represents unique violation  */
         const val UNIQUE_CONSTRAINT_VIOLATION_STATE_CODE = "23505"
     }
