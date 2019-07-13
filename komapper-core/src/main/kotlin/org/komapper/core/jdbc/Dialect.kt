@@ -6,6 +6,7 @@ import java.sql.*
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.OffsetDateTime
 import java.util.regex.Pattern
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
@@ -68,6 +69,7 @@ abstract class AbstractDialect : Dialect {
         type == LocalTime::class -> LocalTimeType
         type == Long::class -> LongType
         type == NClob::class -> NClobType
+        type == OffsetDateTime::class -> OffsetDateTimeType
         type == Short::class -> ShortType
         type == String::class -> StringType
         type == SQLXML::class -> SQLXMLType

@@ -13,9 +13,7 @@ import org.komapper.core.sql.Sql
 import java.io.Serializable
 import java.math.BigDecimal
 import java.math.BigInteger
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
+import java.time.*
 
 @Suppress("UNUSED")
 internal class DbTest {
@@ -209,6 +207,7 @@ internal class DbTest {
                     CREATE TABLE LOCAL_DATE_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE DATE);
                     CREATE TABLE LOCAL_TIME_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE TIME);
                     CREATE TABLE LONG_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE BIGINT);
+                    CREATE TABLE OFFSET_DATE_TIME_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE TIMESTAMP WITH TIME ZONE);
                     CREATE TABLE SHORT_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE SMALLINT);
                     CREATE TABLE STRING_TEST(ID INTEGER NOT NULL PRIMARY KEY, VALUE VARCHAR(20));
 
@@ -1902,6 +1901,20 @@ internal class DbTest {
             val data = LongTest(1, 10L)
             db.insert(data)
             val data2 = db.findById<LongTest>(1)
+            assertEquals(data, data2)
+        }
+
+        @Test
+        fun offsetDateTime() {
+            data class OffsetDateTimeTest(@Id val id: Int, val value: OffsetDateTime)
+
+            val db = Db(config)
+            val dateTime = LocalDateTime.of(2019, 6, 1, 12, 11, 10)
+            val offset = ZoneOffset.ofHours(9)
+            val value = OffsetDateTime.of(dateTime, offset)
+            val data = OffsetDateTimeTest(1, value)
+            db.insert(data)
+            val data2 = db.findById<OffsetDateTimeTest>(1)
             assertEquals(data, data2)
         }
 

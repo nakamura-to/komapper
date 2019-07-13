@@ -7,6 +7,7 @@ import java.sql.Array
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.OffsetDateTime
 import kotlin.reflect.KClass
 
 interface JdbcType<T> {
@@ -43,6 +44,17 @@ abstract class AbstractJdbcType<T>(protected val sqlType: Int) : JdbcType<T> {
 
     open fun doToString(value: T): String {
         return value.toString()
+    }
+}
+
+object AnyType : AbstractJdbcType<Any>(Types.OTHER) {
+
+    override fun doGetValue(rs: ResultSet, index: Int): Any? {
+        return rs.getObject(index)
+    }
+
+    override fun doSetValue(ps: PreparedStatement, index: Int, value: Any) {
+        ps.setObject(index, value, sqlType)
     }
 }
 
@@ -266,14 +278,18 @@ object NClobType : AbstractJdbcType<NClob>(Types.NCLOB) {
     }
 }
 
-object AnyType : AbstractJdbcType<Any>(Types.OTHER) {
+object OffsetDateTimeType : AbstractJdbcType<OffsetDateTime>(Types.TIMESTAMP_WITH_TIMEZONE) {
 
-    override fun doGetValue(rs: ResultSet, index: Int): Any? {
-        return rs.getObject(index)
+    override fun doGetValue(rs: ResultSet, index: Int): OffsetDateTime? {
+        return rs.getObject(index, OffsetDateTime::class.java)
     }
 
-    override fun doSetValue(ps: PreparedStatement, index: Int, value: Any) {
-        ps.setObject(index, value, sqlType)
+    override fun doSetValue(ps: PreparedStatement, index: Int, value: OffsetDateTime) {
+        ps.setObject(index, value)
+    }
+
+    override fun doToString(value: OffsetDateTime): String {
+        return "'$value'"
     }
 }
 

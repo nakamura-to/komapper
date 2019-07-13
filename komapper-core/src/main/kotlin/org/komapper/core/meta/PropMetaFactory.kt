@@ -2,6 +2,7 @@ package org.komapper.core.meta
 
 import org.komapper.core.*
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
@@ -98,13 +99,15 @@ open class DefaultPropMetaFactory(
     protected open fun createdAtKind(type: KClass<*>, consParam: KParameter, prop: KProperty1<*, *>): PropKind<*> =
         when (type) {
             LocalDateTime::class -> PropKind.CreatedAt(LocalDateTime::now)
-            else -> error("The @CreatedAt parameter must be LocalDateTime.")
+            OffsetDateTime::class -> PropKind.CreatedAt(OffsetDateTime::now)
+            else -> error("The @CreatedAt parameter must be either LocalDateTime or OffsetDateTime.")
         }
 
     protected open fun updatedAtKind(type: KClass<*>, consParam: KParameter, prop: KProperty1<*, *>): PropKind<*> =
         when (type) {
             LocalDateTime::class -> PropKind.UpdatedAt(LocalDateTime::now)
-            else -> error("The @UpdatedAt parameter must be LocalDateTime.")
+            OffsetDateTime::class -> PropKind.UpdatedAt(OffsetDateTime::now)
+            else -> error("The @UpdatedAt parameter must be either LocalDateTime or OffsetDateTime.")
         }
 
     protected open fun embeddedKind(
