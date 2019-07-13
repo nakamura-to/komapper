@@ -3,11 +3,7 @@ package org.komapper.core.expr
 import org.komapper.core.value.Value
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
-import kotlin.reflect.full.isSubclassOf
-import kotlin.reflect.full.memberFunctions
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.full.valueParameters
-import kotlin.reflect.jvm.isAccessible
+import kotlin.reflect.full.*
 import kotlin.reflect.jvm.jvmErasure
 
 interface ExprEvaluator {
@@ -16,12 +12,8 @@ interface ExprEvaluator {
 
 class DefaultExprEvaluator(
     private val exprNodeFactory: ExprNodeFactory,
-    private val extensions: List<KCallable<Any?>> = emptyList()
+    private val exprExtensions: ExprExtensions
 ) : ExprEvaluator {
-
-    init {
-        extensions.forEach { it.isAccessible = true }
-    }
 
     // used to distinguish multiple arguments from a single List
     class ArgList : ArrayList<Any?>()
@@ -175,23 +167,14 @@ class DefaultExprEvaluator(
     private fun findProperty(name: String, receiverType: KClass<*>): KCallable<*>? {
         fun predicate(callable: KCallable<*>) =
             name == callable.name && callable.valueParameters.isEmpty()
-
-        val property = receiverType.memberProperties.find(::predicate)
-        if (property != null) {
-            return property
-        }
-        return extensions.find(::predicate)
+        return receiverType.memberProperties.find(::predicate)
+            ?: exprExtensions.topLevelPropertyExtensions.find(::predicate)
     }
 
     private fun visitFunction(node: ExprNode.Function, ctx: Map<String, Value>): Value {
         val (receiver, receiverType) = visit(node.receiver, ctx)
         val (args) = visit(node.args, ctx)
-        val arguments = when (args) {
-            Unit -> listOf(receiver)
-            is ArgList -> listOf(receiver) + args
-            else -> listOf(receiver, args)
-        }
-        val function = findFunction(node.name, receiverType, arguments)
+        val (function, arguments) = findFunction(node.name, receiverType, receiver, args)
             ?: throw ExprException("The function \"${node.name}\" is not found at ${node.location}")
         if (receiver == null && node.safeCall) {
             return Value(null, function.returnType)
@@ -203,18 +186,29 @@ class DefaultExprEvaluator(
         }
     }
 
-    private fun findFunction(name: String, receiverType: KClass<*>, args: List<*>): KCallable<*>? {
-        fun predicate(callable: KCallable<*>) =
-            if (name == callable.name && args.size == callable.parameters.size) {
-                args.zip(callable.parameters).all { (arg, param) ->
-                    arg == null || arg::class.isSubclassOf(param.type.jvmErasure)
-                }
-            } else false
-
-        val function = receiverType.memberFunctions.find(::predicate)
-        if (function != null) {
-            return function
+    private fun findFunction(
+        name: String,
+        receiverType: KClass<*>,
+        receiver: Any?,
+        args: Any?
+    ): Pair<KCallable<*>, List<Any?>>? {
+        fun Collection<KCallable<*>>.pick(arguments: List<Any?>): Pair<KCallable<*>, List<Any?>>? {
+            return this.filter { callable ->
+                if (name == callable.name && arguments.size == callable.parameters.size) {
+                    arguments.zip(callable.parameters).all { (argument, param) ->
+                        argument == null || argument::class.isSubclassOf(param.type.jvmErasure)
+                    }
+                } else false
+            }.map { it to arguments }.firstOrNull()
         }
-        return extensions.find(::predicate)
+
+        val arguments = when (args) {
+            Unit -> listOf(receiver)
+            is ArgList -> listOf(receiver) + args
+            else -> listOf(receiver, args)
+        }
+        return receiverType.memberFunctions.pick(arguments)
+            ?: exprExtensions.topLevelFunctionExtensions.pick(arguments)
+            ?: exprExtensions::class.memberExtensionFunctions.pick(listOf(exprExtensions) + arguments)
     }
 }

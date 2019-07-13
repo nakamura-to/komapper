@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.komapper.core.expr.DefaultExprEvaluator
+import org.komapper.core.expr.DefaultExprExtensions
 import org.komapper.core.expr.NoCacheExprNodeFactory
 import org.komapper.core.value.Value
 
@@ -14,7 +15,10 @@ class DefaultSqlBuilderTest {
     private val sqlBuilder = DefaultSqlBuilder(
         { value, _ -> if (value is CharSequence) "'$value'" else value.toString() },
         sqlNodeFactory = NoCacheSqlNodeFactory(),
-        exprEvaluator = DefaultExprEvaluator(NoCacheExprNodeFactory())
+        exprEvaluator = DefaultExprEvaluator(
+            NoCacheExprNodeFactory(),
+            DefaultExprExtensions { it }
+        )
     )
 
     @Test

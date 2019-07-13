@@ -1,9 +1,6 @@
 package org.komapper.core
 
-import org.komapper.core.expr.CacheExprNodeFactory
-import org.komapper.core.expr.DefaultExprEvaluator
-import org.komapper.core.expr.ExprEvaluator
-import org.komapper.core.expr.ExprNodeFactory
+import org.komapper.core.expr.*
 import org.komapper.core.jdbc.Dialect
 import org.komapper.core.logging.Logger
 import org.komapper.core.logging.StdoutLogger
@@ -37,8 +34,10 @@ data class DbConfig(
         dialect::formatValue
     ),
     val exprNodeFactory: ExprNodeFactory = CacheExprNodeFactory(),
+    val exprExtensions: ExprExtensions = DefaultExprExtensions(dialect::escape),
     val exprEvaluator: ExprEvaluator = DefaultExprEvaluator(
-        exprNodeFactory
+        exprNodeFactory,
+        exprExtensions
     ),
     val sqlNodeFactory: SqlNodeFactory = CacheSqlNodeFactory(),
     val sqlRewriter: SqlRewriter = DefaultSqlRewriter(sqlNodeFactory),

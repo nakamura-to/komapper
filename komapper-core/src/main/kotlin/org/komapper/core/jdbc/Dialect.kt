@@ -6,12 +6,14 @@ import java.sql.*
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.util.regex.Pattern
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 
 interface Dialect {
     val openQuote: String
     val closeQuote: String
+    val escapePattern: Pattern
     fun getValue(rs: ResultSet, index: Int, valueClass: KClass<*>): Any?
     fun setValue(stmt: PreparedStatement, index: Int, value: Any?, valueClass: KClass<*>)
     fun formatValue(value: Any?, valueClass: KClass<*>): String
@@ -20,12 +22,14 @@ interface Dialect {
     fun quote(name: String): String
     fun supportsMerge(): Boolean
     fun supportsUpsert(): Boolean
+    fun escape(text: CharSequence): CharSequence
 }
 
 abstract class AbstractDialect : Dialect {
 
     override val openQuote: String = "\""
     override val closeQuote: String = "\""
+    override val escapePattern = Pattern.compile("""[\\_%]""")
 
     override fun getValue(rs: ResultSet, index: Int, valueClass: KClass<*>): Any? {
         val jdbcType = getJdbcType(valueClass)
@@ -82,6 +86,11 @@ abstract class AbstractDialect : Dialect {
     override fun supportsMerge(): Boolean = false
 
     override fun supportsUpsert(): Boolean = false
+
+    override fun escape(text: CharSequence): CharSequence {
+        val matcher = escapePattern.matcher(text)
+        return matcher.replaceAll("""\\$0""")
+    }
 }
 
 open class H2Dialect(val version: Version = Version.V1_4) : AbstractDialect() {

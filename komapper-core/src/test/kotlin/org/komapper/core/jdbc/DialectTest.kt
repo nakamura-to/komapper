@@ -40,4 +40,10 @@ internal class AbstractDialectTest {
         assertEquals("\"aaa\"", dialect.quote("aaa"))
         assertEquals("\"aaa\".\"bbb\".\"ccc\"", dialect.quote("aaa.bbb.ccc"))
     }
+
+    @Test
+    fun escape() {
+        assertEquals("""a\%b\_c\\d""", dialect.escape("""a%b_c\d"""))
+    }
+
 }

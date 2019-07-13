@@ -8,7 +8,10 @@ import org.komapper.core.value.Value
 
 class ExprEvaluatorTest {
 
-    private val evaluator = DefaultExprEvaluator(NoCacheExprNodeFactory())
+    private val evaluator = DefaultExprEvaluator(
+        NoCacheExprNodeFactory(),
+        DefaultExprExtensions { it }
+    )
 
     data class Person(val id: Int, val name: String, val age: Int?)
 
@@ -337,12 +340,8 @@ class ExprEvaluatorTest {
 
         @Test
         fun extensionProperty() {
-            val extensions = listOf(String::lastIndex)
             val ctx = mapOf("a" to Value("abc"))
-            val result = DefaultExprEvaluator(
-                NoCacheExprNodeFactory(),
-                extensions
-            ).eval("a.lastIndex", ctx)
+            val result = evaluator.eval("a.lastIndex", ctx)
             assertEquals(Value(2), result)
         }
 
@@ -394,24 +393,22 @@ class ExprEvaluatorTest {
 
         @Test
         fun extensionFunction() {
-            val extensionFunctions = listOf(String::isBlank)
             val ctx = mapOf("s" to Value(""))
-            val result = DefaultExprEvaluator(
-                NoCacheExprNodeFactory(),
-                extensionFunctions
-            ).eval("s.isBlank()", ctx)
+            val result = evaluator.eval("s.isBlank()", ctx)
             assertEquals(Value(true), result)
         }
 
         @Test
+        fun memberExtensionFunction() {
+            val ctx = mapOf("s" to Value("abc"))
+            val result = evaluator.eval("s.asPrefix()", ctx)
+            assertEquals(Value("abc%", CharSequence::class), result)
+        }
+
+        @Test
         fun `Call an extension function when the receiver is null`() {
-            val extensionFunctions = listOf(String::isNullOrEmpty)
             val ctx = mapOf("s" to Value(null, Any::class))
-            val result =
-                DefaultExprEvaluator(
-                    NoCacheExprNodeFactory(),
-                    extensionFunctions
-                ).eval("s.isNullOrEmpty()", ctx)
+            val result = evaluator.eval("s.isNullOrEmpty()", ctx)
             assertEquals(Value(true), result)
         }
 
