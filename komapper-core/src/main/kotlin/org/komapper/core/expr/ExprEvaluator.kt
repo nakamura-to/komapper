@@ -12,7 +12,7 @@ interface ExprEvaluator {
 
 class DefaultExprEvaluator(
     private val exprNodeFactory: ExprNodeFactory,
-    private val exprExtensions: ExprExtensions
+    private val exprEnvironment: ExprEnvironment
 ) : ExprEvaluator {
 
     // used to distinguish multiple arguments from a single List
@@ -147,7 +147,7 @@ class DefaultExprEvaluator(
     }
 
     private fun visitValue(node: ExprNode.Value, ctx: Map<String, Value>): Value {
-        return ctx[node.name] ?: Value(null, Any::class)
+        return ctx[node.name] ?: exprEnvironment.ctx[node.name] ?: Value(null, Any::class)
     }
 
     private fun visitProperty(node: ExprNode.Property, ctx: Map<String, Value>): Value {
@@ -168,7 +168,7 @@ class DefaultExprEvaluator(
         fun predicate(callable: KCallable<*>) =
             name == callable.name && callable.valueParameters.isEmpty()
         return receiverType.memberProperties.find(::predicate)
-            ?: exprExtensions.topLevelPropertyExtensions.find(::predicate)
+            ?: exprEnvironment.topLevelPropertyExtensions.find(::predicate)
     }
 
     private fun visitFunction(node: ExprNode.Function, ctx: Map<String, Value>): Value {
@@ -208,7 +208,7 @@ class DefaultExprEvaluator(
             else -> listOf(receiver, args)
         }
         return receiverType.memberFunctions.pick(arguments)
-            ?: exprExtensions.topLevelFunctionExtensions.pick(arguments)
-            ?: exprExtensions::class.memberExtensionFunctions.pick(listOf(exprExtensions) + arguments)
+            ?: exprEnvironment.topLevelFunctionExtensions.pick(arguments)
+            ?: exprEnvironment::class.memberExtensionFunctions.pick(listOf(exprEnvironment) + arguments)
     }
 }

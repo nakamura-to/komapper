@@ -34,10 +34,10 @@ data class DbConfig(
         dialect::formatValue
     ),
     val exprNodeFactory: ExprNodeFactory = CacheExprNodeFactory(),
-    val exprExtensions: ExprExtensions = DefaultExprExtensions(dialect::escape),
+    val exprEnvironment: ExprEnvironment = DefaultExprEnvironment(dialect::escape),
     val exprEvaluator: ExprEvaluator = DefaultExprEvaluator(
         exprNodeFactory,
-        exprExtensions
+        exprEnvironment
     ),
     val sqlNodeFactory: SqlNodeFactory = CacheSqlNodeFactory(),
     val sqlRewriter: SqlRewriter = DefaultSqlRewriter(sqlNodeFactory),

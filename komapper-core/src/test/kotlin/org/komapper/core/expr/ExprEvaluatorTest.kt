@@ -10,7 +10,9 @@ class ExprEvaluatorTest {
 
     private val evaluator = DefaultExprEvaluator(
         NoCacheExprNodeFactory(),
-        DefaultExprExtensions { it }
+        object : DefaultExprEnvironment({ it }) {
+            override val ctx: Map<String, Value> = mapOf("global" to Value("hello"))
+        }
     )
 
     data class Person(val id: Int, val name: String, val age: Int?)
@@ -301,6 +303,13 @@ class ExprEvaluatorTest {
 
     @Nested
     inner class ValueTest {
+        @Test
+        fun global() {
+            val ctx = emptyMap<String, Value>()
+            val result = evaluator.eval("global", ctx)
+            assertEquals(Value("hello"), result)
+        }
+
         @Test
         fun `The value cannot be resolved`() {
             val ctx = emptyMap<String, Value>()

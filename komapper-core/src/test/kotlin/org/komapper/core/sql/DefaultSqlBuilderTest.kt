@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.komapper.core.expr.DefaultExprEnvironment
 import org.komapper.core.expr.DefaultExprEvaluator
-import org.komapper.core.expr.DefaultExprExtensions
 import org.komapper.core.expr.NoCacheExprNodeFactory
 import org.komapper.core.value.Value
 
@@ -17,7 +17,7 @@ class DefaultSqlBuilderTest {
         sqlNodeFactory = NoCacheSqlNodeFactory(),
         exprEvaluator = DefaultExprEvaluator(
             NoCacheExprNodeFactory(),
-            DefaultExprExtensions { it }
+            DefaultExprEnvironment { it }
         )
     )
 

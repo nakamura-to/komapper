@@ -1,14 +1,18 @@
 package org.komapper.core.expr
 
+import org.komapper.core.value.Value
 import kotlin.reflect.KCallable
 import kotlin.reflect.jvm.isAccessible
 
-interface ExprExtensions {
+interface ExprEnvironment {
+    val ctx: Map<String, Value>
     val topLevelPropertyExtensions: List<KCallable<Any?>>
     val topLevelFunctionExtensions: List<KCallable<Any?>>
 }
 
-open class DefaultExprExtensions(val escape: (CharSequence) -> CharSequence) : ExprExtensions {
+open class DefaultExprEnvironment(val escape: (CharSequence) -> CharSequence) : ExprEnvironment {
+
+    override val ctx: Map<String, Value> = emptyMap()
 
     override val topLevelPropertyExtensions: List<KCallable<Any?>> = listOf(
         CharSequence::lastIndex
