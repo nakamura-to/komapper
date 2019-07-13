@@ -1,24 +1,25 @@
 package org.komapper.core.expr
 
 import org.komapper.core.value.Value
-import kotlin.reflect.KCallable
+import kotlin.reflect.KFunction
+import kotlin.reflect.KProperty
 import kotlin.reflect.jvm.isAccessible
 
 interface ExprEnvironment {
     val ctx: Map<String, Value>
-    val topLevelPropertyExtensions: List<KCallable<Any?>>
-    val topLevelFunctionExtensions: List<KCallable<Any?>>
+    val topLevelPropertyExtensions: List<KProperty<*>>
+    val topLevelFunctionExtensions: List<KFunction<*>>
 }
 
 open class DefaultExprEnvironment(val escape: (CharSequence) -> CharSequence) : ExprEnvironment {
 
     override val ctx: Map<String, Value> = emptyMap()
 
-    override val topLevelPropertyExtensions: List<KCallable<Any?>> = listOf(
+    override val topLevelPropertyExtensions: List<KProperty<*>> = listOf(
         CharSequence::lastIndex
     ).onEach { it.isAccessible = true }
 
-    override val topLevelFunctionExtensions: List<KCallable<Any?>> = listOf(
+    override val topLevelFunctionExtensions: List<KFunction<*>> = listOf(
         CharSequence::isBlank,
         CharSequence::isNotBlank,
         CharSequence::isNullOrBlank,

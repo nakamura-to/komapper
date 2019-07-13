@@ -8,6 +8,16 @@ import org.junit.jupiter.api.assertThrows
 class ExprParserTest {
 
     @Test
+    fun classRef() {
+        when (val expr = ExprParser("@aaa.bbb.Ccc@").parse()) {
+            is ExprNode.ClassRef -> {
+                assertEquals("aaa.bbb.Ccc", expr.name)
+            }
+            else -> throw AssertionError(expr)
+        }
+    }
+
+    @Test
     fun gt() {
         when (val expr = ExprParser("aaa > 1").parse()) {
             is ExprNode.Gt -> {

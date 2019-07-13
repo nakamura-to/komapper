@@ -198,6 +198,20 @@ class ExprTokenizer(private val expression: String) {
                 throw ExprException("The end of double quotation mark is not found at $location")
             }
             binaryOpAvailable = true
+        } else if (c == '@') {
+            type = CLASS_REF
+            var closed = false
+            while (buf.hasRemaining()) {
+                val c1 = buf.get()
+                if (c1 == '@') {
+                    closed = true
+                    break
+                }
+            }
+            if (!closed) {
+                throw ExprException("The end of at sign is not found at $location")
+            }
+            binaryOpAvailable = true
         } else if (c == '+' || c == '-') {
             buf.mark()
             if (buf.hasRemaining()) {

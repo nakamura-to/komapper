@@ -17,6 +17,15 @@ class ExprTokenizerTest {
     }
 
     @Test
+    fun classRef() {
+        val tokenizer = ExprTokenizer("@aaa.bbb.Ccc@")
+        assertEquals(CLASS_REF, tokenizer.next())
+        assertEquals("@aaa.bbb.Ccc@", tokenizer.token)
+        assertEquals(EOE, tokenizer.next())
+        assertEquals("", tokenizer.token)
+    }
+
+    @Test
     fun stringLiteral() {
         val tokenizer = ExprTokenizer("\"aaa bbb\"")
         assertEquals(STRING, tokenizer.next())
@@ -33,7 +42,6 @@ class ExprTokenizerTest {
         assertEquals(EOE, tokenizer.next())
         assertEquals("", tokenizer.token)
     }
-
 
     @Test
     fun longLiteral() {
@@ -54,7 +62,6 @@ class ExprTokenizerTest {
     }
 
     @Test
-
     fun doubleLiteral() {
         val tokenizer = ExprTokenizer("+13D")
         assertEquals(DOUBLE, tokenizer.next())

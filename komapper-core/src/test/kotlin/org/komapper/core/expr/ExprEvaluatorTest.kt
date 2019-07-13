@@ -1,10 +1,13 @@
 package org.komapper.core.expr
 
+import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.komapper.core.value.Value
+import kotlin.reflect.jvm.jvmName
 
 class ExprEvaluatorTest {
 
@@ -26,6 +29,30 @@ class ExprEvaluatorTest {
         fun say(name: String, message: String): String {
             return "hello $name, $message"
         }
+
+        companion object {
+            val name = "hello"
+
+            const val constName = "hello const"
+
+            fun greet(name: String): String {
+                return "hello $name!"
+            }
+        }
+    }
+
+    object Hi {
+        val name = "hi"
+
+        const val constName = "hi const"
+
+        fun greet(name: String): String {
+            return "hi $name!"
+        }
+    }
+
+    enum class Direction {
+        NORTH, SOUTH, WEST, EAST
     }
 
     @Nested
@@ -298,6 +325,80 @@ class ExprEvaluatorTest {
                     .eval("!a", ctx)
             }
             println(exception)
+        }
+    }
+
+    @Nested
+    inner class ClassRefTest {
+        @Test
+        fun companionObject() {
+            val ctx = emptyMap<String, Value>()
+            val result = evaluator.eval("@${Hello::class.java.name}@", ctx)
+            assertEquals(Value(Hello), result)
+        }
+
+        @Test
+        fun companionObject_property() {
+            val ctx = emptyMap<String, Value>()
+            val result = evaluator.eval("@${Hello::class.java.name}@.name", ctx)
+            assertEquals(Value(Hello.name), result)
+        }
+
+        @Test
+        fun companionObject_constProperty() {
+            val ctx = emptyMap<String, Value>()
+            val result = evaluator.eval("@${Hello::class.java.name}@.constName", ctx)
+            assertEquals(Value(Hello.constName), result)
+        }
+
+        @Test
+        fun companionObject_function() {
+            val ctx = emptyMap<String, Value>()
+            val result = evaluator.eval("@${Hello::class.java.name}@.greet(\"abc\")", ctx)
+            assertEquals(Value("hello abc!"), result)
+        }
+
+        @Test
+        fun `object`() {
+            val ctx = emptyMap<String, Value>()
+            val result = evaluator.eval("@${Hi::class.java.name}@", ctx)
+            assertEquals(Value(Hi), result)
+        }
+
+        @Test
+        fun object_property() {
+            val ctx = emptyMap<String, Value>()
+            val result = evaluator.eval("@${Hi::class.java.name}@.name", ctx)
+            assertEquals(Value(Hi.name), result)
+        }
+
+        @Test
+        fun object_constProperty() {
+            val ctx = emptyMap<String, Value>()
+            val result = evaluator.eval("@${Hi::class.java.name}@.constName", ctx)
+            assertEquals(Value(Hi.constName), result)
+        }
+
+        @Test
+        fun object_function() {
+            val ctx = emptyMap<String, Value>()
+            val result = evaluator.eval("@${Hi::class.java.name}@.greet(\"abc\")", ctx)
+            assertEquals(Value("hi abc!"), result)
+        }
+
+        @Test
+        fun enum_element() {
+            val ctx = emptyMap<String, Value>()
+            val result = evaluator.eval("@${Direction::class.java.name}@.WEST", ctx)
+            assertEquals(Value(Direction.WEST), result)
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        @Test
+        fun enum_function() {
+            val ctx = emptyMap<String, Value>()
+            val (obj) = evaluator.eval("@${Direction::class.java.name}@.values()", ctx)
+            assertArrayEquals(Direction.values(), obj as Array<Direction>)
         }
     }
 

@@ -26,6 +26,7 @@ class ExprParser(
                 CLOSE_PAREN -> break@outer
                 WHITESPACE -> {
                 }
+                CLASS_REF -> parseClassRef()
                 VALUE -> parseValue()
                 CHAR -> parseCharLiteral()
                 STRING -> parseStringLiteral()
@@ -62,6 +63,12 @@ class ExprParser(
             null -> ExprNode.Empty(location)
             else -> node
         }
+    }
+
+    private fun parseClassRef() {
+        val name = token.substring(1, token.length - 1)
+        val node = ExprNode.ClassRef(location, name)
+        nodes.push(node)
     }
 
     private fun parseValue() {

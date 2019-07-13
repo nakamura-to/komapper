@@ -1,8 +1,9 @@
 package org.komapper.core.expr
 
 import org.komapper.core.value.Value
-import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
+import kotlin.reflect.KProperty
 import kotlin.reflect.full.*
 import kotlin.reflect.jvm.jvmErasure
 
@@ -12,11 +13,18 @@ interface ExprEvaluator {
 
 class DefaultExprEvaluator(
     private val exprNodeFactory: ExprNodeFactory,
-    private val exprEnvironment: ExprEnvironment
+    private val exprEnvironment: ExprEnvironment,
+    private val classResolver: (String) -> Class<*> = { Class.forName(it) }
 ) : ExprEvaluator {
 
     // used to distinguish multiple arguments from a single List
     class ArgList : ArrayList<Any?>()
+
+    sealed class ClassRef {
+        abstract val clazz: Class<*>
+
+        data class EnumRef(override val clazz: Class<Enum<*>>) : ClassRef()
+    }
 
     override fun eval(expression: String, ctx: Map<String, Value>): Value {
         val node = exprNodeFactory.get(expression)
@@ -42,6 +50,7 @@ class DefaultExprEvaluator(
                 List::class
             )
         }
+        is ExprNode.ClassRef -> visitClassRef(node, ctx)
         is ExprNode.Value -> visitValue(node, ctx)
         is ExprNode.Property -> visitProperty(node, ctx)
         is ExprNode.Function -> visitFunction(node, ctx)
@@ -146,44 +155,106 @@ class DefaultExprEvaluator(
         }
     }
 
+    private fun visitClassRef(node: ExprNode.ClassRef, @Suppress("UNUSED_PARAMETER") ctx: Map<String, Value>): Value {
+        val clazz =
+            try {
+                classResolver(node.name)
+            } catch (cause: Exception) {
+                throw ExprException("Failed to resolve the class \"${node.name}\" at ${node.location}. The cause is $cause")
+            }
+        val kClass = clazz.kotlin
+        @Suppress("UNCHECKED_CAST")
+        return when {
+            kClass.objectInstance != null -> Value(kClass.objectInstance!!)
+            kClass.companionObjectInstance != null -> Value(kClass.companionObjectInstance!!)
+            clazz.isEnum -> Value(ClassRef.EnumRef(clazz as Class<Enum<*>>), kClass)
+            else -> error("The unsupported class \"${kClass.qualifiedName}\" is referenced.")
+        }
+    }
+
     private fun visitValue(node: ExprNode.Value, ctx: Map<String, Value>): Value {
         return ctx[node.name] ?: exprEnvironment.ctx[node.name] ?: Value(null, Any::class)
     }
 
     private fun visitProperty(node: ExprNode.Property, ctx: Map<String, Value>): Value {
         val (receiver, receiverType) = visit(node.receiver, ctx)
+        if (receiver is ClassRef.EnumRef) {
+            val enum = receiver.clazz.enumConstants.first { it.name == node.name }
+            return Value(enum)
+        }
         val property = findProperty(node.name, receiverType)
             ?: throw ExprException("The property \"${node.name}\" is not found at ${node.location}")
         if (receiver == null && node.safeCall) {
             return Value(null, property.returnType)
         }
         try {
-            return Value(property.call(receiver), property.returnType)
+            // a const property of an object declaration doesn't accept a receiver
+            val obj = if (property.isConst && !receiverType.isCompanion)
+                property.call()
+            else
+                property.call(receiver)
+            return Value(obj, property.returnType)
         } catch (cause: Exception) {
             throw ExprException("Failed to call the property \"${node.name}\" at ${node.location}. The cause is $cause")
         }
     }
 
-    private fun findProperty(name: String, receiverType: KClass<*>): KCallable<*>? {
-        fun predicate(callable: KCallable<*>) =
-            name == callable.name && callable.valueParameters.isEmpty()
+    private fun findProperty(name: String, receiverType: KClass<*>): KProperty<*>? {
+        fun predicate(property: KProperty<*>) =
+            name == property.name && property.valueParameters.isEmpty()
         return receiverType.memberProperties.find(::predicate)
             ?: exprEnvironment.topLevelPropertyExtensions.find(::predicate)
     }
 
     private fun visitFunction(node: ExprNode.Function, ctx: Map<String, Value>): Value {
+        fun call(function: KFunction<*>, arguments: List<Any?>): Value {
+            try {
+                return Value(function.call(*arguments.toTypedArray()), function.returnType)
+            } catch (cause: Exception) {
+                throw ExprException("Failed to call the function \"${node.name}\" at ${node.location}. The cause is $cause")
+            }
+        }
+
         val (receiver, receiverType) = visit(node.receiver, ctx)
         val (args) = visit(node.args, ctx)
-        val (function, arguments) = findFunction(node.name, receiverType, receiver, args)
-            ?: throw ExprException("The function \"${node.name}\" is not found at ${node.location}")
-        if (receiver == null && node.safeCall) {
-            return Value(null, function.returnType)
+        return if (receiver is ClassRef) {
+            findStaticFunction(node.name, receiverType, args)
+                ?.let { (function, arguments) -> call(function, arguments) }
+                ?: throw ExprException("The static function \"${node.name}\" is not found at ${node.location}")
+        } else {
+            findFunction(node.name, receiverType, receiver, args)
+                ?.let { (function, arguments) ->
+                    if (receiver == null && node.safeCall) {
+                        Value(null, function.returnType)
+                    } else {
+                        call(function, arguments)
+                    }
+                }
+                ?: throw ExprException("The function \"${node.name}\" is not found at ${node.location}")
         }
-        try {
-            return Value(function.call(*arguments.toTypedArray()), function.returnType)
-        } catch (cause: Exception) {
-            throw ExprException("Failed to call the function \"${node.name}\" at ${node.location}. The cause is $cause")
+    }
+
+    private fun findStaticFunction(
+        name: String,
+        receiverType: KClass<*>,
+        args: Any?
+    ): Pair<KFunction<*>, List<Any?>>? {
+        fun Collection<KFunction<*>>.pick(arguments: List<Any?>): Pair<KFunction<*>, List<Any?>>? {
+            return this.filter { function ->
+                if (name == function.name && arguments.size == function.parameters.size) {
+                    arguments.zip(function.parameters).all { (argument, param) ->
+                        argument == null || argument::class.isSubclassOf(param.type.jvmErasure)
+                    }
+                } else false
+            }.map { it to arguments }.firstOrNull()
         }
+
+        val arguments = when (args) {
+            Unit -> emptyList()
+            is ArgList -> args
+            else -> listOf(args)
+        }
+        return receiverType.staticFunctions.pick(arguments)
     }
 
     private fun findFunction(
@@ -191,11 +262,11 @@ class DefaultExprEvaluator(
         receiverType: KClass<*>,
         receiver: Any?,
         args: Any?
-    ): Pair<KCallable<*>, List<Any?>>? {
-        fun Collection<KCallable<*>>.pick(arguments: List<Any?>): Pair<KCallable<*>, List<Any?>>? {
-            return this.filter { callable ->
-                if (name == callable.name && arguments.size == callable.parameters.size) {
-                    arguments.zip(callable.parameters).all { (argument, param) ->
+    ): Pair<KFunction<*>, List<Any?>>? {
+        fun Collection<KFunction<*>>.pick(arguments: List<Any?>): Pair<KFunction<*>, List<Any?>>? {
+            return this.filter { function ->
+                if (name == function.name && arguments.size == function.parameters.size) {
+                    arguments.zip(function.parameters).all { (argument, param) ->
                         argument == null || argument::class.isSubclassOf(param.type.jvmErasure)
                     }
                 } else false
