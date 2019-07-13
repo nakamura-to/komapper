@@ -48,11 +48,11 @@ abstract class AbstractJdbcType<T>(protected val sqlType: Int) : JdbcType<T> {
 
 object ArrayType : AbstractJdbcType<Array>(Types.ARRAY) {
 
-    override fun doGetValue(rs: ResultSet, index: Int): java.sql.Array? {
+    override fun doGetValue(rs: ResultSet, index: Int): Array? {
         return rs.getArray(index)
     }
 
-    override fun doSetValue(ps: PreparedStatement, index: Int, value: java.sql.Array) {
+    override fun doSetValue(ps: PreparedStatement, index: Int, value: Array) {
         ps.setArray(index, value)
     }
 }
@@ -155,21 +155,6 @@ object DoubleType : AbstractJdbcType<Double>(Types.DOUBLE) {
     }
 }
 
-private object DateType : AbstractJdbcType<Date>(Types.DATE) {
-
-    override fun doGetValue(rs: ResultSet, index: Int): Date? {
-        return rs.getDate(index)
-    }
-
-    override fun doSetValue(ps: PreparedStatement, index: Int, value: Date) {
-        ps.setDate(index, value)
-    }
-
-    override fun doToString(value: Date): String {
-        return "'$value'"
-    }
-}
-
 class EnumType(private val kClass: KClass<Enum<*>>) : JdbcType<Enum<*>> {
 
     private val jdbcType = StringType
@@ -214,66 +199,48 @@ object IntType : AbstractJdbcType<Int>(Types.INTEGER) {
     }
 }
 
-object LocalDateTimeType : JdbcType<LocalDateTime> {
+object LocalDateTimeType : AbstractJdbcType<LocalDateTime>(Types.TIMESTAMP) {
 
-    private val jdbcType = TimestampType
-
-    override fun getValue(rs: ResultSet, index: Int): LocalDateTime? {
-        return jdbcType.getValue(rs, index)?.toLocalDateTime()
+    override fun doGetValue(rs: ResultSet, index: Int): LocalDateTime? {
+        return rs.getObject(index, LocalDateTime::class.java)
     }
 
-    override fun setValue(ps: PreparedStatement, index: Int, value: LocalDateTime?) {
-        jdbcType.setValue(ps, index, value?.toTimestamp())
+    override fun doSetValue(ps: PreparedStatement, index: Int, value: LocalDateTime) {
+        ps.setObject(index, value)
     }
 
-    override fun toString(value: LocalDateTime?): String {
-        return jdbcType.toString(value?.toTimestamp())
-    }
-
-    private fun LocalDateTime.toTimestamp(): Timestamp {
-        return Timestamp.valueOf(this)
+    override fun doToString(value: LocalDateTime): String {
+        return "'$value'"
     }
 }
 
-object LocalDateType : JdbcType<LocalDate> {
+object LocalDateType : AbstractJdbcType<LocalDate>(Types.DATE) {
 
-    private val jdbcType = DateType
-
-    override fun getValue(rs: ResultSet, index: Int): LocalDate? {
-        return jdbcType.getValue(rs, index)?.toLocalDate()
+    override fun doGetValue(rs: ResultSet, index: Int): LocalDate? {
+        return rs.getObject(index, LocalDate::class.java)
     }
 
-    override fun setValue(ps: PreparedStatement, index: Int, value: LocalDate?) {
-        jdbcType.setValue(ps, index, value?.toDate())
+    override fun doSetValue(ps: PreparedStatement, index: Int, value: LocalDate) {
+        ps.setObject(index, value)
     }
 
-    override fun toString(value: LocalDate?): String {
-        return jdbcType.toString(value?.toDate())
-    }
-
-    private fun LocalDate.toDate(): Date {
-        return Date.valueOf(this)
+    override fun doToString(value: LocalDate): String {
+        return "'$value'"
     }
 }
 
-object LocalTimeType : JdbcType<LocalTime> {
+object LocalTimeType : AbstractJdbcType<LocalTime>(Types.TIME) {
 
-    private val jdbcType = TimeType
-
-    override fun getValue(rs: ResultSet, index: Int): LocalTime? {
-        return jdbcType.getValue(rs, index)?.toLocalTime()
+    override fun doGetValue(rs: ResultSet, index: Int): LocalTime? {
+        return rs.getObject(index, LocalTime::class.java)
     }
 
-    override fun setValue(ps: PreparedStatement, index: Int, value: LocalTime?) {
-        jdbcType.setValue(ps, index, value?.toTime())
+    override fun doSetValue(ps: PreparedStatement, index: Int, value: LocalTime) {
+        ps.setObject(index, value)
     }
 
-    override fun toString(value: LocalTime?): String {
-        return jdbcType.toString(value?.toTime())
-    }
-
-    private fun LocalTime.toTime(): Time {
-        return Time.valueOf(this)
+    override fun doToString(value: LocalTime): String {
+        return "'$value'"
     }
 }
 
@@ -344,35 +311,5 @@ object SQLXMLType : AbstractJdbcType<SQLXML>(Types.SQLXML) {
 
     override fun doSetValue(ps: PreparedStatement, index: Int, value: SQLXML) {
         ps.setSQLXML(index, value)
-    }
-}
-
-private object TimeType : AbstractJdbcType<Time>(Types.TIME) {
-
-    override fun doGetValue(rs: ResultSet, index: Int): Time? {
-        return rs.getTime(index)
-    }
-
-    override fun doSetValue(ps: PreparedStatement, index: Int, value: Time) {
-        ps.setTime(index, value)
-    }
-
-    override fun doToString(value: Time): String {
-        return "'$value'"
-    }
-}
-
-private object TimestampType : AbstractJdbcType<Timestamp>(Types.TIMESTAMP) {
-
-    override fun doGetValue(rs: ResultSet, index: Int): Timestamp? {
-        return rs.getTimestamp(index)
-    }
-
-    override fun doSetValue(ps: PreparedStatement, index: Int, value: Timestamp) {
-        ps.setTimestamp(index, value)
-    }
-
-    override fun doToString(value: Timestamp): String {
-        return "'$value'"
     }
 }
