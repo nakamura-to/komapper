@@ -10,7 +10,7 @@ import java.time.LocalTime
 import java.time.OffsetDateTime
 import kotlin.reflect.KClass
 
-interface JdbcType<T> {
+interface DataType<T> {
 
     fun getValue(rs: ResultSet, index: Int): T?
 
@@ -19,7 +19,7 @@ interface JdbcType<T> {
     fun toString(value: T?): String
 }
 
-abstract class AbstractJdbcType<T>(protected val sqlType: Int) : JdbcType<T> {
+abstract class AbstractDataType<T>(protected val sqlType: Int) : DataType<T> {
 
     override fun getValue(rs: ResultSet, index: Int): T? {
         val value = doGetValue(rs, index)
@@ -47,7 +47,7 @@ abstract class AbstractJdbcType<T>(protected val sqlType: Int) : JdbcType<T> {
     }
 }
 
-object AnyType : AbstractJdbcType<Any>(Types.OTHER) {
+object AnyType : AbstractDataType<Any>(Types.OTHER) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Any? {
         return rs.getObject(index)
@@ -58,7 +58,7 @@ object AnyType : AbstractJdbcType<Any>(Types.OTHER) {
     }
 }
 
-object ArrayType : AbstractJdbcType<Array>(Types.ARRAY) {
+object ArrayType : AbstractDataType<Array>(Types.ARRAY) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Array? {
         return rs.getArray(index)
@@ -69,7 +69,7 @@ object ArrayType : AbstractJdbcType<Array>(Types.ARRAY) {
     }
 }
 
-object BigDecimalType : AbstractJdbcType<BigDecimal>(Types.DECIMAL) {
+object BigDecimalType : AbstractDataType<BigDecimal>(Types.DECIMAL) {
 
     override fun doGetValue(rs: ResultSet, index: Int): BigDecimal? {
         return rs.getBigDecimal(index)
@@ -80,7 +80,7 @@ object BigDecimalType : AbstractJdbcType<BigDecimal>(Types.DECIMAL) {
     }
 }
 
-object BigIntegerType : JdbcType<BigInteger> {
+object BigIntegerType : DataType<BigInteger> {
 
     private val jdbcType = BigDecimalType
 
@@ -97,7 +97,7 @@ object BigIntegerType : JdbcType<BigInteger> {
     }
 }
 
-object BlobType : AbstractJdbcType<Blob>(Types.BLOB) {
+object BlobType : AbstractDataType<Blob>(Types.BLOB) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Blob? {
         return rs.getBlob(index)
@@ -108,7 +108,7 @@ object BlobType : AbstractJdbcType<Blob>(Types.BLOB) {
     }
 }
 
-object BooleanType : AbstractJdbcType<Boolean>(Types.BOOLEAN) {
+object BooleanType : AbstractDataType<Boolean>(Types.BOOLEAN) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Boolean? {
         return rs.getBoolean(index)
@@ -123,7 +123,7 @@ object BooleanType : AbstractJdbcType<Boolean>(Types.BOOLEAN) {
     }
 }
 
-object ByteType : AbstractJdbcType<Byte>(Types.SMALLINT) {
+object ByteType : AbstractDataType<Byte>(Types.SMALLINT) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Byte? {
         return rs.getByte(index)
@@ -134,7 +134,7 @@ object ByteType : AbstractJdbcType<Byte>(Types.SMALLINT) {
     }
 }
 
-object ByteArrayType : AbstractJdbcType<ByteArray>(Types.BINARY) {
+object ByteArrayType : AbstractDataType<ByteArray>(Types.BINARY) {
 
     override fun doGetValue(rs: ResultSet, index: Int): ByteArray? {
         return rs.getBytes(index)
@@ -145,7 +145,7 @@ object ByteArrayType : AbstractJdbcType<ByteArray>(Types.BINARY) {
     }
 }
 
-object ClobType : AbstractJdbcType<Clob>(Types.CLOB) {
+object ClobType : AbstractDataType<Clob>(Types.CLOB) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Clob? {
         return rs.getClob(index)
@@ -156,7 +156,7 @@ object ClobType : AbstractJdbcType<Clob>(Types.CLOB) {
     }
 }
 
-object DoubleType : AbstractJdbcType<Double>(Types.DOUBLE) {
+object DoubleType : AbstractDataType<Double>(Types.DOUBLE) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Double? {
         return rs.getDouble(index)
@@ -167,7 +167,7 @@ object DoubleType : AbstractJdbcType<Double>(Types.DOUBLE) {
     }
 }
 
-class EnumType(private val kClass: KClass<Enum<*>>) : JdbcType<Enum<*>> {
+class EnumType(private val kClass: KClass<Enum<*>>) : DataType<Enum<*>> {
 
     private val jdbcType = StringType
 
@@ -189,7 +189,7 @@ class EnumType(private val kClass: KClass<Enum<*>>) : JdbcType<Enum<*>> {
     }
 }
 
-object FloatType : AbstractJdbcType<Float>(Types.FLOAT) {
+object FloatType : AbstractDataType<Float>(Types.FLOAT) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Float? {
         return rs.getFloat(index)
@@ -200,7 +200,7 @@ object FloatType : AbstractJdbcType<Float>(Types.FLOAT) {
     }
 }
 
-object IntType : AbstractJdbcType<Int>(Types.INTEGER) {
+object IntType : AbstractDataType<Int>(Types.INTEGER) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Int? {
         return rs.getInt(index)
@@ -211,7 +211,7 @@ object IntType : AbstractJdbcType<Int>(Types.INTEGER) {
     }
 }
 
-object LocalDateTimeType : AbstractJdbcType<LocalDateTime>(Types.TIMESTAMP) {
+object LocalDateTimeType : AbstractDataType<LocalDateTime>(Types.TIMESTAMP) {
 
     override fun doGetValue(rs: ResultSet, index: Int): LocalDateTime? {
         return rs.getObject(index, LocalDateTime::class.java)
@@ -226,7 +226,7 @@ object LocalDateTimeType : AbstractJdbcType<LocalDateTime>(Types.TIMESTAMP) {
     }
 }
 
-object LocalDateType : AbstractJdbcType<LocalDate>(Types.DATE) {
+object LocalDateType : AbstractDataType<LocalDate>(Types.DATE) {
 
     override fun doGetValue(rs: ResultSet, index: Int): LocalDate? {
         return rs.getObject(index, LocalDate::class.java)
@@ -241,7 +241,7 @@ object LocalDateType : AbstractJdbcType<LocalDate>(Types.DATE) {
     }
 }
 
-object LocalTimeType : AbstractJdbcType<LocalTime>(Types.TIME) {
+object LocalTimeType : AbstractDataType<LocalTime>(Types.TIME) {
 
     override fun doGetValue(rs: ResultSet, index: Int): LocalTime? {
         return rs.getObject(index, LocalTime::class.java)
@@ -256,7 +256,7 @@ object LocalTimeType : AbstractJdbcType<LocalTime>(Types.TIME) {
     }
 }
 
-object LongType : AbstractJdbcType<Long>(Types.BIGINT) {
+object LongType : AbstractDataType<Long>(Types.BIGINT) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Long? {
         return rs.getLong(index)
@@ -267,7 +267,7 @@ object LongType : AbstractJdbcType<Long>(Types.BIGINT) {
     }
 }
 
-object NClobType : AbstractJdbcType<NClob>(Types.NCLOB) {
+object NClobType : AbstractDataType<NClob>(Types.NCLOB) {
 
     override fun doGetValue(rs: ResultSet, index: Int): NClob? {
         return rs.getNClob(index)
@@ -278,7 +278,7 @@ object NClobType : AbstractJdbcType<NClob>(Types.NCLOB) {
     }
 }
 
-object OffsetDateTimeType : AbstractJdbcType<OffsetDateTime>(Types.TIMESTAMP_WITH_TIMEZONE) {
+object OffsetDateTimeType : AbstractDataType<OffsetDateTime>(Types.TIMESTAMP_WITH_TIMEZONE) {
 
     override fun doGetValue(rs: ResultSet, index: Int): OffsetDateTime? {
         return rs.getObject(index, OffsetDateTime::class.java)
@@ -293,7 +293,7 @@ object OffsetDateTimeType : AbstractJdbcType<OffsetDateTime>(Types.TIMESTAMP_WIT
     }
 }
 
-object ShortType : AbstractJdbcType<Short>(Types.SMALLINT) {
+object ShortType : AbstractDataType<Short>(Types.SMALLINT) {
 
     override fun doGetValue(rs: ResultSet, index: Int): Short? {
         return rs.getShort(index)
@@ -304,7 +304,7 @@ object ShortType : AbstractJdbcType<Short>(Types.SMALLINT) {
     }
 }
 
-object StringType : AbstractJdbcType<String>(Types.VARCHAR) {
+object StringType : AbstractDataType<String>(Types.VARCHAR) {
 
     override fun doGetValue(rs: ResultSet, index: Int): String? {
         return rs.getString(index)
@@ -319,7 +319,7 @@ object StringType : AbstractJdbcType<String>(Types.VARCHAR) {
     }
 }
 
-object SQLXMLType : AbstractJdbcType<SQLXML>(Types.SQLXML) {
+object SQLXMLType : AbstractDataType<SQLXML>(Types.SQLXML) {
 
     override fun doGetValue(rs: ResultSet, index: Int): SQLXML? {
         return rs.getSQLXML(index)

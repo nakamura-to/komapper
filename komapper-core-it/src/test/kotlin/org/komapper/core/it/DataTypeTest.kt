@@ -11,7 +11,7 @@ import java.math.BigInteger
 import java.time.*
 
 @ExtendWith(Env::class)
-class JdbcTypeTest {
+class DataTypeTest {
 
     @Suppress("unused")
     private enum class Direction {

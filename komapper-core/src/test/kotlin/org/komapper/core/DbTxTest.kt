@@ -319,7 +319,7 @@ internal class DbTxTest {
     }
 
     @Nested
-    inner class JdbcType {
+    inner class DataType {
 
         @Test
         fun array() {

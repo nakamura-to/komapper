@@ -10,8 +10,8 @@ internal class AbstractDialectTest {
 
     class MyDialect : AbstractDialect() {
 
-        public override fun getJdbcType(type: KClass<*>): JdbcType<*> {
-            return super.getJdbcType(type)
+        public override fun getDataType(type: KClass<*>): DataType<*> {
+            return super.getDataType(type)
         }
 
         override fun getSequenceSql(sequenceName: String): String {
@@ -30,9 +30,9 @@ internal class AbstractDialectTest {
     private val dialect = MyDialect()
 
     @Test
-    fun getJdbcType() {
-        val jdbcType = dialect.getJdbcType(Direction::class)
-        assertTrue(EnumType::class.isInstance(jdbcType))
+    fun getDataType() {
+        val dataType = dialect.getDataType(Direction::class)
+        assertTrue(EnumType::class.isInstance(dataType))
     }
 
     @Test

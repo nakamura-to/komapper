@@ -1888,7 +1888,7 @@ internal class DbTest {
     }
 
     @Nested
-    inner class JdbcTypeTest {
+    inner class DataTypeTest {
 
         @Test
         fun any() {
