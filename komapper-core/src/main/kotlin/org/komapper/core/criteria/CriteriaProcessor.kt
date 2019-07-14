@@ -101,6 +101,10 @@ class CriteriaProcessor(
                 is Criterion.NotLike -> processBinaryOp("not like", criterion.prop, criterion.value)
                 is Criterion.In -> processInOp("in", criterion.prop, criterion.values)
                 is Criterion.NotIn -> processInOp("not in", criterion.prop, criterion.values)
+                is Criterion.In2 -> processInOp("in", criterion.props, criterion.values)
+                is Criterion.NotIn2 -> processInOp("not in", criterion.props, criterion.values)
+                is Criterion.In3 -> processInOp("in", criterion.props, criterion.values)
+                is Criterion.NotIn3 -> processInOp("not in", criterion.props, criterion.values)
                 is Criterion.And -> visitLogicalBinaryOp("and", index, criterion.criterionList)
                 is Criterion.Or -> visitLogicalBinaryOp("or", index, criterion.criterionList)
                 is Criterion.Not -> visitNotOp(criterion.criterionList)
@@ -153,6 +157,55 @@ class CriteriaProcessor(
         for (v in values) {
             if (++counter > 1) buf.append(", ")
             buf.bind(Value(v, type))
+        }
+        if (counter == 0) {
+            buf.append("null")
+        }
+        buf.append(")")
+    }
+
+    private fun processInOp(op: String, props: Pair<KProperty1<*, *>, KProperty1<*, *>>, values: Iterable<Pair<*, *>>) {
+        val (first, second) = props
+        buf.append("(${resolveColumnName(first)}, ${resolveColumnName(second)})")
+        buf.append(" $op (")
+        val firstType = first.returnType.jvmErasure
+        val secondType = second.returnType.jvmErasure
+        var counter = 0
+        for ((f, s) in values) {
+            if (++counter > 1) buf.append(", ")
+            buf.append("(")
+            buf.bind(Value(f, firstType))
+            buf.append(", ")
+            buf.bind(Value(s, secondType))
+            buf.append(")")
+        }
+        if (counter == 0) {
+            buf.append("null")
+        }
+        buf.append(")")
+    }
+
+    private fun processInOp(
+        op: String,
+        props: Triple<KProperty1<*, *>, KProperty1<*, *>, KProperty1<*, *>>,
+        values: Iterable<Triple<*, *, *>>
+    ) {
+        val (first, second, third) = props
+        buf.append("(${resolveColumnName(first)}, ${resolveColumnName(second)}, ${resolveColumnName(third)})")
+        buf.append(" $op (")
+        val firstType = first.returnType.jvmErasure
+        val secondType = second.returnType.jvmErasure
+        val thirdType = third.returnType.jvmErasure
+        var counter = 0
+        for ((f, s, t) in values) {
+            if (++counter > 1) buf.append(", ")
+            buf.append("(")
+            buf.bind(Value(f, firstType))
+            buf.append(", ")
+            buf.bind(Value(s, secondType))
+            buf.append(", ")
+            buf.bind(Value(t, thirdType))
+            buf.append(")")
         }
         if (counter == 0) {
             buf.append("null")

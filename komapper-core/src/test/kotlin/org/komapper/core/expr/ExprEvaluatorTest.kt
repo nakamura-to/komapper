@@ -2,12 +2,10 @@ package org.komapper.core.expr
 
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.komapper.core.value.Value
-import kotlin.reflect.jvm.jvmName
 
 class ExprEvaluatorTest {
 

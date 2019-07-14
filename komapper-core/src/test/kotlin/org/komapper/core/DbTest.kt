@@ -545,6 +545,106 @@ internal class DbTest {
         }
 
         @Test
+        fun in2() {
+            val db = Db(config)
+            val list = db.select<Address> {
+                where {
+                    Address::addressId to Address::street `in` listOf(9 to "STREET 9", 10 to "STREET 10")
+                }
+                orderBy {
+                    Address::addressId.desc()
+                }
+            }
+            assertEquals(
+                listOf(
+                    Address(10, "STREET 10", 1),
+                    Address(9, "STREET 9", 1)
+                ), list
+            )
+        }
+
+        @Test
+        fun notIn2() {
+            val db = Db(config)
+            val idList = db.select<Address> {
+                where {
+                    Address::addressId to Address::street notIn listOf(1 to "STREET 1", 2 to "STREET 2")
+                }
+                orderBy {
+                    Address::addressId.asc()
+                }
+            }.map { it.addressId }
+            assertEquals((3..15).toList(), idList)
+        }
+
+        @Test
+        fun in2_empty() {
+            val db = Db(config)
+            val list = db.select<Address> {
+                where {
+                    Address::addressId to Address::street `in` emptyList()
+                }
+                orderBy {
+                    Address::addressId.desc()
+                }
+            }
+            assertTrue(list.isEmpty())
+        }
+
+        @Test
+        fun in3() {
+            val db = Db(config)
+            val list = db.select<Address> {
+                where {
+                    Triple(Address::addressId, Address::street, Address::version) `in` listOf(
+                        Triple(9, "STREET 9", 1),
+                        Triple(10, "STREET 10", 1)
+                    )
+                }
+                orderBy {
+                    Address::addressId.desc()
+                }
+            }
+            assertEquals(
+                listOf(
+                    Address(10, "STREET 10", 1),
+                    Address(9, "STREET 9", 1)
+                ), list
+            )
+        }
+
+        @Test
+        fun notIn3() {
+            val db = Db(config)
+            val idList = db.select<Address> {
+                where {
+                    Triple(Address::addressId, Address::street, Address::version) notIn listOf(
+                        Triple(1, "STREET 1", 1),
+                        Triple(2, "STREET 2", 1)
+                    )
+                }
+                orderBy {
+                    Address::addressId.asc()
+                }
+            }.map { it.addressId }
+            assertEquals((3..15).toList(), idList)
+        }
+
+        @Test
+        fun in3_empty() {
+            val db = Db(config)
+            val list = db.select<Address> {
+                where {
+                    Triple(Address::addressId, Address::street, Address::version) `in` emptyList()
+                }
+                orderBy {
+                    Address::addressId.desc()
+                }
+            }
+            assertTrue(list.isEmpty())
+        }
+
+        @Test
         fun between() {
             val db = Db(config)
             val idList = db.select<Address> {

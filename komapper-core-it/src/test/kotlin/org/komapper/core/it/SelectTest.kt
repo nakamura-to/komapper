@@ -51,4 +51,17 @@ class SelectTest {
         assertEquals(listOf(9, 8), employees.map { it.employeeId })
     }
 
+    @Test
+    fun in2(db: Db) {
+        val list = db.select<Employee> {
+            where {
+                Employee::managerId to Employee::departmentId `in` listOf(6 to 3)
+            }
+            orderBy {
+                Employee::employeeId.asc()
+            }
+        }
+        assertEquals(5, list.size)
+    }
+
 }

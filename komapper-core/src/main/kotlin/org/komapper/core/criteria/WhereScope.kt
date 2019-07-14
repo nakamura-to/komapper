@@ -183,6 +183,22 @@ class WhereScope {
         criterionList.add(Criterion.NotIn(this, value))
     }
 
+    infix fun <A, B> Pair<KProperty1<*, A>, KProperty1<*, B>>.`in`(value: List<Pair<A, B>>) {
+        criterionList.add(Criterion.In2(this, value))
+    }
+
+    infix fun <A, B> Pair<KProperty1<*, A>, KProperty1<*, B>>.notIn(value: List<Pair<A, B>>) {
+        criterionList.add(Criterion.NotIn2(this, value))
+    }
+
+    infix fun <A, B, C> Triple<KProperty1<*, A>, KProperty1<*, B>, KProperty1<*, C>>.`in`(value: List<Triple<A, B, C>>) {
+        criterionList.add(Criterion.In3(this, value))
+    }
+
+    infix fun <A, B, C> Triple<KProperty1<*, A>, KProperty1<*, B>, KProperty1<*, C>>.notIn(value: List<Triple<A, B, C>>) {
+        criterionList.add(Criterion.NotIn3(this, value))
+    }
+
     infix fun <V> KProperty1<*, V>.between(pair: Pair<V, V>) {
         criterionList.add(Criterion.Between(this, pair))
     }
