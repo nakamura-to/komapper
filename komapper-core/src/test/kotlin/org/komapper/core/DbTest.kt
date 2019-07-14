@@ -871,6 +871,49 @@ internal class DbTest {
                 )
             assertEquals(14, list.size)
         }
+
+        @Test
+        fun `in`() {
+            val db = Db(config)
+            val list = db.query<Address>(
+                "select * from address where address_id in /*list*/(0)",
+                object {
+                    val list = listOf(1, 2)
+                }
+            )
+            assertEquals(2, list.size)
+            assertEquals(Address(1, "STREET 1", 1), list[0])
+            assertEquals(Address(2, "STREET 2", 1), list[1])
+        }
+
+        @Test
+        fun in2() {
+            val db = Db(config)
+            val list = db.query<Address>(
+                "select * from address where (address_id, street) in /*pairs*/(0, '')",
+                object {
+                    val pairs = listOf(1 to "STREET 1", 2 to "STREET 2")
+                }
+            )
+            assertEquals(2, list.size)
+            assertEquals(Address(1, "STREET 1", 1), list[0])
+            assertEquals(Address(2, "STREET 2", 1), list[1])
+        }
+
+        @Test
+        fun in3() {
+            val db = Db(config)
+            val list = db.query<Address>(
+                "select * from address where (address_id, street, version) in /*triples*/(0, '', 0)",
+                object {
+                    val triples = listOf(Triple(1, "STREET 1", 1), Triple(2, "STREET 2", 1))
+                }
+            )
+            assertEquals(2, list.size)
+            assertEquals(Address(1, "STREET 1", 1), list[0])
+            assertEquals(Address(2, "STREET 2", 1), list[1])
+        }
+
     }
 
     @Nested

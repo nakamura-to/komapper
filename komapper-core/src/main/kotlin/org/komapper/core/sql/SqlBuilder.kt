@@ -62,8 +62,22 @@ open class DefaultSqlBuilder(
                     state.append("(")
                     for (o in obj) {
                         if (++counter > 1) state.append(", ")
-                        val value = Value(o, o?.let { it::class } ?: Any::class)
-                        state.bind(value)
+                        when (o) {
+                            is Pair<*, *> -> {
+                                val (f, s) = o
+                                state.append("(")
+                                    .bind(newValue(f)).append(", ")
+                                    .bind(newValue(s)).append(")")
+                            }
+                            is Triple<*, *, *> -> {
+                                val (f, s, t) = o
+                                state.append("(")
+                                    .bind(newValue(f)).append(", ")
+                                    .bind(newValue(s)).append(", ")
+                                    .bind(newValue(t)).append(")")
+                            }
+                            else -> state.bind(newValue(o))
+                        }
                     }
                     if (counter == 0) {
                         state.append("null")
@@ -140,7 +154,7 @@ open class DefaultSqlBuilder(
             val idHasNext = id + "_has_next"
             while (it.hasNext()) {
                 val each = it.next()
-                s.ctx[id] = Value(each, each?.let { it::class } ?: Any::class)
+                s.ctx[id] = newValue(each)
                 s.ctx[idIndex] = Value(index++, Int::class)
                 s.ctx[idHasNext] = Value(it.hasNext(), Boolean::class)
                 s = node.forDirective.nodeList.fold(s, ::visit)
@@ -158,6 +172,8 @@ open class DefaultSqlBuilder(
         is SqlNode.EndDirective,
         is SqlNode.ForDirective -> error("unreachable")
     }
+
+    private fun newValue(o: Any?) = Value(o, o?.let { it::class } ?: Any::class)
 
     private fun eval(location: SqlLocation, expression: String, ctx: Map<String, Value>): Value = try {
         exprEvaluator.eval(expression, ctx)

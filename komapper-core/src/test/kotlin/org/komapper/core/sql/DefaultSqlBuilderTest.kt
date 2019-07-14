@@ -93,6 +93,48 @@ class DefaultSqlBuilderTest {
             assertTrue(sql.values.isEmpty())
         }
 
+        @Test
+        fun pairValues() {
+            val sql = sqlBuilder.build(
+                "select name, age from person where (name, age) in /*pairs*/(('a', 'b'), ('c', 'd'))",
+                mapOf("pairs" to Value(listOf("x" to 1, "y" to 2, "z" to 3)))
+            )
+            assertEquals("select name, age from person where (name, age) in ((?, ?), (?, ?), (?, ?))", sql.text)
+            assertEquals(
+                listOf(
+                    Value("x"), Value(1),
+                    Value("y"), Value(2),
+                    Value("z"), Value(3)
+                ), sql.values
+            )
+        }
+
+        @Test
+        fun tripleValues() {
+            val sql = sqlBuilder.build(
+                "select name, age from person where (name, age, weight) in /*triples*/(('a', 'b', 'c'), ('d', 'e', 'f'))",
+                mapOf(
+                    "triples" to Value(
+                        listOf(
+                            Triple("x", 1, 10),
+                            Triple("y", 2, 20),
+                            Triple("z", 3, 30)
+                        )
+                    )
+                )
+            )
+            assertEquals(
+                "select name, age from person where (name, age, weight) in ((?, ?, ?), (?, ?, ?), (?, ?, ?))",
+                sql.text
+            )
+            assertEquals(
+                listOf(
+                    Value("x"), Value(1), Value(10),
+                    Value("y"), Value(2), Value(20),
+                    Value("z"), Value(3), Value(30)
+                ), sql.values
+            )
+        }
     }
 
     @Nested
