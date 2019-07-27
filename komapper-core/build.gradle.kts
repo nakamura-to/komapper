@@ -32,7 +32,7 @@ tasks.withType<KotlinCompile> {
 
 publishJar {
     publication {
-        artifactId = "komapper"
+        artifactId = "komapper-core"
     }
 
     bintray {
