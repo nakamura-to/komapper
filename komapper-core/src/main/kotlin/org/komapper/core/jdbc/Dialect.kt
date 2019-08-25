@@ -30,7 +30,7 @@ abstract class AbstractDialect : Dialect {
 
     override val openQuote: String = "\""
     override val closeQuote: String = "\""
-    override val escapePattern = Pattern.compile("""[\\_%]""")
+    override val escapePattern: Pattern = Pattern.compile("""[\\_%]""")
 
     override fun getValue(rs: ResultSet, index: Int, valueClass: KClass<*>): Any? {
         val dataType = getDataType(valueClass)
