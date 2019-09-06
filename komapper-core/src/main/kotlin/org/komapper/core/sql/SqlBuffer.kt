@@ -1,7 +1,7 @@
 package org.komapper.core.sql
 
-import org.komapper.core.value.Value
 import kotlin.reflect.KClass
+import org.komapper.core.value.Value
 
 class SqlBuffer(
     val formatter: (Any?, KClass<*>) -> String,

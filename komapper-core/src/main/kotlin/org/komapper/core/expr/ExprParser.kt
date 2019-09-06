@@ -1,8 +1,40 @@
 package org.komapper.core.expr
 
-import org.komapper.core.expr.ExprTokenType.*
 import java.math.BigDecimal
-import java.util.*
+import java.util.Deque
+import java.util.LinkedList
+import org.komapper.core.expr.ExprTokenType.AND
+import org.komapper.core.expr.ExprTokenType.BIG_DECIMAL
+import org.komapper.core.expr.ExprTokenType.CHAR
+import org.komapper.core.expr.ExprTokenType.CLASS_REF
+import org.komapper.core.expr.ExprTokenType.CLOSE_PAREN
+import org.komapper.core.expr.ExprTokenType.COMMA
+import org.komapper.core.expr.ExprTokenType.DOUBLE
+import org.komapper.core.expr.ExprTokenType.EOE
+import org.komapper.core.expr.ExprTokenType.EQ
+import org.komapper.core.expr.ExprTokenType.FALSE
+import org.komapper.core.expr.ExprTokenType.FLOAT
+import org.komapper.core.expr.ExprTokenType.FUNCTION
+import org.komapper.core.expr.ExprTokenType.GE
+import org.komapper.core.expr.ExprTokenType.GT
+import org.komapper.core.expr.ExprTokenType.ILLEGAL_NUMBER
+import org.komapper.core.expr.ExprTokenType.INT
+import org.komapper.core.expr.ExprTokenType.LE
+import org.komapper.core.expr.ExprTokenType.LONG
+import org.komapper.core.expr.ExprTokenType.LT
+import org.komapper.core.expr.ExprTokenType.NE
+import org.komapper.core.expr.ExprTokenType.NOT
+import org.komapper.core.expr.ExprTokenType.NULL
+import org.komapper.core.expr.ExprTokenType.OPEN_PAREN
+import org.komapper.core.expr.ExprTokenType.OR
+import org.komapper.core.expr.ExprTokenType.OTHER
+import org.komapper.core.expr.ExprTokenType.PROPERTY
+import org.komapper.core.expr.ExprTokenType.SAFE_CALL_FUNCTION
+import org.komapper.core.expr.ExprTokenType.SAFE_CALL_PROPERTY
+import org.komapper.core.expr.ExprTokenType.STRING
+import org.komapper.core.expr.ExprTokenType.TRUE
+import org.komapper.core.expr.ExprTokenType.VALUE
+import org.komapper.core.expr.ExprTokenType.WHITESPACE
 
 class ExprParser(
     private val expression: String,

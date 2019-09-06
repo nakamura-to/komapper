@@ -38,5 +38,4 @@ class TransactionConnection(
 
     // do nothing
     override fun close() = Unit
-
 }

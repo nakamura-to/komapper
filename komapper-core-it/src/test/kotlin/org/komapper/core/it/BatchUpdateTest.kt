@@ -29,5 +29,4 @@ class BatchUpdateTest {
         val department = db.findById<Department>(1)!!
         assertThrows<UniqueConstraintException> { db.batchUpdate(listOf(department.copy(departmentNo = 20))) }
     }
-
 }

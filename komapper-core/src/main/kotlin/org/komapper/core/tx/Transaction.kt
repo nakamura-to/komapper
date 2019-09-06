@@ -8,4 +8,3 @@ class Transaction(connectionProvider: () -> TransactionConnection) {
     internal fun isInitialized() = connectionDelegate.isInitialized()
     override fun toString() = id
 }
-

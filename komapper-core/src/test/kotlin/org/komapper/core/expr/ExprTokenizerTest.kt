@@ -3,7 +3,22 @@ package org.komapper.core.expr
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.komapper.core.expr.ExprTokenType.*
+import org.komapper.core.expr.ExprTokenType.AND
+import org.komapper.core.expr.ExprTokenType.BIG_DECIMAL
+import org.komapper.core.expr.ExprTokenType.CLASS_REF
+import org.komapper.core.expr.ExprTokenType.DOUBLE
+import org.komapper.core.expr.ExprTokenType.EOE
+import org.komapper.core.expr.ExprTokenType.FALSE
+import org.komapper.core.expr.ExprTokenType.FLOAT
+import org.komapper.core.expr.ExprTokenType.INT
+import org.komapper.core.expr.ExprTokenType.LONG
+import org.komapper.core.expr.ExprTokenType.NULL
+import org.komapper.core.expr.ExprTokenType.PROPERTY
+import org.komapper.core.expr.ExprTokenType.SAFE_CALL_PROPERTY
+import org.komapper.core.expr.ExprTokenType.STRING
+import org.komapper.core.expr.ExprTokenType.TRUE
+import org.komapper.core.expr.ExprTokenType.VALUE
+import org.komapper.core.expr.ExprTokenType.WHITESPACE
 
 class ExprTokenizerTest {
 
@@ -197,5 +212,4 @@ class ExprTokenizerTest {
         val exception = assertThrows<ExprException> { tokenizer.next() }
         println(exception)
     }
-
 }

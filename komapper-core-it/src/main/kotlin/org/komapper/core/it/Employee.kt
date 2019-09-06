@@ -1,9 +1,9 @@
 package org.komapper.core.it
 
-import org.komapper.core.Id
-import org.komapper.core.Version
 import java.math.BigDecimal
 import java.time.LocalDate
+import org.komapper.core.Id
+import org.komapper.core.Version
 
 data class Employee(
     @Id

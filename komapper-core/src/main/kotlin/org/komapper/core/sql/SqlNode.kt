@@ -20,43 +20,63 @@ sealed class SqlNode {
         override fun toText(): String = keyword + nodeList.toText()
 
         data class Select(
-            override val location: Loc, override val keyword: String, override val nodeList: List<SqlNode>
+            override val location: Loc,
+            override val keyword: String,
+            override val nodeList: List<SqlNode>
         ) : Keyword()
 
         data class From(
-            override val location: Loc, override val keyword: String, override val nodeList: List<SqlNode>
+            override val location: Loc,
+            override val keyword: String,
+            override val nodeList: List<SqlNode>
         ) : Keyword()
 
         data class Where(
-            override val location: Loc, override val keyword: String, override val nodeList: List<SqlNode>
+            override val location: Loc,
+            override val keyword: String,
+            override val nodeList: List<SqlNode>
         ) : Keyword()
 
         data class Having(
-            override val location: Loc, override val keyword: String, override val nodeList: List<SqlNode>
+            override val location: Loc,
+            override val keyword: String,
+            override val nodeList: List<SqlNode>
         ) : Keyword()
 
         data class GroupBy(
-            override val location: Loc, override val keyword: String, override val nodeList: List<SqlNode>
+            override val location: Loc,
+            override val keyword: String,
+            override val nodeList: List<SqlNode>
         ) : Keyword()
 
         data class OrderBy(
-            override val location: Loc, override val keyword: String, override val nodeList: List<SqlNode>
+            override val location: Loc,
+            override val keyword: String,
+            override val nodeList: List<SqlNode>
         ) : Keyword()
 
         data class ForUpdate(
-            override val location: Loc, override val keyword: String, override val nodeList: List<SqlNode>
+            override val location: Loc,
+            override val keyword: String,
+            override val nodeList: List<SqlNode>
         ) : Keyword()
 
         data class Option(
-            override val location: Loc, override val keyword: String, override val nodeList: List<SqlNode>
+            override val location: Loc,
+            override val keyword: String,
+            override val nodeList: List<SqlNode>
         ) : Keyword()
 
         data class And(
-            override val location: Loc, override val keyword: String, override val nodeList: List<SqlNode>
+            override val location: Loc,
+            override val keyword: String,
+            override val nodeList: List<SqlNode>
         ) : Keyword()
 
         data class Or(
-            override val location: Loc, override val keyword: String, override val nodeList: List<SqlNode>
+            override val location: Loc,
+            override val keyword: String,
+            override val nodeList: List<SqlNode>
         ) : Keyword()
     }
 

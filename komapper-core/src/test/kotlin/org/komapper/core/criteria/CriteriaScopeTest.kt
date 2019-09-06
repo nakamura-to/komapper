@@ -114,6 +114,4 @@ internal class CriteriaScopeTest {
         assertEquals(5, limit)
         assertEquals(15, offset)
     }
-
 }
-

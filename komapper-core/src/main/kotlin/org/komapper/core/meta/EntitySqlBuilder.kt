@@ -1,13 +1,13 @@
 package org.komapper.core.meta
 
+import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 import org.komapper.core.DeleteOption
 import org.komapper.core.InsertOption
 import org.komapper.core.UpdateOption
 import org.komapper.core.sql.Sql
 import org.komapper.core.sql.SqlBuffer
 import org.komapper.core.value.Value
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
 
 interface EntitySqlBuilder {
     fun <T> buildFindById(entityMeta: EntityMeta<T>, id: Any, versionValue: Any?): Sql
@@ -248,5 +248,4 @@ open class DefaultEntitySqlBuilder(
         val obj = this.deepGetter(entity as Any)
         return Value(obj, this.type)
     }
-
 }

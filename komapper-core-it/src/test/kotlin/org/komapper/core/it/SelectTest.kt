@@ -1,10 +1,10 @@
 package org.komapper.core.it
 
+import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.komapper.core.Db
-import java.math.BigDecimal
 
 @ExtendWith(Env::class)
 class SelectTest {
@@ -63,5 +63,4 @@ class SelectTest {
         }
         assertEquals(5, list.size)
     }
-
 }

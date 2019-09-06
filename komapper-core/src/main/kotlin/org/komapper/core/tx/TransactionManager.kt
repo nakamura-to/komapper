@@ -1,9 +1,9 @@
 package org.komapper.core.tx
 
-import org.komapper.core.logging.Logger
 import java.sql.Connection
 import java.sql.SQLException
 import javax.sql.DataSource
+import org.komapper.core.logging.Logger
 
 class TransactionManager(
     internal val dataSource: DataSource,

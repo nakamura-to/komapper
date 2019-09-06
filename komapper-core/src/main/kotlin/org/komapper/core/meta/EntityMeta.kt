@@ -63,5 +63,4 @@ class EntityMeta<T>(
         val valueArgs = propMetaList.mapNotNull { it.copy(entity, predicate, block) }.toMap()
         return copy.callBy(mapOf(receiverArg) + valueArgs)
     }
-
 }

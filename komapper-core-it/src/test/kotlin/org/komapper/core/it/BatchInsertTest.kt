@@ -31,5 +31,4 @@ class BatchInsertTest {
         val idList = db.select<SequenceStrategy>().map { it.id }
         Assertions.assertEquals((1..201).toList(), idList)
     }
-
 }

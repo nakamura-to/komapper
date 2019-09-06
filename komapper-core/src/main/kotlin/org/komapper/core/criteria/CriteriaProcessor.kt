@@ -1,5 +1,8 @@
 package org.komapper.core.criteria
 
+import kotlin.reflect.KProperty1
+import kotlin.reflect.jvm.javaField
+import kotlin.reflect.jvm.jvmErasure
 import org.komapper.core.jdbc.Dialect
 import org.komapper.core.meta.EntityMeta
 import org.komapper.core.meta.EntityMetaFactory
@@ -7,9 +10,6 @@ import org.komapper.core.meta.PropMeta
 import org.komapper.core.sql.Sql
 import org.komapper.core.sql.SqlBuffer
 import org.komapper.core.value.Value
-import kotlin.reflect.KProperty1
-import kotlin.reflect.jvm.javaField
-import kotlin.reflect.jvm.jvmErasure
 
 class CriteriaProcessor(
     dialect: Dialect,
@@ -233,4 +233,3 @@ class CriteriaProcessor(
         }
     }
 }
-

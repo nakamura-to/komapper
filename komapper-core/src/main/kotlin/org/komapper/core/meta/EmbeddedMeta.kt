@@ -27,5 +27,4 @@ class EmbeddedMeta<T>(
 
     fun getLeafPropMetaList(): List<PropMeta<*, *>> =
         propMetaList.flatMap { it.getLeafPropMetaList() }
-
 }

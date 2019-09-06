@@ -33,7 +33,6 @@ interface EntityListener {
     fun <T> postMerge(entity: T, meta: EntityMeta<T>): T {
         return entity
     }
-
 }
 
 open class DefaultEntityListener : EntityListener

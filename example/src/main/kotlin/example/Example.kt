@@ -1,9 +1,16 @@
 package example
 
-import org.komapper.core.*
+import java.time.LocalDateTime
+import org.komapper.core.Column
+import org.komapper.core.CreatedAt
+import org.komapper.core.Db
+import org.komapper.core.DbConfig
+import org.komapper.core.Id
+import org.komapper.core.SequenceGenerator
+import org.komapper.core.UpdatedAt
+import org.komapper.core.Version
 import org.komapper.core.jdbc.H2Dialect
 import org.komapper.core.jdbc.SimpleDataSource
-import java.time.LocalDateTime
 
 data class Address(
     @Id

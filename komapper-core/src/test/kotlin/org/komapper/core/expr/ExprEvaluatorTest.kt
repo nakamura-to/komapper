@@ -228,7 +228,6 @@ class ExprEvaluatorTest {
             }
             println(exception)
         }
-
     }
 
     @Nested
@@ -539,6 +538,5 @@ class ExprEvaluatorTest {
             }
             println(exception)
         }
-
     }
 }

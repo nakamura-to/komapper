@@ -52,5 +52,4 @@ class OnScope {
             criterionList.add(Criterion.Or(scope.criterionList))
         }
     }
-
 }

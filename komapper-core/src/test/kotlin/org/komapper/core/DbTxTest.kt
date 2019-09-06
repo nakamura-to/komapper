@@ -1,17 +1,22 @@
 package org.komapper.core
 
+import java.sql.Blob
+import java.sql.Clob
+import java.sql.NClob
+import java.sql.SQLXML
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertArrayEquals
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.komapper.core.jdbc.H2Dialect
 import org.komapper.core.jdbc.SimpleDataSource
 import org.komapper.core.tx.TransactionIsolationLevel
-import java.sql.Blob
-import java.sql.Clob
-import java.sql.NClob
-import java.sql.SQLXML
 
 @Suppress("UNUSED")
 internal class DbTxTest {
@@ -239,7 +244,6 @@ internal class DbTxTest {
         }
     }
 
-
     @Test
     fun required_required() {
         val sql = "select * from address where address_id = 15"
@@ -400,6 +404,5 @@ internal class DbTxTest {
                 assertEquals(data.value.string, data2.value.string)
             }
         }
-
     }
 }

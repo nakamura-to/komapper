@@ -26,5 +26,4 @@ class DeleteTest {
         assertNull(db.findById<Address>(100))
         assertThrows<OptimisticLockException> { db.delete(address) }
     }
-
 }

@@ -1,7 +1,23 @@
 package org.komapper.core
 
-import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.*
+import java.io.Serializable
+import java.math.BigDecimal
+import java.math.BigInteger
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertArrayEquals
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.komapper.core.criteria.OrderByScope
 import org.komapper.core.criteria.WhereScope
 import org.komapper.core.jdbc.H2Dialect
@@ -10,10 +26,6 @@ import org.komapper.core.logging.StdoutLogger
 import org.komapper.core.meta.EntityListener
 import org.komapper.core.meta.EntityMeta
 import org.komapper.core.sql.Sql
-import java.io.Serializable
-import java.math.BigDecimal
-import java.math.BigInteger
-import java.time.*
 
 @Suppress("UNUSED")
 internal class DbTest {
@@ -348,7 +360,6 @@ internal class DbTest {
             val employee = db.findById<Worker>(1)
             assertNotNull(employee)
         }
-
     }
 
     @Nested
@@ -680,7 +691,6 @@ internal class DbTest {
             assertTrue(9 !in idList)
         }
 
-
         @Test
         fun sequence() {
             val db = Db(config)
@@ -776,7 +786,6 @@ internal class DbTest {
             }
             assertEquals(6, list.size)
         }
-
     }
 
     @Nested
@@ -823,8 +832,7 @@ internal class DbTest {
             val db = Db(config)
             val list =
                 db.query<Address>(
-                    "select * from address where street = /*street*/'test'"
-                    , object {
+                    "select * from address where street = /*street*/'test'", object {
                         val street = "STREET 10"
                     }
                 )
@@ -839,8 +847,7 @@ internal class DbTest {
             val db = Db(config)
             val list =
                 db.query<Address>(
-                    "select * from address where street = /*street*/'test'"
-                    , Condition("STREET 10")
+                    "select * from address where street = /*street*/'test'", Condition("STREET 10")
                 )
             assertEquals(1, list.size)
             assertEquals(Address(10, "STREET 10", 1), list[0])
@@ -913,7 +920,6 @@ internal class DbTest {
             assertEquals(Address(1, "STREET 1", 1), list[0])
             assertEquals(Address(2, "STREET 2", 1), list[1])
         }
-
     }
 
     @Nested
@@ -929,7 +935,6 @@ internal class DbTest {
             assertEquals(Address(8, "STREET 8", 1), list[2])
             assertEquals(15, count)
         }
-
     }
 
     @Nested
@@ -1420,7 +1425,6 @@ internal class DbTest {
             val department = db.findById<Department>(1)!!
             assertThrows<UniqueConstraintException> { db.merge(department.copy(departmentId = 2)) }
         }
-
     }
 
     @Nested
@@ -1584,7 +1588,6 @@ internal class DbTest {
                 )
             }
         }
-
     }
 
     @Nested
@@ -1708,7 +1711,6 @@ internal class DbTest {
             val department = db.findById<Department>(1)!!
             assertThrows<UniqueConstraintException> { db.batchMerge(listOf(department.copy(departmentId = 2))) }
         }
-
     }
 
     @Nested
@@ -1884,7 +1886,6 @@ internal class DbTest {
             val (sqls) = db.dryRun.batchMerge(departments, Department::departmentNo)
             assertEquals(2, sqls.size)
         }
-
     }
 
     @Nested
@@ -2116,5 +2117,4 @@ internal class DbTest {
             )
         }
     }
-
 }

@@ -1,6 +1,6 @@
 package org.komapper.core.sql
 
-import java.util.*
+import java.util.LinkedList
 
 abstract class SqlReducer {
     protected val nodeList = LinkedList<SqlNode>()

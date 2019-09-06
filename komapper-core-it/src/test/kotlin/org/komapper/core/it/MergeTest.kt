@@ -48,5 +48,4 @@ class MergeTest {
         val department = db.findById<Department>(1)!!
         assertThrows<UniqueConstraintException> { db.merge(department.copy(departmentNo = 20)) }
     }
-
 }

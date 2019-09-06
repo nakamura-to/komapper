@@ -1,9 +1,42 @@
 package org.komapper.core.sql
 
-import org.komapper.core.sql.SqlTokenType.*
-import java.util.*
+import java.util.LinkedList
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
+import org.komapper.core.sql.SqlTokenType.AND
+import org.komapper.core.sql.SqlTokenType.BIND_VALUE_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.CLOSE_PAREN
+import org.komapper.core.sql.SqlTokenType.DELIMITER
+import org.komapper.core.sql.SqlTokenType.ELSEIF_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.ELSE_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.EMBEDDED_VALUE_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.END_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.EOF
+import org.komapper.core.sql.SqlTokenType.EOL
+import org.komapper.core.sql.SqlTokenType.EXCEPT
+import org.komapper.core.sql.SqlTokenType.EXPAND_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.FOR_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.FOR_UPDATE
+import org.komapper.core.sql.SqlTokenType.FROM
+import org.komapper.core.sql.SqlTokenType.GROUP_BY
+import org.komapper.core.sql.SqlTokenType.HAVING
+import org.komapper.core.sql.SqlTokenType.IF_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.INTERSECT
+import org.komapper.core.sql.SqlTokenType.LITERAL_VALUE_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.MINUS
+import org.komapper.core.sql.SqlTokenType.MULTI_LINE_COMMENT
+import org.komapper.core.sql.SqlTokenType.OPEN_PAREN
+import org.komapper.core.sql.SqlTokenType.OPTION
+import org.komapper.core.sql.SqlTokenType.OR
+import org.komapper.core.sql.SqlTokenType.ORDER_BY
+import org.komapper.core.sql.SqlTokenType.OTHER
+import org.komapper.core.sql.SqlTokenType.QUOTE
+import org.komapper.core.sql.SqlTokenType.SELECT
+import org.komapper.core.sql.SqlTokenType.SINGLE_LINE_COMMENT
+import org.komapper.core.sql.SqlTokenType.SPACE
+import org.komapper.core.sql.SqlTokenType.UNION
+import org.komapper.core.sql.SqlTokenType.WHERE
+import org.komapper.core.sql.SqlTokenType.WORD
 
 class SqlParser constructor(
     val sql: String,
@@ -186,5 +219,4 @@ class SqlParser constructor(
     private fun pushNode(node: SqlNode) {
         reducers.peek()?.addNode(node)
     }
-
 }

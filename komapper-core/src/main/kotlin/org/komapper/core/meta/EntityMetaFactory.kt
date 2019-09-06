@@ -1,9 +1,9 @@
 package org.komapper.core.meta
 
-import org.komapper.core.Table
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation
+import org.komapper.core.Table
 
 interface EntityMetaFactory {
     fun <T : Any> get(clazz: KClass<T>): EntityMeta<T>
@@ -31,5 +31,4 @@ open class DefaultEntityMetaFactory(
         val tableName = if (table?.quote == true) quote(name) else name
         return EntityMeta(clazz, meta.cons, meta.copy, meta.propMetaList, tableName)
     }
-
 }

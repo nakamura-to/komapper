@@ -5,7 +5,36 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.komapper.core.sql.SqlTokenType.*
+import org.komapper.core.sql.SqlTokenType.AND
+import org.komapper.core.sql.SqlTokenType.BIND_VALUE_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.DELIMITER
+import org.komapper.core.sql.SqlTokenType.END_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.EOF
+import org.komapper.core.sql.SqlTokenType.EOL
+import org.komapper.core.sql.SqlTokenType.EXCEPT
+import org.komapper.core.sql.SqlTokenType.EXPAND_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.FOR_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.FOR_UPDATE
+import org.komapper.core.sql.SqlTokenType.FROM
+import org.komapper.core.sql.SqlTokenType.GROUP_BY
+import org.komapper.core.sql.SqlTokenType.HAVING
+import org.komapper.core.sql.SqlTokenType.IF_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.INTERSECT
+import org.komapper.core.sql.SqlTokenType.LITERAL_VALUE_DIRECTIVE
+import org.komapper.core.sql.SqlTokenType.MINUS
+import org.komapper.core.sql.SqlTokenType.MULTI_LINE_COMMENT
+import org.komapper.core.sql.SqlTokenType.OPEN_PAREN
+import org.komapper.core.sql.SqlTokenType.OPTION
+import org.komapper.core.sql.SqlTokenType.OR
+import org.komapper.core.sql.SqlTokenType.ORDER_BY
+import org.komapper.core.sql.SqlTokenType.OTHER
+import org.komapper.core.sql.SqlTokenType.QUOTE
+import org.komapper.core.sql.SqlTokenType.SELECT
+import org.komapper.core.sql.SqlTokenType.SINGLE_LINE_COMMENT
+import org.komapper.core.sql.SqlTokenType.SPACE
+import org.komapper.core.sql.SqlTokenType.UNION
+import org.komapper.core.sql.SqlTokenType.WHERE
+import org.komapper.core.sql.SqlTokenType.WORD
 
 class SqlTokenizerTest {
 
@@ -493,7 +522,6 @@ class SqlTokenizerTest {
         assertEquals("", tokenizer.token)
     }
 
-
     @Test
     fun testLineNumber() {
         val tokenizer = SqlTokenizer("aaa\nbbb\nccc\n/* \nddd\n */")
@@ -580,5 +608,4 @@ class SqlTokenizerTest {
         assertEquals(EOF, tokenizer.next())
         assertEquals("", tokenizer.token)
     }
-
 }

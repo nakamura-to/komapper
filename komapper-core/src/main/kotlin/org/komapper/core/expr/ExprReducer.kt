@@ -1,6 +1,6 @@
 package org.komapper.core.expr
 
-import java.util.*
+import java.util.Deque
 
 abstract class ExprReducer(val priority: Int, val location: ExprLocation) {
     abstract fun reduce(deque: Deque<ExprNode>): ExprNode

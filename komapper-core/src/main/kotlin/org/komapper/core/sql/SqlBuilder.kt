@@ -1,9 +1,9 @@
 package org.komapper.core.sql
 
+import kotlin.reflect.KClass
 import org.komapper.core.expr.ExprEvaluator
 import org.komapper.core.expr.ExprException
 import org.komapper.core.value.Value
-import kotlin.reflect.KClass
 
 interface SqlBuilder {
     fun build(

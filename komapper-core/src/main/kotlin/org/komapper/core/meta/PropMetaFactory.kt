@@ -1,6 +1,5 @@
 package org.komapper.core.meta
 
-import org.komapper.core.*
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import kotlin.reflect.KClass
@@ -8,6 +7,13 @@ import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.jvm.jvmErasure
+import org.komapper.core.Column
+import org.komapper.core.CreatedAt
+import org.komapper.core.Embedded
+import org.komapper.core.Id
+import org.komapper.core.SequenceGenerator
+import org.komapper.core.UpdatedAt
+import org.komapper.core.Version
 
 interface PropMetaFactory {
     fun <T, R : Any?> create(
@@ -132,4 +138,3 @@ open class DefaultPropMetaFactory(
             }
         }
 }
-

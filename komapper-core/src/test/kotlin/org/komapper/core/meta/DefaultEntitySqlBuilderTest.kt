@@ -1,11 +1,16 @@
 package org.komapper.core.meta
 
+import java.math.BigDecimal
+import java.time.LocalDate
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.komapper.core.*
-import java.math.BigDecimal
-import java.time.LocalDate
+import org.komapper.core.DeleteOption
+import org.komapper.core.Embedded
+import org.komapper.core.Id
+import org.komapper.core.InsertOption
+import org.komapper.core.UpdateOption
+import org.komapper.core.Version
 
 internal class DefaultEntitySqlBuilderTest {
 

@@ -1,5 +1,21 @@
 package org.komapper.core
 
+import java.sql.Blob
+import java.sql.Clob
+import java.sql.NClob
+import java.sql.PreparedStatement
+import java.sql.ResultSet
+import java.sql.SQLException
+import java.sql.SQLXML
+import java.util.ArrayList
+import java.util.Spliterator
+import java.util.Spliterators
+import java.util.stream.Stream
+import java.util.stream.StreamSupport
+import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
+import kotlin.streams.asSequence
+import kotlin.streams.toList
 import org.komapper.core.criteria.CriteriaProcessor
 import org.komapper.core.criteria.CriteriaScope
 import org.komapper.core.criteria.MultiEntityMeta
@@ -8,14 +24,6 @@ import org.komapper.core.meta.PropMeta
 import org.komapper.core.sql.Sql
 import org.komapper.core.tx.TransactionScope
 import org.komapper.core.value.Value
-import java.sql.*
-import java.util.*
-import java.util.stream.Stream
-import java.util.stream.StreamSupport
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
-import kotlin.streams.asSequence
-import kotlin.streams.toList
 
 class Db(val config: DbConfig) {
 
@@ -834,6 +842,5 @@ class Db(val config: DbConfig) {
             }
             return Triple(sqls, meta, newEntities)
         }
-
     }
 }

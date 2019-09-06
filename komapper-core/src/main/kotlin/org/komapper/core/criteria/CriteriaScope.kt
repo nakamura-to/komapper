@@ -73,4 +73,3 @@ class CriteriaScope<T : Any>(private val type: KClass<T>) {
         return Criteria(type, joins, where, orderBy, limit, offset, forUpdate)
     }
 }
-

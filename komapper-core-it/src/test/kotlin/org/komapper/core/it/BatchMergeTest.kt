@@ -38,5 +38,4 @@ class BatchMergeTest {
         val department = db.findById<Department>(1)!!
         assertThrows<UniqueConstraintException> { db.batchMerge(listOf(department.copy(departmentId = 2))) }
     }
-
 }

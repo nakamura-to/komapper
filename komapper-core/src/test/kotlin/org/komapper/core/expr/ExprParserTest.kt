@@ -88,5 +88,4 @@ class ExprParserTest {
             assertThrows<ExprException> { ExprParser("aaa * bbb").parse() }
         println(exception)
     }
-
 }

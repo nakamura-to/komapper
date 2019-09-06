@@ -23,5 +23,4 @@ class BatchDeleteTest {
         db.batchDelete(list)
         assertThrows<OptimisticLockException> { db.batchDelete(list) }
     }
-
 }

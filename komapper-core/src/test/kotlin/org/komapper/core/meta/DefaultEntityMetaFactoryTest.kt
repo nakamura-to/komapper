@@ -40,5 +40,4 @@ internal class DefaultEntityMetaFactoryTest {
         val exception = assertThrows<IllegalStateException> { factory.get(Employee::class) }
         println(exception)
     }
-
 }

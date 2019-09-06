@@ -83,7 +83,6 @@ class SqlParserTest {
             val node = SqlParser(sql).parse()
             assertEquals(sql, node.toText())
         }
-
     }
 
     class LogicalOperatorTest {
@@ -178,7 +177,6 @@ class SqlParserTest {
             val exception = assertThrows<SqlException> { SqlParser(sql).parse() }
             println(exception)
         }
-
     }
 
     class CommentTest {
@@ -201,7 +199,6 @@ class SqlParserTest {
             assertEquals(sql, node.toText())
         }
     }
-
 
     class ExpandDirectiveTest {
         @Test
@@ -240,7 +237,6 @@ class SqlParserTest {
             left.right as SqlNode.Statement
             node.right as SqlNode.Statement
         }
-
     }
 
     class ParenTest {
@@ -265,7 +261,6 @@ class SqlParserTest {
             val exception = assertThrows<SqlException> { SqlParser(sql).parse() }
             println(exception)
         }
-
     }
 
     class IfBlockTest {
@@ -303,7 +298,6 @@ class SqlParserTest {
             val sql = "/*%if aaa*/ a /*%for bbb in ccc*/ b /*%end*/ c /*%end*/"
             val node = SqlParser(sql).parse()
             assertEquals(sql, node.toText())
-
         }
 
         @Test
@@ -368,7 +362,6 @@ class SqlParserTest {
             val exception = assertThrows<SqlException> { SqlParser(sql).parse() }
             println(exception)
         }
-
     }
 
     class ForBlockTest {
@@ -428,9 +421,5 @@ class SqlParserTest {
             val exception = assertThrows<SqlException> { SqlParser(sql).parse() }
             println(exception)
         }
-
     }
-
 }
-
-

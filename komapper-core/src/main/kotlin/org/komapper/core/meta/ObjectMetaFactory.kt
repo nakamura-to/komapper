@@ -1,11 +1,11 @@
 package org.komapper.core.meta
 
-import org.komapper.core.value.Value
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KVisibility
 import kotlin.reflect.full.memberProperties
+import org.komapper.core.value.Value
 
 interface ObjectMetaFactory {
     fun <T : Any> get(clazz: KClass<T>): ObjectMeta
@@ -27,5 +27,4 @@ open class DefaultObjectMetaFactory : ObjectMetaFactory {
         val meta = get(obj::class)
         meta.toMap(obj)
     }
-
 }

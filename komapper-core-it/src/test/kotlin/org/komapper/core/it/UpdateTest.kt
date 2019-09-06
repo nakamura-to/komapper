@@ -28,5 +28,4 @@ class UpdateTest {
         val department = db.findById<Department>(1)!!
         assertThrows<UniqueConstraintException> { db.update(department.copy(departmentNo = 20)) }
     }
-
 }

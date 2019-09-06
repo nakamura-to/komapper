@@ -1,6 +1,5 @@
 package org.komapper.core.tx
 
-
 class TransactionScope(
     private val transactionManager: TransactionManager,
     private val defaultIsolationLevel: TransactionIsolationLevel? = null
@@ -35,7 +34,8 @@ class TransactionScope(
     }
 
     private fun <R> executeInTransaction(
-        isolationLevel: TransactionIsolationLevel?, block: TransactionScope.() -> R
+        isolationLevel: TransactionIsolationLevel?,
+        block: TransactionScope.() -> R
     ): R {
         transactionManager.begin(isolationLevel)
         try {

@@ -48,5 +48,4 @@ internal class DefaultSqlRewriterTest {
         val rewrittenSql = rewiter.rewriteForCount(sql)
         assertEquals("select count(*) from ($sql) t_", rewrittenSql.toString())
     }
-
 }

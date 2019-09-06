@@ -2,7 +2,13 @@ package org.komapper.core.jdbc
 
 import java.math.BigDecimal
 import java.math.BigInteger
-import java.sql.*
+import java.sql.Blob
+import java.sql.Clob
+import java.sql.NClob
+import java.sql.PreparedStatement
+import java.sql.ResultSet
+import java.sql.SQLException
+import java.sql.SQLXML
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
