@@ -12,8 +12,8 @@ repositories {
 dependencies {
     implementation(project(":komapper-core"))
     testRuntime("org.postgresql:postgresql:42.2.6")
-    testRuntime("org.junit.platform:junit-platform-launcher:1.4.2")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.4.2")
+    testRuntime("org.junit.platform:junit-platform-launcher:1.5.1")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.5.1")
 }
 
 tasks.withType<Test> {
