@@ -25,13 +25,33 @@ import org.komapper.core.sql.Sql
 import org.komapper.core.tx.TransactionScope
 import org.komapper.core.value.Value
 
+/**
+ * A database.
+ *
+ * @property config the database configuration
+ * @constructor creates a database instance
+ */
 class Db(val config: DbConfig) {
 
+    /**
+     * A dry run.
+     */
     val dryRun = DryRun(config)
 
+    /**
+     * Creates a transaction scope.
+     */
     val transaction: TransactionScope
         get() = config.transactionScope
 
+    /**
+     * Finds an entity by Id and version.
+     *
+     * @param T the entity type
+     * @param id the identifier (primary key)
+     * @param version the version value
+     * @return the found entity
+     */
     inline fun <reified T : Any> findById(id: Any, version: Any? = null): T? {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
@@ -41,6 +61,13 @@ class Db(val config: DbConfig) {
         }
     }
 
+    /**
+     * Selects entities by criteria.
+     *
+     * @param T the entity type
+     * @param criteriaBlock the criteria
+     * @return the selected entities
+     */
     inline fun <reified T : Any> select(
         criteriaBlock: CriteriaScope<T>.() -> Unit = { }
     ): List<T> {
@@ -49,6 +76,14 @@ class Db(val config: DbConfig) {
         return select(criteriaBlock, Sequence<T>::toList)
     }
 
+    /**
+     * Selects entities by criteria and process them as sequence.
+     *
+     * @param T the entity type
+     * @param criteriaBlock the criteria
+     * @param sequenceBlock the processor
+     * @return the processed result
+     */
     inline fun <reified T : Any, R> select(
         criteriaBlock: CriteriaScope<T>.() -> Unit = { },
         sequenceBlock: (Sequence<T>) -> R
@@ -66,6 +101,14 @@ class Db(val config: DbConfig) {
         }
     }
 
+    /**
+     * Queries entities by the SQL template.
+     *
+     * @param T the entity type
+     * @param template the SQL template
+     * @param condition the parameter object for the SQL template
+     * @return the queried entities
+     */
     inline fun <reified T : Any> query(
         template: CharSequence,
         condition: Any? = null
@@ -75,6 +118,15 @@ class Db(val config: DbConfig) {
         return query(template, condition, Sequence<T>::toList)
     }
 
+    /**
+     * Queries entities by the SQL template and process them as sequence.
+     *
+     * @param T the entity type
+     * @param template the SQL template
+     * @param condition the parameter object for the SQL template
+     * @param block the processor
+     * @return the processed result
+     */
     inline fun <reified T : Any, R> query(
         template: CharSequence,
         condition: Any? = null,
@@ -88,11 +140,28 @@ class Db(val config: DbConfig) {
         }
     }
 
+    /**
+     * Queries one column values by the SQL template.
+     *
+     * @param T the column type
+     * @param template the SQL template
+     * @param condition the parameter object for the SQL template
+     * @return the queried column values
+     */
     inline fun <reified T : Any?> queryOneColumn(
         template: CharSequence,
         condition: Any? = null
     ): List<T> = queryOneColumn(template, condition, Sequence<T>::toList)
 
+    /**
+     * Queries one column by the SQL template and process them as sequence.
+     *
+     * @param T the column type
+     * @param template the SQL template
+     * @param condition the parameter object for the SQL template
+     * @param block the processor
+     * @return the processed result
+     */
     inline fun <reified T : Any?, R> queryOneColumn(
         template: CharSequence,
         condition: Any? = null,
@@ -104,11 +173,30 @@ class Db(val config: DbConfig) {
         }
     }
 
+    /**
+     * Queries two columns by the SQL template.
+     *
+     * @param A the first column type
+     * @param B the second column type
+     * @param template the SQL template
+     * @param condition the parameter object for the SQL template
+     * @return the queried column values
+     */
     inline fun <reified A : Any?, reified B : Any?> queryTwoColumns(
         template: CharSequence,
         condition: Any? = null
     ): List<Pair<A, B>> = queryTwoColumns(template, condition, Sequence<Pair<A, B>>::toList)
 
+    /**
+     * Queries two column by the SQL template and process them as sequence.
+     *
+     * @param A the first column type
+     * @param B the second column type
+     * @param template the SQL template
+     * @param condition the parameter object for the SQL template
+     * @param block the processor
+     * @return the processed result
+     */
     inline fun <reified A : Any?, reified B : Any?, R> queryTwoColumns(
         template: CharSequence,
         condition: Any? = null,
@@ -120,11 +208,32 @@ class Db(val config: DbConfig) {
         }
     }
 
+    /**
+     * Queries three columns by the SQL template.
+     *
+     * @param A the first column type
+     * @param B the second column type
+     * @param C the third column type
+     * @param template the SQL template
+     * @param condition the parameter object for the SQL template
+     * @return the queried column values
+     */
     inline fun <reified A : Any?, reified B : Any?, reified C : Any?> queryThreeColumns(
         template: CharSequence,
         condition: Any? = null
     ): List<Triple<A, B, C>> = queryThreeColumns(template, condition, Sequence<Triple<A, B, C>>::toList)
 
+    /**
+     * Queries three column by the SQL template and process them as sequence.
+     *
+     * @param A the first column type
+     * @param B the second column type
+     * @param C the third column type
+     * @param template the SQL template
+     * @param condition the parameter object for the SQL template
+     * @param block the processor
+     * @return the processed result
+     */
     inline fun <reified A : Any?, reified B : Any?, reified C : Any?, R> queryThreeColumns(
         template: CharSequence,
         condition: Any? = null,
@@ -136,6 +245,16 @@ class Db(val config: DbConfig) {
         }
     }
 
+    /**
+     * Paginates entities by the SQL template.
+     *
+     * @param T the entity type
+     * @param template the SQL template
+     * @param condition the parameter object for the SQL template
+     * @param limit the limit
+     * @param offset the offset
+     * @return the queried entities and the count of all entities
+     */
     inline fun <reified T : Any> paginate(
         template: CharSequence,
         condition: Any? = null,
@@ -269,6 +388,15 @@ class Db(val config: DbConfig) {
         )
     }
 
+    /**
+     * Inserts an entity.
+     *
+     * @param T the entity type
+     * @param entity the entity
+     * @param option the insert option
+     * @return the inserted entity
+     * @throws UniqueConstraintException if the unique constraint is violated
+     */
     inline fun <reified T : Any> insert(entity: T, option: InsertOption = InsertOption()): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
@@ -281,6 +409,15 @@ class Db(val config: DbConfig) {
         }
     }
 
+    /**
+     * Deletes an entity.
+     *
+     * @param T the entity type
+     * @param entity the entity
+     * @param option the delete option
+     * @return the deleted entity
+     * @throws OptimisticLockException if the optimistic lock is failed
+     */
     inline fun <reified T : Any> delete(entity: T, option: DeleteOption = DeleteOption()): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
@@ -290,6 +427,16 @@ class Db(val config: DbConfig) {
         }
     }
 
+    /**
+     * Updates an entity.
+     *
+     * @param T the entity type
+     * @param entity the entity
+     * @param option the update option
+     * @return the updated entity
+     * @throws UniqueConstraintException if the unique constraint is violated
+     * @throws OptimisticLockException if the optimistic lock is failed
+     */
     inline fun <reified T : Any> update(entity: T, option: UpdateOption = UpdateOption()): T {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
@@ -299,6 +446,18 @@ class Db(val config: DbConfig) {
         }
     }
 
+    /**
+     * Merges an entity.
+     *
+     * @param T the entity type
+     * @param entity the entity
+     * @param keys the keys which are used when the entity is merged
+     * @param insertOption the insert option
+     * @param updateOption the update option
+     * @return the merged entity
+     * @throws UniqueConstraintException if the unique constraint is violated
+     * @throws OptimisticLockException if the optimistic lock is failed
+     */
     inline fun <reified T : Any> merge(
         entity: T,
         vararg keys: KProperty1<*, *>,
@@ -351,6 +510,15 @@ class Db(val config: DbConfig) {
         return block(count)
     }
 
+    /**
+     * Submits a batch of insert commands.
+     *
+     * @param T the entity type
+     * @param entities the entities
+     * @param option the insert option
+     * @return the inserted entities
+     * @throws UniqueConstraintException if the unique constraint is violated
+     */
     inline fun <reified T : Any> batchInsert(entities: List<T>, option: InsertOption = InsertOption()): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
@@ -364,6 +532,15 @@ class Db(val config: DbConfig) {
         }
     }
 
+    /**
+     * Submits a batch of delete commands.
+     *
+     * @param T the entity type
+     * @param entities the entities
+     * @param option the delete option
+     * @return the deleted entities
+     * @throws OptimisticLockException if the optimistic lock is failed
+     */
     inline fun <reified T : Any> batchDelete(entities: List<T>, option: DeleteOption = DeleteOption()): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
@@ -374,6 +551,16 @@ class Db(val config: DbConfig) {
         }
     }
 
+    /**
+     * Submits a batch of update commands.
+     *
+     * @param T the entity type
+     * @param entities the entities
+     * @param option the update option
+     * @return the updated entities
+     * @throws UniqueConstraintException if the unique constraint is violated
+     * @throws OptimisticLockException if the optimistic lock is failed
+     */
     inline fun <reified T : Any> batchUpdate(entities: List<T>, option: UpdateOption = UpdateOption()): List<T> {
         require(T::class.isData) { "The T must be a data class." }
         require(!T::class.isAbstract) { "The T must not be abstract." }
@@ -383,6 +570,18 @@ class Db(val config: DbConfig) {
         }
     }
 
+    /**
+     * Submits a batch of merge commands.
+     *
+     * @param T the entity type
+     * @param entities the entities
+     * @param keys the keys which are used when the entity is merged
+     * @param insertOption the insert option
+     * @param updateOption the update option
+     * @return the merged entities
+     * @throws UniqueConstraintException if the unique constraint is violated
+     * @throws OptimisticLockException if the optimistic lock is failed
+     */
     inline fun <reified T : Any> batchMerge(
         entities: List<T>,
         vararg keys: KProperty1<*, *>,
@@ -451,33 +650,63 @@ class Db(val config: DbConfig) {
         return block(counts)
     }
 
+    /**
+     * Executes the given SQL statement, which may be an INSERT, UPDATE, or DELETE statement.
+     *
+     * @param template the SQL template
+     * @param condition the parameter object for the SQL template
+     * @return the row count for SQL Data Manipulation Language (DML) statements
+     */
     fun executeUpdate(template: CharSequence, condition: Any? = null): Int {
         val ctx = config.objectMetaFactory.toMap(condition)
         val sql = config.sqlBuilder.build(template, ctx)
         return executeUpdate(sql, false) { it }
     }
 
+    /**
+     * Executes the given SQL statements that returns nothing, such as SQL DDL statements.
+     *
+     * @param statements the SQL statements
+     */
     fun execute(statements: CharSequence) {
         val sql = Sql(statements.toString(), emptyList(), null)
         executeUpdate(sql, false) {}
     }
 
+    /**
+     * Creates Array objects.
+     *
+     * @param typeName the SQL name of the type the elements of the array map to
+     * @param elements the elements that populate the returned object
+     */
     fun createArrayOf(typeName: String, elements: List<*>): java.sql.Array = config.connection.use {
         it.createArrayOf(typeName, elements.toTypedArray())
     }
 
+    /**
+     * Creates a Blob object.
+     */
     fun createBlob(): Blob = config.connection.use {
         it.createBlob()
     }
 
+    /**
+     * Creates a Clob object.
+     */
     fun createClob(): Clob = config.connection.use {
         it.createClob()
     }
 
+    /**
+     * Creates a NClob object.
+     */
     fun createNClob(): NClob = config.connection.use {
         it.createNClob()
     }
 
+    /**
+     * Creates a SQLXML object.
+     */
     fun createSQLXML(): SQLXML = config.connection.use {
         it.createSQLXML()
     }
@@ -561,8 +790,21 @@ class Db(val config: DbConfig) {
         block: (IntArray) -> T
     ) = executeBatch(sqls, versionCheck, block)
 
+    /**
+     * A dry run for database commands.
+     *
+     * @param config the database configuration
+     */
     class DryRun(val config: DbConfig) {
 
+        /**
+         * Returns the result of a dry run for [Db.findById].
+         *
+         * @param T the entity type
+         * @param id the identifier (primary key)
+         * @param version the version value
+         * @return the SQL and the metadata
+         */
         inline fun <reified T : Any> findById(id: Any, version: Any? = null): Pair<Sql, EntityMeta<T>> {
             require(T::class.isData) { "The T must be a data class." }
             require(!T::class.isAbstract) { "The T must not be abstract." }
@@ -571,6 +813,13 @@ class Db(val config: DbConfig) {
             return sql to meta
         }
 
+        /**
+         * Returns the result of a dry run for [Db.select].
+         *
+         * @param T the entity type
+         * @param criteriaBlock the criteria
+         * @return the SQL and the metadata
+         */
         inline fun <reified T : Any> select(
             criteriaBlock: CriteriaScope<T>.() -> Unit = { }
         ): Pair<Sql, MultiEntityMeta> {
@@ -582,6 +831,14 @@ class Db(val config: DbConfig) {
             return sql to processor
         }
 
+        /**
+         * Returns the result of a dry run for [Db.query].
+         *
+         * @param T the entity type
+         * @param template the SQL template
+         * @param condition the parameter object for the SQL template
+         * @return the SQL and the metadata
+         */
         inline fun <reified T : Any> query(
             template: CharSequence,
             condition: Any? = null
@@ -594,6 +851,13 @@ class Db(val config: DbConfig) {
             return sql to meta
         }
 
+        /**
+         * Returns the result of a dry run for [Db.queryOneColumn].
+         *
+         * @param template the SQL template
+         * @param condition the parameter object for the SQL template
+         * @return the SQL
+         */
         fun queryOneColumn(
             template: CharSequence,
             condition: Any? = null
@@ -602,6 +866,13 @@ class Db(val config: DbConfig) {
             return config.sqlBuilder.build(template, ctx)
         }
 
+        /**
+         * Returns the result of a dry run for [Db.queryTwoColumns].
+         *
+         * @param template the SQL template
+         * @param condition the parameter object for the SQL template
+         * @return the SQL
+         */
         fun queryTwoColumns(
             template: CharSequence,
             condition: Any? = null
@@ -610,6 +881,13 @@ class Db(val config: DbConfig) {
             return config.sqlBuilder.build(template, ctx)
         }
 
+        /**
+         * Returns the result of a dry run for [Db.queryThreeColumns].
+         *
+         * @param template the SQL template
+         * @param condition the parameter object for the SQL template
+         * @return the SQL
+         */
         fun queryThreeColumns(
             template: CharSequence,
             condition: Any? = null
@@ -618,6 +896,16 @@ class Db(val config: DbConfig) {
             return config.sqlBuilder.build(template, ctx)
         }
 
+        /**
+         * Returns the result of a dry run for [Db.paginate].
+         *
+         * @param T the entity type
+         * @param template the SQL template
+         * @param condition the parameter object for the SQL template
+         * @param limit the limit
+         * @param offset the offset
+         * @return the pagination SQL, the metadata and the count SQL
+         */
         inline fun <reified T : Any> paginate(
             template: CharSequence,
             condition: Any? = null,
@@ -633,6 +921,15 @@ class Db(val config: DbConfig) {
             return Triple(sql, meta, countSql)
         }
 
+        /**
+         * Returns the result of a dry run for [Db.insert].
+         *
+         * @param T the entity type
+         * @param entity the entity
+         * @param option the insert option
+         * @param callNextValue the id generator
+         * @return the SQL, the metadata and the new entity
+         */
         inline fun <reified T : Any> insert(
             entity: T,
             option: InsertOption = InsertOption(),
@@ -655,6 +952,14 @@ class Db(val config: DbConfig) {
             }
         }
 
+        /**
+         * Returns the result of a dry run for [Db.delete].
+         *
+         * @param T the entity type
+         * @param entity the entity
+         * @param option the delete option
+         * @return the SQL, the metadata and the new entity
+         */
         inline fun <reified T : Any> delete(
             entity: T,
             option: DeleteOption = DeleteOption()
@@ -668,6 +973,14 @@ class Db(val config: DbConfig) {
             }
         }
 
+        /**
+         * Returns the result of a dry run for [Db.update].
+         *
+         * @param T the entity type
+         * @param entity the entity
+         * @param option the update option
+         * @return the SQL, the metadata and the new entity
+         */
         inline fun <reified T : Any> update(
             entity: T,
             option: UpdateOption = UpdateOption()
@@ -685,6 +998,17 @@ class Db(val config: DbConfig) {
             }
         }
 
+        /**
+         * Returns the result of a dry run for [Db.merge].
+         *
+         * @param T the entity type
+         * @param entity the entity
+         * @param keys the keys which are used when the entity is merged
+         * @param insertOption the insert option
+         * @param updateOption the update option
+         * @param callNextValue the id generator
+         * @return the SQL, the metadata and the new entity
+         */
         inline fun <reified T : Any> merge(
             entity: T,
             vararg keys: KProperty1<*, *>,
@@ -728,6 +1052,15 @@ class Db(val config: DbConfig) {
             }
         }
 
+        /**
+         * Returns the result of a dry run for [Db.batchInsert].
+         *
+         * @param T the entity type
+         * @param entities the entities
+         * @param option the insert option
+         * @param callNextValue the id generator
+         * @return the SQLs, the metadata and the new entities
+         */
         inline fun <reified T : Any> batchInsert(
             entities: List<T>,
             option: InsertOption = InsertOption(),
@@ -755,6 +1088,14 @@ class Db(val config: DbConfig) {
             return Triple(sqls, meta, newEntities)
         }
 
+        /**
+         * Returns the result of a dry run for [Db.batchDelete].
+         *
+         * @param T the entity type
+         * @param entities the entities
+         * @param option the delete option
+         * @return the SQLs, the metadata and the new entities
+         */
         inline fun <reified T : Any> batchDelete(
             entities: List<T>,
             option: DeleteOption = DeleteOption()
@@ -773,6 +1114,14 @@ class Db(val config: DbConfig) {
             return Triple(sqls, meta, newEntities)
         }
 
+        /**
+         * Returns the result of a dry run for [Db.batchUpdate].
+         *
+         * @param T the entity type
+         * @param entities the entities
+         * @param option the update option
+         * @return the SQLs, the metadata and the new entities
+         */
         inline fun <reified T : Any> batchUpdate(
             entities: List<T>,
             option: UpdateOption = UpdateOption()
@@ -795,6 +1144,17 @@ class Db(val config: DbConfig) {
             return Triple(sqls, meta, newEntities)
         }
 
+        /**
+         * Returns the result of a dry run for [Db.batchMerge].
+         *
+         * @param T the entity type
+         * @param entities the entities
+         * @param keys the keys which are used when the entity is merged
+         * @param insertOption the insert option
+         * @param updateOption the update option
+         * @param callNextValue the id generator
+         * @return the SQLs, the metadata and the new entities
+         */
         inline fun <reified T : Any> batchMerge(
             entities: List<T>,
             vararg keys: KProperty1<*, *>,

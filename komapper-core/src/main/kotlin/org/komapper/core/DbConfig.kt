@@ -1,6 +1,7 @@
 package org.komapper.core
 
 import java.sql.Connection
+import java.sql.PreparedStatement
 import javax.sql.DataSource
 import org.komapper.core.expr.CacheExprNodeFactory
 import org.komapper.core.expr.DefaultExprEnvironment
@@ -35,6 +36,33 @@ import org.komapper.core.tx.TransactionIsolationLevel
 import org.komapper.core.tx.TransactionManager
 import org.komapper.core.tx.TransactionScope
 
+/**
+ * A database configuration.
+ *
+ * @property name the key which is used to manage sequence values. The name must be unique.
+ * @property dataSource the data source
+ * @property dialect the dialect
+ * @property namingStrategy the naming strategy for entity classes and properties.
+ * @property objectMetaFactory the object meta factory
+ * @property embeddedMetaFactory the embedded meta factory
+ * @property propMetaFactory the property meta factory
+ * @property entityMetaFactory the entity meta factory
+ * @property listener the entity listener
+ * @property entitySqlBuilder the sql builder for entities
+ * @property exprNodeFactory the expression node factory
+ * @property exprEnvironment the expression environment
+ * @property exprEvaluator the expression evaluator
+ * @property sqlNodeFactory the sql node factory
+ * @property sqlRewriter the sql rewriter
+ * @property sqlBuilder the sql builder
+ * @property logger the logger
+ * @property useTransaction whether the built-in transaction is used or not
+ * @property isolationLevel the isolation level. This value is used only when [useTransaction] is true.
+ * @property batchSize the batch size. This value is used for batch commands.
+ * @property fetchSize the fetch size. See [PreparedStatement.setFetchSize].
+ * @property maxRows the max rows. See [PreparedStatement.setMaxRows].
+ * @property queryTimeout the query timeout. See [PreparedStatement.setQueryTimeout].
+ */
 data class DbConfig(
     val name: String = System.identityHashCode(object {}).toString(),
     val dataSource: DataSource,
