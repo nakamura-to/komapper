@@ -22,52 +22,52 @@ class StatementReducer : SqlReducer() {
 
 class SelectReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
     override fun reduce(): SqlNode =
-        SqlNode.Keyword.Select(location, keyword, nodeList)
+        SqlNode.Clause.Select(location, keyword, nodeList)
 }
 
 class FromReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
     override fun reduce(): SqlNode =
-        SqlNode.Keyword.From(location, keyword, nodeList)
+        SqlNode.Clause.From(location, keyword, nodeList)
 }
 
 class WhereReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
     override fun reduce(): SqlNode =
-        SqlNode.Keyword.Where(location, keyword, nodeList)
+        SqlNode.Clause.Where(location, keyword, nodeList)
 }
 
 class HavingReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
     override fun reduce(): SqlNode =
-        SqlNode.Keyword.Having(location, keyword, nodeList)
+        SqlNode.Clause.Having(location, keyword, nodeList)
 }
 
 class GroupByReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
     override fun reduce(): SqlNode =
-        SqlNode.Keyword.GroupBy(location, keyword, nodeList)
+        SqlNode.Clause.GroupBy(location, keyword, nodeList)
 }
 
 class OrderByReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
     override fun reduce(): SqlNode =
-        SqlNode.Keyword.OrderBy(location, keyword, nodeList)
+        SqlNode.Clause.OrderBy(location, keyword, nodeList)
 }
 
 class ForUpdateReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
     override fun reduce(): SqlNode =
-        SqlNode.Keyword.ForUpdate(location, keyword, nodeList)
+        SqlNode.Clause.ForUpdate(location, keyword, nodeList)
 }
 
 class OptionReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
     override fun reduce(): SqlNode =
-        SqlNode.Keyword.Option(location, keyword, nodeList)
+        SqlNode.Clause.Option(location, keyword, nodeList)
 }
 
 class AndReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
     override fun reduce(): SqlNode =
-        SqlNode.Keyword.And(location, keyword, nodeList)
+        SqlNode.BiLogicalOp.And(location, keyword, nodeList)
 }
 
 class OrReducer(private val location: SqlLocation, private val keyword: String) : SqlReducer() {
     override fun reduce(): SqlNode =
-        SqlNode.Keyword.Or(location, keyword, nodeList)
+        SqlNode.BiLogicalOp.Or(location, keyword, nodeList)
 }
 
 class BindValueDirectiveReducer(

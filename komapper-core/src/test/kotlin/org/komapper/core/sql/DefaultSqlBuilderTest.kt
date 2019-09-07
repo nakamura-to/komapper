@@ -141,10 +141,24 @@ class DefaultSqlBuilderTest {
     inner class EmbeddedValueTest {
 
         @Test
-        fun test() {
+        fun `Include the 'order by' clause into the embedded value`() {
             val template = "select name, age from person where age > 1 /*# orderBy */"
             val sql = sqlBuilder.build(template, mapOf("orderBy" to Value("order by name")))
             assertEquals("select name, age from person where age > 1 order by name", sql.text)
+        }
+
+        @Test
+        fun `Exclude the 'order by' clause from the embedded value`() {
+            val template = "select name, age from person where age > 1 order by /*# orderBy */"
+            val sql = sqlBuilder.build(template, mapOf("orderBy" to Value("name, age")))
+            assertEquals("select name, age from person where age > 1 order by name, age", sql.text)
+        }
+
+        @Test
+        fun `Remove the 'order by' clause automatically`() {
+            val template = "select name, age from person where age > 1 order by /*# orderBy */"
+            val sql = sqlBuilder.build(template, mapOf("orderBy" to Value("")))
+            assertEquals("select name, age from person where age > 1 ", sql.text)
         }
     }
 
@@ -174,6 +188,22 @@ class DefaultSqlBuilderTest {
         fun if_false() {
             val template =
                 "select name, age from person where /*%if name != null*/name = /*name*/'test'/*%end*/ and 1 = 1"
+            val sql = sqlBuilder.build(template)
+            assertEquals("select name, age from person where   1 = 1", sql.text)
+        }
+
+        @Test
+        fun `Remove the 'where' clause automatically`() {
+            val template =
+                "select name, age from person where /*%if name != null*/name = /*name*/'test'/*%end*/ order by name"
+            val sql = sqlBuilder.build(template)
+            assertEquals("select name, age from person   order by name", sql.text)
+        }
+
+        @Test
+        fun `Remove the 'where' and 'order by' clauses automatically`() {
+            val template =
+                "select name, age from person where /*%if name != null*/name = /*name*/'test'/*%end*/ order by /*%if false*/name/*%end*/"
             val sql = sqlBuilder.build(template)
             assertEquals("select name, age from person ", sql.text)
         }
@@ -205,6 +235,13 @@ class DefaultSqlBuilderTest {
             val sql = sqlBuilder.build(template)
             assertEquals("select name, age from (select * from person)", sql.text)
         }
+
+        @Test
+        fun emptyParentheses() {
+            val template = "select name, age from my_function()"
+            val sql = sqlBuilder.build(template)
+            assertEquals(template, sql.text)
+        }
     }
 
     @Nested
@@ -231,6 +268,23 @@ class DefaultSqlBuilderTest {
             val expander: (String) -> List<String> = { prefix -> listOf("name", "age").map { "$prefix$it" } }
             val exception = assertThrows<SqlException> { sqlBuilder.build(template, expander = expander) }
             println(exception)
+        }
+    }
+
+    @Nested
+    inner class SetTest {
+        @Test
+        fun test() {
+            val template = "select name from a union select name from b"
+            val sql = sqlBuilder.build(template)
+            assertEquals(template, sql.text)
+        }
+
+        @Test
+        fun `Remove the 'union' keyword automatically`() {
+            val template = "select name from a union /*%if false*/select name from b/*%end*/"
+            val sql = sqlBuilder.build(template)
+            assertEquals("select name from a ", sql.text)
         }
     }
 }

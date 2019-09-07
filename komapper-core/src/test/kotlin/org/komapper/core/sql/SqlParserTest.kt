@@ -23,12 +23,12 @@ class SqlParserTest {
         assertEquals(sql, node.toText())
         val statement = node as SqlNode.Statement
         assertEquals(1, statement.nodeList.size)
-        val select = statement.nodeList[0] as SqlNode.Keyword.Select
+        val select = statement.nodeList[0] as SqlNode.Clause.Select
         assertEquals(4, select.nodeList.size)
         select.nodeList[0] as SqlNode.Token.Space
         select.nodeList[1] as SqlNode.Token.Other
         select.nodeList[2] as SqlNode.Token.Space
-        val from = select.nodeList[3] as SqlNode.Keyword.From
+        val from = select.nodeList[3] as SqlNode.Clause.From
         assertEquals(2, from.nodeList.size)
         select.nodeList[0] as SqlNode.Token.Space
         select.nodeList[1] as SqlNode.Token.Other

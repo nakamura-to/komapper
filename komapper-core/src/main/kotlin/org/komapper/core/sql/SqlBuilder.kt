@@ -19,6 +19,10 @@ open class DefaultSqlBuilder(
     private val exprEvaluator: ExprEvaluator
 ) : SqlBuilder {
 
+    private val clauseRegex = Regex(
+        """^(select|from|where|group by|having|order by|for update|option)\s""", RegexOption.IGNORE_CASE
+    )
+
     override fun build(template: CharSequence, ctx: Map<String, Value>, expander: (String) -> List<String>): Sql {
         val node = sqlNodeFactory.get(template)
         val state = visit(State(ctx, expander), node)
@@ -28,20 +32,46 @@ open class DefaultSqlBuilder(
     private fun visit(state: State, node: SqlNode): State = when (node) {
         is SqlNode.Statement -> node.nodeList.fold(state, ::visit)
         is SqlNode.Set -> {
-            val left = visit(state, node.left)
-            state.append(node.keyword)
-            visit(left, node.right)
+            val left = visit(State(state), node.left)
+            if (left.available) {
+                state.append(left)
+            }
+            val right = visit(State(state), node.right)
+            if (right.available) {
+                if (left.available) {
+                    state.append(node.keyword)
+                }
+                state.append(right)
+            }
+            state
         }
-        is SqlNode.Keyword.ForUpdate -> {
+        is SqlNode.Clause.Select -> {
             state.append(node.keyword)
             node.nodeList.fold(state, ::visit)
         }
-        is SqlNode.Keyword -> {
+        is SqlNode.Clause.From -> {
+            state.append(node.keyword)
+            node.nodeList.fold(state, ::visit)
+        }
+        is SqlNode.Clause.ForUpdate -> {
+            state.append(node.keyword)
+            node.nodeList.fold(state, ::visit)
+        }
+        is SqlNode.Clause -> {
             val childState = node.nodeList.fold(State(state), ::visit)
             if (childState.available) {
                 state.append(node.keyword).append(childState)
+            } else if (childState.startsWithClause()) {
+                state.available = true
+                state.append(childState)
             }
             state
+        }
+        is SqlNode.BiLogicalOp -> {
+            if (state.available) {
+                state.append(node.keyword)
+            }
+            node.nodeList.fold(state, ::visit)
         }
         is SqlNode.Token -> {
             if (node is SqlNode.Token.Word || node is SqlNode.Token.Other) {
@@ -205,6 +235,13 @@ open class DefaultSqlBuilder(
             return this
         }
 
+        fun startsWithClause(): Boolean {
+            val s = buf.toString().trim()
+            return clauseRegex.containsMatchIn(s)
+        }
+
         fun toSql(): Sql = buf.toSql()
+
+        override fun toString() = buf.toString()
     }
 }

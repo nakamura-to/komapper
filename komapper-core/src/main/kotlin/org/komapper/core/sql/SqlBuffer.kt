@@ -31,4 +31,8 @@ class SqlBuffer(
     }
 
     fun toSql(): Sql = Sql(sql.toString(), values, log.toString())
+
+    override fun toString(): String {
+        return sql.toString()
+    }
 }

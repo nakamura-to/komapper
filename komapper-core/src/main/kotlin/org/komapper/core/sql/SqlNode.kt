@@ -13,7 +13,7 @@ sealed class SqlNode {
         override fun toText(): String = left.toText() + keyword + right.toText()
     }
 
-    sealed class Keyword : SqlNode() {
+    sealed class Clause : SqlNode() {
         abstract val location: Loc
         abstract val keyword: String
         abstract val nodeList: List<SqlNode>
@@ -23,61 +23,68 @@ sealed class SqlNode {
             override val location: Loc,
             override val keyword: String,
             override val nodeList: List<SqlNode>
-        ) : Keyword()
+        ) : Clause()
 
         data class From(
             override val location: Loc,
             override val keyword: String,
             override val nodeList: List<SqlNode>
-        ) : Keyword()
+        ) : Clause()
 
         data class Where(
             override val location: Loc,
             override val keyword: String,
             override val nodeList: List<SqlNode>
-        ) : Keyword()
+        ) : Clause()
 
         data class Having(
             override val location: Loc,
             override val keyword: String,
             override val nodeList: List<SqlNode>
-        ) : Keyword()
+        ) : Clause()
 
         data class GroupBy(
             override val location: Loc,
             override val keyword: String,
             override val nodeList: List<SqlNode>
-        ) : Keyword()
+        ) : Clause()
 
         data class OrderBy(
             override val location: Loc,
             override val keyword: String,
             override val nodeList: List<SqlNode>
-        ) : Keyword()
+        ) : Clause()
 
         data class ForUpdate(
             override val location: Loc,
             override val keyword: String,
             override val nodeList: List<SqlNode>
-        ) : Keyword()
+        ) : Clause()
 
         data class Option(
             override val location: Loc,
             override val keyword: String,
             override val nodeList: List<SqlNode>
-        ) : Keyword()
+        ) : Clause()
+    }
+
+    sealed class BiLogicalOp : SqlNode() {
+        abstract val location: Loc
+        abstract val keyword: String
+        abstract val nodeList: List<SqlNode>
+        override fun toText(): String = keyword + nodeList.toText()
 
         data class And(
             override val location: Loc,
             override val keyword: String,
             override val nodeList: List<SqlNode>
-        ) : Keyword()
+        ) : BiLogicalOp()
 
         data class Or(
             override val location: Loc,
             override val keyword: String,
             override val nodeList: List<SqlNode>
-        ) : Keyword()
+        ) : BiLogicalOp()
     }
 
     data class Paren(val node: SqlNode) : SqlNode() {
