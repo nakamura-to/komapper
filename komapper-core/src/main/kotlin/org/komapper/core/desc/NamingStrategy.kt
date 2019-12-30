@@ -1,4 +1,4 @@
-package org.komapper.core.meta
+package org.komapper.core.desc
 
 import java.nio.CharBuffer
 

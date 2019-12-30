@@ -20,11 +20,11 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.komapper.core.criteria.OrderByScope
 import org.komapper.core.criteria.WhereScope
+import org.komapper.core.desc.EntityDesc
+import org.komapper.core.desc.EntityListener
 import org.komapper.core.jdbc.H2Dialect
 import org.komapper.core.jdbc.SimpleDataSource
 import org.komapper.core.logging.StdoutLogger
-import org.komapper.core.meta.EntityListener
-import org.komapper.core.meta.EntityMeta
 import org.komapper.core.sql.Sql
 
 @Suppress("UNUSED")
@@ -1026,14 +1026,14 @@ internal class DbTest {
         @Test
         fun listener() {
             val db = Db(config.copy(listener = object : EntityListener {
-                override fun <T> preDelete(entity: T, meta: EntityMeta<T>): T {
+                override fun <T> preDelete(entity: T, desc: EntityDesc<T>): T {
                     return when (entity) {
                         is Address -> entity.copy(street = "*${entity.street}")
                         else -> entity
                     } as T
                 }
 
-                override fun <T> postDelete(entity: T, meta: EntityMeta<T>): T {
+                override fun <T> postDelete(entity: T, desc: EntityDesc<T>): T {
                     return when (entity) {
                         is Address -> entity.copy(street = "${entity.street}*")
                         else -> entity
@@ -1131,14 +1131,14 @@ internal class DbTest {
         @Test
         fun listener() {
             val db = Db(config.copy(listener = object : EntityListener {
-                override fun <T> preInsert(entity: T, meta: EntityMeta<T>): T {
+                override fun <T> preInsert(entity: T, desc: EntityDesc<T>): T {
                     return when (entity) {
                         is Address -> entity.copy(street = "*${entity.street}")
                         else -> entity
                     } as T
                 }
 
-                override fun <T> postInsert(entity: T, meta: EntityMeta<T>): T {
+                override fun <T> postInsert(entity: T, desc: EntityDesc<T>): T {
                     return when (entity) {
                         is Address -> entity.copy(street = "${entity.street}*")
                         else -> entity
@@ -1267,14 +1267,14 @@ internal class DbTest {
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
         fun listener() {
             val db = Db(config.copy(listener = object : EntityListener {
-                override fun <T> preUpdate(entity: T, meta: EntityMeta<T>): T {
+                override fun <T> preUpdate(entity: T, desc: EntityDesc<T>): T {
                     return when (entity) {
                         is Address -> entity.copy(street = "*${entity.street}")
                         else -> entity
                     } as T
                 }
 
-                override fun <T> postUpdate(entity: T, meta: EntityMeta<T>): T {
+                override fun <T> postUpdate(entity: T, desc: EntityDesc<T>): T {
                     return when (entity) {
                         is Address -> entity.copy(street = "${entity.street}*")
                         else -> entity
@@ -1449,14 +1449,14 @@ internal class DbTest {
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
         fun listener() {
             val db = Db(config.copy(listener = object : EntityListener {
-                override fun <T> preDelete(entity: T, meta: EntityMeta<T>): T {
+                override fun <T> preDelete(entity: T, desc: EntityDesc<T>): T {
                     return when (entity) {
                         is Address -> entity.copy(street = "*${entity.street}")
                         else -> entity
                     } as T
                 }
 
-                override fun <T> postDelete(entity: T, meta: EntityMeta<T>): T {
+                override fun <T> postDelete(entity: T, desc: EntityDesc<T>): T {
                     return when (entity) {
                         is Address -> entity.copy(street = "${entity.street}*")
                         else -> entity
@@ -1524,14 +1524,14 @@ internal class DbTest {
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
         fun listener() {
             val db = Db(config.copy(listener = object : EntityListener {
-                override fun <T> preInsert(entity: T, meta: EntityMeta<T>): T {
+                override fun <T> preInsert(entity: T, desc: EntityDesc<T>): T {
                     return when (entity) {
                         is Address -> entity.copy(street = "*${entity.street}")
                         else -> entity
                     } as T
                 }
 
-                override fun <T> postInsert(entity: T, meta: EntityMeta<T>): T {
+                override fun <T> postInsert(entity: T, desc: EntityDesc<T>): T {
                     return when (entity) {
                         is Address -> entity.copy(street = "${entity.street}*")
                         else -> entity
@@ -1597,14 +1597,14 @@ internal class DbTest {
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
         fun listener() {
             val db = Db(config.copy(listener = object : EntityListener {
-                override fun <T> preUpdate(entity: T, meta: EntityMeta<T>): T {
+                override fun <T> preUpdate(entity: T, desc: EntityDesc<T>): T {
                     return when (entity) {
                         is Address -> entity.copy(street = "*${entity.street}")
                         else -> entity
                     } as T
                 }
 
-                override fun <T> postUpdate(entity: T, meta: EntityMeta<T>): T {
+                override fun <T> postUpdate(entity: T, desc: EntityDesc<T>): T {
                     return when (entity) {
                         is Address -> entity.copy(street = "${entity.street}*")
                         else -> entity

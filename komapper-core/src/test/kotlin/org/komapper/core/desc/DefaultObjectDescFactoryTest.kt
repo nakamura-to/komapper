@@ -1,13 +1,13 @@
-package org.komapper.core.meta
+package org.komapper.core.desc
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.komapper.core.value.Value
 
 @Suppress("UNUSED")
-internal class DefaultObjectMetaFactoryTest {
+internal class DefaultObjectDescFactoryTest {
 
-    private val objectMetaFactory = DefaultObjectMetaFactory()
+    private val objectMetaFactory = DefaultObjectDescFactory()
 
     @Test
     fun toMap() {

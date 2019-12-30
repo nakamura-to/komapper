@@ -18,9 +18,9 @@ import kotlin.streams.asSequence
 import kotlin.streams.toList
 import org.komapper.core.criteria.CriteriaProcessor
 import org.komapper.core.criteria.CriteriaScope
-import org.komapper.core.criteria.MultiEntityMeta
-import org.komapper.core.meta.EntityMeta
-import org.komapper.core.meta.PropMeta
+import org.komapper.core.criteria.MultiEntityDesc
+import org.komapper.core.desc.EntityDesc
+import org.komapper.core.desc.PropDesc
 import org.komapper.core.sql.Sql
 import org.komapper.core.tx.TransactionScope
 import org.komapper.core.value.Value
@@ -272,37 +272,37 @@ class Db(val config: DbConfig) {
 
     private fun streamMultiEntity(
         sql: Sql,
-        meta: MultiEntityMeta
+        desc: MultiEntityDesc
     ): Stream<List<Any>> = executeQuery(sql) { rs ->
         fromResultSetToStream(rs) {
-            val row = mutableMapOf<PropMeta<*, *>, Any?>()
-            for ((i, propMeta) in meta.leafPropMetaList.withIndex()) {
+            val row = mutableMapOf<PropDesc<*, *>, Any?>()
+            for ((i, propMeta) in desc.leafPropDescList.withIndex()) {
                 val value = config.dialect.getValue(it, i + 1, propMeta.type)
                 row[propMeta] = value
             }
-            meta.new(row)
+            desc.new(row)
         }
     }
 
     private fun <T : Any> streamEntity(
         sql: Sql,
-        meta: EntityMeta<T>
+        desc: EntityDesc<T>
     ): Stream<T> = executeQuery(sql) { rs ->
-        val propMetaMap = mutableMapOf<Int, PropMeta<*, *>>()
+        val propMetaMap = mutableMapOf<Int, PropDesc<*, *>>()
         val metaData = rs.metaData
         val count = metaData.columnCount
         for (i in 1..count) {
             val label = metaData.getColumnLabel(i).toLowerCase()
-            val propMeta = meta.columnLabelMap[label] ?: continue
+            val propMeta = desc.columnLabelMap[label] ?: continue
             propMetaMap[i] = propMeta
         }
         fromResultSetToStream(rs) {
-            val row = mutableMapOf<PropMeta<*, *>, Any?>()
+            val row = mutableMapOf<PropDesc<*, *>, Any?>()
             for ((index, propMeta) in propMetaMap) {
                 val value = config.dialect.getValue(it, index, propMeta.type)
                 row[propMeta] = value
             }
-            meta.new(row)
+            desc.new(row)
         }
     }
 
@@ -658,7 +658,7 @@ class Db(val config: DbConfig) {
      * @return the row count for SQL Data Manipulation Language (DML) statements
      */
     fun executeUpdate(template: CharSequence, condition: Any? = null): Int {
-        val ctx = config.objectMetaFactory.toMap(condition)
+        val ctx = config.objectDescFactory.toMap(condition)
         val sql = config.sqlBuilder.build(template, ctx)
         return executeUpdate(sql, false) { it }
     }
@@ -740,15 +740,15 @@ class Db(val config: DbConfig) {
     @Suppress("UNUSED", "FunctionName")
     internal fun `access$streamMultiEntity`(
         sql: Sql,
-        meta: MultiEntityMeta
-    ) = streamMultiEntity(sql, meta)
+        desc: MultiEntityDesc
+    ) = streamMultiEntity(sql, desc)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
     internal fun <T : Any> `access$streamEntity`(
         sql: Sql,
-        meta: EntityMeta<T>
-    ) = streamEntity(sql, meta)
+        desc: EntityDesc<T>
+    ) = streamEntity(sql, desc)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
@@ -805,10 +805,10 @@ class Db(val config: DbConfig) {
          * @param version the version value
          * @return the SQL and the metadata
          */
-        inline fun <reified T : Any> findById(id: Any, version: Any? = null): Pair<Sql, EntityMeta<T>> {
+        inline fun <reified T : Any> findById(id: Any, version: Any? = null): Pair<Sql, EntityDesc<T>> {
             require(T::class.isData) { "The T must be a data class." }
             require(!T::class.isAbstract) { "The T must not be abstract." }
-            val meta = config.entityMetaFactory.get(T::class)
+            val meta = config.entityDescFactory.get(T::class)
             val sql = config.entitySqlBuilder.buildFindById(meta, id, version)
             return sql to meta
         }
@@ -822,11 +822,11 @@ class Db(val config: DbConfig) {
          */
         inline fun <reified T : Any> select(
             criteriaBlock: CriteriaScope<T>.() -> Unit = { }
-        ): Pair<Sql, MultiEntityMeta> {
+        ): Pair<Sql, MultiEntityDesc> {
             require(T::class.isData) { "The T must be a data class." }
             require(!T::class.isAbstract) { "The T must not be abstract." }
             val scope = CriteriaScope(T::class).also { it.criteriaBlock() }
-            val processor = CriteriaProcessor(config.dialect, config.entityMetaFactory, scope())
+            val processor = CriteriaProcessor(config.dialect, config.entityDescFactory, scope())
             val sql = processor.buildSelect()
             return sql to processor
         }
@@ -842,11 +842,11 @@ class Db(val config: DbConfig) {
         inline fun <reified T : Any> query(
             template: CharSequence,
             condition: Any? = null
-        ): Pair<Sql, EntityMeta<T>> {
+        ): Pair<Sql, EntityDesc<T>> {
             require(T::class.isData) { "The T must be a data class." }
             require(!T::class.isAbstract) { "The T must not be abstract." }
-            val meta = config.entityMetaFactory.get(T::class)
-            val ctx = config.objectMetaFactory.toMap(condition)
+            val meta = config.entityDescFactory.get(T::class)
+            val ctx = config.objectDescFactory.toMap(condition)
             val sql = config.sqlBuilder.build(template, ctx, meta.expander)
             return sql to meta
         }
@@ -862,7 +862,7 @@ class Db(val config: DbConfig) {
             template: CharSequence,
             condition: Any? = null
         ): Sql {
-            val ctx = config.objectMetaFactory.toMap(condition)
+            val ctx = config.objectDescFactory.toMap(condition)
             return config.sqlBuilder.build(template, ctx)
         }
 
@@ -877,7 +877,7 @@ class Db(val config: DbConfig) {
             template: CharSequence,
             condition: Any? = null
         ): Sql {
-            val ctx = config.objectMetaFactory.toMap(condition)
+            val ctx = config.objectDescFactory.toMap(condition)
             return config.sqlBuilder.build(template, ctx)
         }
 
@@ -892,7 +892,7 @@ class Db(val config: DbConfig) {
             template: CharSequence,
             condition: Any? = null
         ): Sql {
-            val ctx = config.objectMetaFactory.toMap(condition)
+            val ctx = config.objectDescFactory.toMap(condition)
             return config.sqlBuilder.build(template, ctx)
         }
 
@@ -911,7 +911,7 @@ class Db(val config: DbConfig) {
             condition: Any? = null,
             limit: Int?,
             offset: Int?
-        ): Triple<Sql, EntityMeta<T>, Sql> {
+        ): Triple<Sql, EntityDesc<T>, Sql> {
             require(T::class.isData) { "The T must be a data class." }
             require(!T::class.isAbstract) { "The T must not be abstract." }
             val paginationTemplate = config.sqlRewriter.rewriteForPagination(template, limit, offset)
@@ -934,10 +934,10 @@ class Db(val config: DbConfig) {
             entity: T,
             option: InsertOption = InsertOption(),
             noinline callNextValue: (String) -> Long = { 0L }
-        ): Triple<Sql, EntityMeta<T>, T> {
+        ): Triple<Sql, EntityDesc<T>, T> {
             require(T::class.isData) { "The T must be a data class." }
             require(!T::class.isAbstract) { "The T must not be abstract." }
-            val meta = config.entityMetaFactory.get(T::class)
+            val meta = config.entityDescFactory.get(T::class)
             return if (option.assignId) {
                 meta.assignId(entity, config.name, callNextValue)
             } else {
@@ -963,10 +963,10 @@ class Db(val config: DbConfig) {
         inline fun <reified T : Any> delete(
             entity: T,
             option: DeleteOption = DeleteOption()
-        ): Triple<Sql, EntityMeta<T>, T> {
+        ): Triple<Sql, EntityDesc<T>, T> {
             require(T::class.isData) { "The T must be a data class." }
             require(!T::class.isAbstract) { "The T must not be abstract." }
-            val meta = config.entityMetaFactory.get(T::class)
+            val meta = config.entityDescFactory.get(T::class)
             return config.listener.preDelete(entity, meta).let { newEntity ->
                 val sql = config.entitySqlBuilder.buildDelete(meta, newEntity, option)
                 Triple(sql, meta, newEntity)
@@ -984,10 +984,10 @@ class Db(val config: DbConfig) {
         inline fun <reified T : Any> update(
             entity: T,
             option: UpdateOption = UpdateOption()
-        ): Triple<Sql, EntityMeta<T>, T> {
+        ): Triple<Sql, EntityDesc<T>, T> {
             require(T::class.isData) { "The T must be a data class." }
             require(!T::class.isAbstract) { "The T must not be abstract." }
-            val meta = config.entityMetaFactory.get(T::class)
+            val meta = config.entityDescFactory.get(T::class)
             return (if (option.incrementVersion) meta.incrementVersion(entity) else entity).let { newEntity ->
                 if (option.updateTimestamp) meta.updateTimestamp(newEntity) else newEntity
             }.let { newEntity ->
@@ -1022,10 +1022,10 @@ class Db(val config: DbConfig) {
                 ignoreVersion = true
             ),
             noinline callNextValue: (String) -> Long = { 0L }
-        ): Triple<Sql, EntityMeta<T>, T> {
+        ): Triple<Sql, EntityDesc<T>, T> {
             require(T::class.isData) { "The T must be a data class." }
             require(!T::class.isAbstract) { "The T must not be abstract." }
-            val meta = config.entityMetaFactory.get(T::class)
+            val meta = config.entityDescFactory.get(T::class)
             return if (insertOption.assignId) {
                 meta.assignId(entity, config.name, callNextValue)
             } else {
@@ -1041,7 +1041,7 @@ class Db(val config: DbConfig) {
             }.let { newEntity ->
                 config.listener.preMerge(newEntity, meta)
             }.let { newEntity ->
-                val buildMerge: (EntityMeta<T>, T, T, List<KProperty1<*, *>>, InsertOption, UpdateOption) -> Sql =
+                val buildMerge: (EntityDesc<T>, T, T, List<KProperty1<*, *>>, InsertOption, UpdateOption) -> Sql =
                     when {
                         config.dialect.supportsMerge() -> config.entitySqlBuilder::buildMerge
                         config.dialect.supportsUpsert() -> config.entitySqlBuilder::buildUpsert
@@ -1065,10 +1065,10 @@ class Db(val config: DbConfig) {
             entities: List<T>,
             option: InsertOption = InsertOption(),
             noinline callNextValue: (String) -> Long = { 0L }
-        ): Triple<List<Sql>, EntityMeta<T>, List<T>> {
+        ): Triple<List<Sql>, EntityDesc<T>, List<T>> {
             require(T::class.isData) { "The T must be a data class." }
             require(!T::class.isAbstract) { "The T must not be abstract." }
-            val meta = config.entityMetaFactory.get(T::class)
+            val meta = config.entityDescFactory.get(T::class)
             val (sqls, newEntities) = entities.map { entity ->
                 if (option.assignId) {
                     meta.assignId(entity, config.name, callNextValue)
@@ -1099,10 +1099,10 @@ class Db(val config: DbConfig) {
         inline fun <reified T : Any> batchDelete(
             entities: List<T>,
             option: DeleteOption = DeleteOption()
-        ): Triple<List<Sql>, EntityMeta<T>, List<T>> {
+        ): Triple<List<Sql>, EntityDesc<T>, List<T>> {
             require(T::class.isData) { "The T must be a data class." }
             require(!T::class.isAbstract) { "The T must not be abstract." }
-            val meta = config.entityMetaFactory.get(T::class)
+            val meta = config.entityDescFactory.get(T::class)
             val (sqls, newEntities) = entities.map { entity ->
                 config.listener.preDelete(entity, meta).let { newEntity ->
                     val sql = config.entitySqlBuilder.buildDelete(meta, newEntity, option)
@@ -1125,10 +1125,10 @@ class Db(val config: DbConfig) {
         inline fun <reified T : Any> batchUpdate(
             entities: List<T>,
             option: UpdateOption = UpdateOption()
-        ): Triple<List<Sql>, EntityMeta<T>, List<T>> {
+        ): Triple<List<Sql>, EntityDesc<T>, List<T>> {
             require(T::class.isData) { "The T must be a data class." }
             require(!T::class.isAbstract) { "The T must not be abstract." }
-            val meta = config.entityMetaFactory.get(T::class)
+            val meta = config.entityDescFactory.get(T::class)
             val (sqls, newEntities) = entities.map { entity ->
                 (if (option.incrementVersion) meta.incrementVersion(entity) else entity).let { newEntity ->
                     if (option.updateTimestamp) meta.updateTimestamp(newEntity) else newEntity
@@ -1168,10 +1168,10 @@ class Db(val config: DbConfig) {
                 ignoreVersion = true
             ),
             noinline callNextValue: (String) -> Long = { 0L }
-        ): Triple<List<Sql>, EntityMeta<T>, List<T>> {
+        ): Triple<List<Sql>, EntityDesc<T>, List<T>> {
             require(T::class.isData) { "The T must be a data class." }
             require(!T::class.isAbstract) { "The T must not be abstract." }
-            val meta = config.entityMetaFactory.get(T::class)
+            val meta = config.entityDescFactory.get(T::class)
             val (sqls, newEntities) = entities.map { entity ->
                 if (insertOption.assignId) {
                     meta.assignId(entity, config.name, callNextValue)
@@ -1188,7 +1188,7 @@ class Db(val config: DbConfig) {
                 }.let { newEntity ->
                     config.listener.preMerge(newEntity, meta)
                 }.let { newEntity ->
-                    val buildMerge: (EntityMeta<T>, T, T, List<KProperty1<*, *>>, InsertOption, UpdateOption) -> Sql =
+                    val buildMerge: (EntityDesc<T>, T, T, List<KProperty1<*, *>>, InsertOption, UpdateOption) -> Sql =
                         when {
                             config.dialect.supportsMerge() -> config.entitySqlBuilder::buildMerge
                             config.dialect.supportsUpsert() -> config.entitySqlBuilder::buildUpsert

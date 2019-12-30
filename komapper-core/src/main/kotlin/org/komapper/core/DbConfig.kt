@@ -3,6 +3,20 @@ package org.komapper.core
 import java.sql.Connection
 import java.sql.PreparedStatement
 import javax.sql.DataSource
+import org.komapper.core.desc.CamelToSnake
+import org.komapper.core.desc.DefaultEmbeddedMetaFactory
+import org.komapper.core.desc.DefaultEntityDescFactory
+import org.komapper.core.desc.DefaultEntityListener
+import org.komapper.core.desc.DefaultEntitySqlBuilder
+import org.komapper.core.desc.DefaultObjectDescFactory
+import org.komapper.core.desc.DefaultPropDescFactory
+import org.komapper.core.desc.EmbeddedDescFactory
+import org.komapper.core.desc.EntityDescFactory
+import org.komapper.core.desc.EntityListener
+import org.komapper.core.desc.EntitySqlBuilder
+import org.komapper.core.desc.NamingStrategy
+import org.komapper.core.desc.ObjectDescFactory
+import org.komapper.core.desc.PropDescFactory
 import org.komapper.core.expr.CacheExprNodeFactory
 import org.komapper.core.expr.DefaultExprEnvironment
 import org.komapper.core.expr.DefaultExprEvaluator
@@ -12,20 +26,6 @@ import org.komapper.core.expr.ExprNodeFactory
 import org.komapper.core.jdbc.Dialect
 import org.komapper.core.logging.Logger
 import org.komapper.core.logging.StdoutLogger
-import org.komapper.core.meta.CamelToSnake
-import org.komapper.core.meta.DefaultEmbeddedMetaFactory
-import org.komapper.core.meta.DefaultEntityListener
-import org.komapper.core.meta.DefaultEntityMetaFactory
-import org.komapper.core.meta.DefaultEntitySqlBuilder
-import org.komapper.core.meta.DefaultObjectMetaFactory
-import org.komapper.core.meta.DefaultPropMetaFactory
-import org.komapper.core.meta.EmbeddedMetaFactory
-import org.komapper.core.meta.EntityListener
-import org.komapper.core.meta.EntityMetaFactory
-import org.komapper.core.meta.EntitySqlBuilder
-import org.komapper.core.meta.NamingStrategy
-import org.komapper.core.meta.ObjectMetaFactory
-import org.komapper.core.meta.PropMetaFactory
 import org.komapper.core.sql.CacheSqlNodeFactory
 import org.komapper.core.sql.DefaultSqlBuilder
 import org.komapper.core.sql.DefaultSqlRewriter
@@ -43,10 +43,10 @@ import org.komapper.core.tx.TransactionScope
  * @property dataSource the data source
  * @property dialect the dialect
  * @property namingStrategy the naming strategy for entity classes and properties.
- * @property objectMetaFactory the object meta factory
- * @property embeddedMetaFactory the embedded meta factory
- * @property propMetaFactory the property meta factory
- * @property entityMetaFactory the entity meta factory
+ * @property objectDescFactory the object meta factory
+ * @property embeddedDescFactory the embedded meta factory
+ * @property propDescFactory the property meta factory
+ * @property entityDescFactory the entity meta factory
  * @property listener the entity listener
  * @property entitySqlBuilder the sql builder for entities
  * @property exprNodeFactory the expression node factory
@@ -68,17 +68,17 @@ data class DbConfig(
     val dataSource: DataSource,
     val dialect: Dialect,
     val namingStrategy: NamingStrategy = CamelToSnake(),
-    val objectMetaFactory: ObjectMetaFactory = DefaultObjectMetaFactory(),
-    val embeddedMetaFactory: EmbeddedMetaFactory = DefaultEmbeddedMetaFactory(),
-    val propMetaFactory: PropMetaFactory = DefaultPropMetaFactory(
+    val objectDescFactory: ObjectDescFactory = DefaultObjectDescFactory(),
+    val embeddedDescFactory: EmbeddedDescFactory = DefaultEmbeddedMetaFactory(),
+    val propDescFactory: PropDescFactory = DefaultPropDescFactory(
         dialect::quote,
         namingStrategy,
-        embeddedMetaFactory
+        embeddedDescFactory
     ),
-    val entityMetaFactory: EntityMetaFactory = DefaultEntityMetaFactory(
+    val entityDescFactory: EntityDescFactory = DefaultEntityDescFactory(
         dialect::quote,
         namingStrategy,
-        propMetaFactory
+        propDescFactory
     ),
     val listener: EntityListener = DefaultEntityListener(),
     val entitySqlBuilder: EntitySqlBuilder = DefaultEntitySqlBuilder(

@@ -1,4 +1,4 @@
-package org.komapper.core.meta
+package org.komapper.core.desc
 
 import java.util.concurrent.ConcurrentHashMap
 
@@ -25,6 +25,6 @@ sealed class PropKind<T> {
     data class CreatedAt<T>(val now: () -> T) : PropKind<T>()
     data class UpdatedAt<T>(val now: () -> T) : PropKind<T>()
     data class Version<T>(val inc: (T) -> T) : PropKind<T>()
-    data class Embedded<T>(val embeddedMeta: EmbeddedMeta<T>) : PropKind<T>()
+    data class Embedded<T>(val embeddedDesc: EmbeddedDesc<T>) : PropKind<T>()
     object Basic : PropKind<Any?>()
 }

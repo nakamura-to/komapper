@@ -1,4 +1,4 @@
-package org.komapper.core.meta
+package org.komapper.core.desc
 
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -16,10 +16,10 @@ internal class DefaultEntitySqlBuilderTest {
 
     private val namingStrategy = CamelToSnake()
 
-    private val factory = DefaultEntityMetaFactory(
+    private val factory = DefaultEntityDescFactory(
         { it },
         namingStrategy,
-        DefaultPropMetaFactory(
+        DefaultPropDescFactory(
             { it },
             namingStrategy,
             DefaultEmbeddedMetaFactory()

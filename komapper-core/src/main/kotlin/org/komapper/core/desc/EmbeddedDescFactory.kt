@@ -1,27 +1,27 @@
-package org.komapper.core.meta
+package org.komapper.core.desc
 
 import kotlin.reflect.KClass
 
-interface EmbeddedMetaFactory {
+interface EmbeddedDescFactory {
     fun <T : Any> create(
         clazz: KClass<T>,
-        propMetaFactory: PropMetaFactory,
+        propDescFactory: PropDescFactory,
         hierarchy: List<KClass<*>>,
         receiverResolver: (Any) -> Any?
-    ): EmbeddedMeta<T>
+    ): EmbeddedDesc<T>
 }
 
-open class DefaultEmbeddedMetaFactory : EmbeddedMetaFactory {
+open class DefaultEmbeddedMetaFactory : EmbeddedDescFactory {
 
     override fun <T : Any> create(
         clazz: KClass<T>,
-        propMetaFactory: PropMetaFactory,
+        propDescFactory: PropDescFactory,
         hierarchy: List<KClass<*>>,
         receiverResolver: (Any) -> Any?
-    ): EmbeddedMeta<T> {
+    ): EmbeddedDesc<T> {
         require(clazz.isData) { "The clazz must be a data class." }
         require(!clazz.isAbstract) { "The clazz must not be abstract." }
-        val meta = DataClassMeta(clazz, propMetaFactory, hierarchy + clazz, receiverResolver)
-        return EmbeddedMeta(clazz, meta.cons, meta.copy, meta.propMetaList)
+        val meta = DataClassDesc(clazz, propDescFactory, hierarchy + clazz, receiverResolver)
+        return EmbeddedDesc(clazz, meta.cons, meta.copy, meta.propMetaList)
     }
 }

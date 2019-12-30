@@ -3,41 +3,41 @@ package org.komapper.core.criteria
 import kotlin.reflect.KProperty1
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.jvmErasure
+import org.komapper.core.desc.EntityDesc
+import org.komapper.core.desc.EntityDescFactory
+import org.komapper.core.desc.PropDesc
 import org.komapper.core.jdbc.Dialect
-import org.komapper.core.meta.EntityMeta
-import org.komapper.core.meta.EntityMetaFactory
-import org.komapper.core.meta.PropMeta
 import org.komapper.core.sql.Sql
 import org.komapper.core.sql.SqlBuffer
 import org.komapper.core.value.Value
 
 class CriteriaProcessor(
     dialect: Dialect,
-    private val entityMetaFactory: EntityMetaFactory,
+    private val entityDescFactory: EntityDescFactory,
     private val criteria: Criteria
-) : MultiEntityMeta {
+) : MultiEntityDesc {
 
     private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
 
-    private val entityMetaList: List<EntityMeta<*>> =
-        listOf(entityMetaFactory.get(criteria.type)) + criteria.joins.map {
-            entityMetaFactory.get(it.type)
+    private val entityDescList: List<EntityDesc<*>> =
+        listOf(entityDescFactory.get(criteria.type)) + criteria.joins.map {
+            entityDescFactory.get(it.type)
         }
 
-    private val tableAliases: List<String> = entityMetaList.mapIndexed { index, _ -> "t${index}_" }
+    private val tableAliases: List<String> = entityDescList.mapIndexed { index, _ -> "t${index}_" }
 
-    private val qualifiedColumnMap: Map<KProperty1<*, *>, String> = entityMetaList.mapIndexed { index, entityMeta ->
+    private val qualifiedColumnMap: Map<KProperty1<*, *>, String> = entityDescList.mapIndexed { index, entityMeta ->
         tableAliases[index] to entityMeta
     }.flatMap { (alias, entityMeta) ->
         entityMeta.leafPropMetaList.map { it.prop to "$alias.${it.columnName}" }
     }.toMap()
 
-    override val leafPropMetaList: List<PropMeta<*, *>> = entityMetaList.flatMap { it.leafPropMetaList }
+    override val leafPropDescList: List<PropDesc<*, *>> = entityDescList.flatMap { it.leafPropMetaList }
 
     fun buildSelect(): Sql {
         buf.append("select ")
         qualifiedColumnMap.forEach { (_, columnName) -> buf.append("$columnName, ") }
-        buf.cutBack(2).append(" from ${entityMetaList[0].tableName} ${tableAliases[0]}")
+        buf.cutBack(2).append(" from ${entityDescList[0].tableName} ${tableAliases[0]}")
         with(criteria) {
             if (joins.isNotEmpty()) {
                 processJoinList(joins)
@@ -81,7 +81,7 @@ class CriteriaProcessor(
                 JoinKind.LEFT -> buf.append(" left join ")
             }
             val tableIndex = i + 1
-            val meta = entityMetaList[tableIndex]
+            val meta = entityDescList[tableIndex]
             buf.append("${meta.tableName} ${tableAliases[tableIndex]} on (")
             visitCriterion(join.onScope.criterionList)
             buf.append(")")
@@ -221,8 +221,8 @@ class CriteriaProcessor(
             .bind(Value(range.second, prop.returnType))
     }
 
-    override fun new(leafValues: Map<PropMeta<*, *>, Any?>): List<Any> {
-        return entityMetaList.map { entityMeta ->
+    override fun new(leafValues: Map<PropDesc<*, *>, Any?>): List<Any> {
+        return entityDescList.map { entityMeta ->
             entityMeta.new(leafValues) as Any
         }
     }

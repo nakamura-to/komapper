@@ -1,4 +1,4 @@
-package org.komapper.core.meta
+package org.komapper.core.desc
 
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
@@ -15,21 +15,21 @@ import org.komapper.core.SequenceGenerator
 import org.komapper.core.UpdatedAt
 import org.komapper.core.Version
 
-interface PropMetaFactory {
+interface PropDescFactory {
     fun <T, R : Any?> create(
         consParam: KParameter,
         copyParam: KParameter,
         prop: KProperty1<T, R>,
         hierarchy: List<KClass<*>>,
         receiverResolver: (Any) -> Any?
-    ): PropMeta<T, R>
+    ): PropDesc<T, R>
 }
 
-open class DefaultPropMetaFactory(
+open class DefaultPropDescFactory(
     private val quote: (String) -> String,
     private val namingStrategy: NamingStrategy,
-    private val embeddedMetaFactory: EmbeddedMetaFactory
-) : PropMetaFactory {
+    private val embeddedDescFactory: EmbeddedDescFactory
+) : PropDescFactory {
 
     override fun <T, R : Any?> create(
         consParam: KParameter,
@@ -37,7 +37,7 @@ open class DefaultPropMetaFactory(
         prop: KProperty1<T, R>,
         hierarchy: List<KClass<*>>,
         receiverResolver: (Any) -> Any?
-    ): PropMeta<T, R> {
+    ): PropDesc<T, R> {
         val type = consParam.type.jvmErasure
         @Suppress("UNCHECKED_CAST")
         val deepGetter: (Any) -> Any? = { entity -> receiverResolver(entity)?.let { prop.call(it) } }
@@ -47,7 +47,7 @@ open class DefaultPropMetaFactory(
         val name = column?.name ?: namingStrategy.fromKotlinToDb(consParam.name!!)
         val columnLabel = name.split('.').first().toLowerCase()
         val columnName = if (column?.quote == true) quote(name) else name
-        return PropMeta(type, consParam, copyParam, prop, deepGetter, kind, columnLabel, columnName)
+        return PropDesc(type, consParam, copyParam, prop, deepGetter, kind, columnLabel, columnName)
     }
 
     protected open fun determineKind(
@@ -133,7 +133,7 @@ open class DefaultPropMetaFactory(
                                 "The type \"${type.qualifiedName}\" is circularly referenced in the hierarchy."
                     )
                 }
-                val meta = embeddedMetaFactory.create(type, this, hierarchy, deepGetter)
+                val meta = embeddedDescFactory.create(type, this, hierarchy, deepGetter)
                 PropKind.Embedded(meta)
             }
         }

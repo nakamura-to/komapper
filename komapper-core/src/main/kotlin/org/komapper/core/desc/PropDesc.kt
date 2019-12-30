@@ -1,10 +1,10 @@
-package org.komapper.core.meta
+package org.komapper.core.desc
 
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
 
-class PropMeta<T, R : Any?>(
+class PropDesc<T, R : Any?>(
     val type: KClass<*>,
     val consParam: KParameter,
     val copyParam: KParameter,
@@ -16,19 +16,19 @@ class PropMeta<T, R : Any?>(
 ) {
 
     @Suppress("UNCHECKED_CAST")
-    fun new(leafValues: Map<PropMeta<*, *>, Any?>): R = when (kind) {
-        is PropKind.Embedded<R> -> kind.embeddedMeta.new(leafValues)
+    fun new(leafValues: Map<PropDesc<*, *>, Any?>): R = when (kind) {
+        is PropKind.Embedded<R> -> kind.embeddedDesc.new(leafValues)
         else -> leafValues[this] as R
     }
 
     fun copy(
         owner: T,
-        predicate: (PropMeta<*, *>) -> Boolean,
-        block: (PropMeta<*, *>, () -> Any?) -> Any?
+        predicate: (PropDesc<*, *>) -> Boolean,
+        block: (PropDesc<*, *>, () -> Any?) -> Any?
     ): Pair<KParameter, Any?>? = when (kind) {
         is PropKind.Embedded -> {
             val embedded = prop.call(owner)
-            val newEmbedded = kind.embeddedMeta.copy(embedded, predicate, block)
+            val newEmbedded = kind.embeddedDesc.copy(embedded, predicate, block)
             if (newEmbedded == null) null else copyParam to newEmbedded
         }
         else -> {
@@ -41,8 +41,8 @@ class PropMeta<T, R : Any?>(
         }
     }
 
-    fun getLeafPropMetaList(): List<PropMeta<*, *>> = when (kind) {
-        is PropKind.Embedded -> kind.embeddedMeta.getLeafPropMetaList()
+    fun getLeafPropMetaList(): List<PropDesc<*, *>> = when (kind) {
+        is PropKind.Embedded -> kind.embeddedDesc.getLeafPropMetaList()
         else -> listOf(this)
     }
 

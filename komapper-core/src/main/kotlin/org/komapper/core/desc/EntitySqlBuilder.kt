@@ -1,4 +1,4 @@
-package org.komapper.core.meta
+package org.komapper.core.desc
 
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
@@ -10,12 +10,12 @@ import org.komapper.core.sql.SqlBuffer
 import org.komapper.core.value.Value
 
 interface EntitySqlBuilder {
-    fun <T> buildFindById(entityMeta: EntityMeta<T>, id: Any, versionValue: Any?): Sql
-    fun <T> buildInsert(entityMeta: EntityMeta<T>, newEntity: T, option: InsertOption): Sql
-    fun <T> buildDelete(entityMeta: EntityMeta<T>, entity: T, option: DeleteOption): Sql
-    fun <T> buildUpdate(entityMeta: EntityMeta<T>, entity: T, newEntity: T, option: UpdateOption): Sql
+    fun <T> buildFindById(entityDesc: EntityDesc<T>, id: Any, versionValue: Any?): Sql
+    fun <T> buildInsert(entityDesc: EntityDesc<T>, newEntity: T, option: InsertOption): Sql
+    fun <T> buildDelete(entityDesc: EntityDesc<T>, entity: T, option: DeleteOption): Sql
+    fun <T> buildUpdate(entityDesc: EntityDesc<T>, entity: T, newEntity: T, option: UpdateOption): Sql
     fun <T> buildMerge(
-        entityMeta: EntityMeta<T>,
+        entityDesc: EntityDesc<T>,
         entity: T,
         newEntity: T,
         keys: List<KProperty1<*, *>>,
@@ -24,7 +24,7 @@ interface EntitySqlBuilder {
     ): Sql
 
     fun <T> buildUpsert(
-        entityMeta: EntityMeta<T>,
+        entityDesc: EntityDesc<T>,
         entity: T,
         newEntity: T,
         keys: List<KProperty1<*, *>>,
@@ -39,8 +39,8 @@ open class DefaultEntitySqlBuilder(
 
 ) : EntitySqlBuilder {
 
-    override fun <T> buildFindById(entityMeta: EntityMeta<T>, id: Any, versionValue: Any?): Sql {
-        with(entityMeta) {
+    override fun <T> buildFindById(entityDesc: EntityDesc<T>, id: Any, versionValue: Any?): Sql {
+        with(entityDesc) {
             val buf = newSqlBuffer().append("select ")
             leafPropMetaList.forEach { buf.append("${it.columnName}, ") }
             buf.cutBack(2).append(" from $tableName where ")
@@ -67,8 +67,8 @@ open class DefaultEntitySqlBuilder(
         }
     }
 
-    override fun <T> buildInsert(entityMeta: EntityMeta<T>, newEntity: T, option: InsertOption): Sql {
-        with(entityMeta) {
+    override fun <T> buildInsert(entityDesc: EntityDesc<T>, newEntity: T, option: InsertOption): Sql {
+        with(entityDesc) {
             val buf = newSqlBuffer().append("insert into $tableName (")
             val propMetaList = leafPropMetaList
                 .filter { option.include.isEmpty() || it.prop in option.include }
@@ -84,17 +84,17 @@ open class DefaultEntitySqlBuilder(
         }
     }
 
-    override fun <T> buildDelete(entityMeta: EntityMeta<T>, entity: T, option: DeleteOption): Sql {
-        with(entityMeta) {
+    override fun <T> buildDelete(entityDesc: EntityDesc<T>, entity: T, option: DeleteOption): Sql {
+        with(entityDesc) {
             val buf = newSqlBuffer()
             buf.append("delete from $tableName")
-            buildWhereClauseForIdAndVersion(entityMeta, entity, option.ignoreVersion, buf)
+            buildWhereClauseForIdAndVersion(entityDesc, entity, option.ignoreVersion, buf)
             return buf.toSql()
         }
     }
 
-    override fun <T> buildUpdate(entityMeta: EntityMeta<T>, entity: T, newEntity: T, option: UpdateOption): Sql {
-        with(entityMeta) {
+    override fun <T> buildUpdate(entityDesc: EntityDesc<T>, entity: T, newEntity: T, option: UpdateOption): Sql {
+        with(entityDesc) {
             val buf = newSqlBuffer().append("update $tableName set ")
             nonIdList
                 .filter { option.include.isEmpty() || it.prop in option.include }
@@ -104,26 +104,26 @@ open class DefaultEntitySqlBuilder(
                     buf.append("${it.columnName} = ").bind(value).append(", ")
                 }
             buf.cutBack(2)
-            buildWhereClauseForIdAndVersion(entityMeta, entity, option.ignoreVersion, buf)
+            buildWhereClauseForIdAndVersion(entityDesc, entity, option.ignoreVersion, buf)
             return buf.toSql()
         }
     }
 
     override fun <T> buildMerge(
-        entityMeta: EntityMeta<T>,
+        entityDesc: EntityDesc<T>,
         entity: T,
         newEntity: T,
         keys: List<KProperty1<*, *>>,
         insertOption: InsertOption,
         updateOption: UpdateOption
     ): Sql {
-        with(entityMeta) {
+        with(entityDesc) {
             val buf = newSqlBuffer().append("merge into $tableName using dual on ")
             if (keys.isNotEmpty()) {
                 val keyPropMetaList = keys.map { prop ->
                     propMap[prop] ?: error(
                         "The property \"${prop.name}\" is not found " +
-                                "in the class \"${entityMeta.type.qualifiedName}\""
+                                "in the class \"${entityDesc.type.qualifiedName}\""
                     )
                 }
                 keyPropMetaList.forEach {
@@ -167,7 +167,7 @@ open class DefaultEntitySqlBuilder(
     }
 
     override fun <T> buildUpsert(
-        entityMeta: EntityMeta<T>,
+        entityDesc: EntityDesc<T>,
         entity: T,
         newEntity: T,
         keys: List<KProperty1<*, *>>,
@@ -175,7 +175,7 @@ open class DefaultEntitySqlBuilder(
         updateOption: UpdateOption
 
     ): Sql {
-        with(entityMeta) {
+        with(entityDesc) {
             val buf = newSqlBuffer().append("insert into $tableName as t_ (")
             val propMetaList = leafPropMetaList
                 .filter { insertOption.include.isEmpty() || it.prop in insertOption.include }
@@ -191,7 +191,7 @@ open class DefaultEntitySqlBuilder(
                 keys.map { prop ->
                     propMap[prop] ?: error(
                         "The property \"${prop.name}\" is not found " +
-                                "in the class \"${entityMeta.type.qualifiedName}\""
+                                "in the class \"${entityDesc.type.qualifiedName}\""
                     )
                 }.forEach { propMeta ->
                     buf.append("${propMeta.columnName}, ")
@@ -218,12 +218,12 @@ open class DefaultEntitySqlBuilder(
     }
 
     protected open fun <T> buildWhereClauseForIdAndVersion(
-        entityMeta: EntityMeta<T>,
+        entityDesc: EntityDesc<T>,
         entity: T,
         ignoreVersion: Boolean,
         buf: SqlBuffer
     ) {
-        with(entityMeta) {
+        with(entityDesc) {
             if (idList.isNotEmpty()) {
                 buf.append(" where ")
                 idList.forEach {
@@ -244,7 +244,7 @@ open class DefaultEntitySqlBuilder(
         return SqlBuffer(formatter)
     }
 
-    protected fun <T> PropMeta<*, *>.getValue(entity: T): Value {
+    protected fun <T> PropDesc<*, *>.getValue(entity: T): Value {
         val obj = this.deepGetter(entity as Any)
         return Value(obj, this.type)
     }

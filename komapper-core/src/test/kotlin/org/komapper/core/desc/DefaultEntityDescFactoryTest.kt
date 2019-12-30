@@ -1,18 +1,18 @@
-package org.komapper.core.meta
+package org.komapper.core.desc
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.komapper.core.Embedded
 import org.komapper.core.Id
 
-internal class DefaultEntityMetaFactoryTest {
+internal class DefaultEntityDescFactoryTest {
 
     private val namingStrategy = CamelToSnake()
 
-    private val factory = DefaultEntityMetaFactory(
+    private val factory = DefaultEntityDescFactory(
         { it },
         namingStrategy,
-        DefaultPropMetaFactory(
+        DefaultPropDescFactory(
             { it },
             namingStrategy,
             DefaultEmbeddedMetaFactory()

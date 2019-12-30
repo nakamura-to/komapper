@@ -1,4 +1,4 @@
-package org.komapper.core.meta
+package org.komapper.core.desc
 
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
@@ -7,18 +7,18 @@ import kotlin.reflect.KVisibility
 import kotlin.reflect.full.memberProperties
 import org.komapper.core.value.Value
 
-interface ObjectMetaFactory {
-    fun <T : Any> get(clazz: KClass<T>): ObjectMeta
+interface ObjectDescFactory {
+    fun <T : Any> get(clazz: KClass<T>): ObjectDesc
     fun toMap(obj: Any?): Map<String, Value>
 }
 
-open class DefaultObjectMetaFactory : ObjectMetaFactory {
+open class DefaultObjectDescFactory : ObjectDescFactory {
 
-    private val cache = ConcurrentHashMap<KClass<*>, ObjectMeta>()
+    private val cache = ConcurrentHashMap<KClass<*>, ObjectDesc>()
 
-    override fun <T : Any> get(clazz: KClass<T>): ObjectMeta = cache.computeIfAbsent(clazz) { c ->
+    override fun <T : Any> get(clazz: KClass<T>): ObjectDesc = cache.computeIfAbsent(clazz) { c ->
         val props: Collection<KProperty1<*, *>> = c.memberProperties.filter { it.visibility == KVisibility.PUBLIC }
-        ObjectMeta(props)
+        ObjectDesc(props)
     }
 
     override fun toMap(obj: Any?): Map<String, Value> = if (obj == null) {

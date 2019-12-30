@@ -1,4 +1,4 @@
-package org.komapper.core.meta
+package org.komapper.core.desc
 
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
@@ -7,9 +7,9 @@ import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.jvmErasure
 
-class DataClassMeta<T : Any>(
+class DataClassDesc<T : Any>(
     clazz: KClass<T>,
-    propMetaFactory: PropMetaFactory,
+    propDescFactory: PropDescFactory,
     hierarchy: List<KClass<*>>,
     receiverResolver: (Any) -> Any?
 ) {
@@ -27,6 +27,6 @@ class DataClassMeta<T : Any>(
             val prop = clazz.memberProperties.find { it.name == consParam.name!! }
                 ?: error("The property \"${consParam.name}\" is not found.")
             check(consParam.type == prop.returnType) { "${consParam.type} is not equal to ${prop.returnType}" }
-            propMetaFactory.create(consParam, copyParam, prop, hierarchy, receiverResolver)
+            propDescFactory.create(consParam, copyParam, prop, hierarchy, receiverResolver)
         }
 }
