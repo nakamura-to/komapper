@@ -5,18 +5,14 @@ import java.time.OffsetDateTime
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.jvm.jvmErasure
-import org.komapper.core.Column
-import org.komapper.core.CreatedAt
-import org.komapper.core.Embedded
-import org.komapper.core.Id
-import org.komapper.core.SequenceGenerator
-import org.komapper.core.UpdatedAt
-import org.komapper.core.Version
+import org.komapper.core.metadata.IdMeta
+import org.komapper.core.metadata.Metadata
+import org.komapper.core.metadata.SequenceGenerator
 
 interface PropDescFactory {
-    fun <T, R : Any?> create(
+    fun <T : Any, R : Any?> create(
+        metadata: Metadata<T>?,
         consParam: KParameter,
         copyParam: KParameter,
         prop: KProperty1<T, R>,
@@ -31,7 +27,8 @@ open class DefaultPropDescFactory(
     private val embeddedDescFactory: EmbeddedDescFactory
 ) : PropDescFactory {
 
-    override fun <T, R : Any?> create(
+    override fun <T : Any, R : Any?> create(
+        metadata: Metadata<T>?,
         consParam: KParameter,
         copyParam: KParameter,
         prop: KProperty1<T, R>,
@@ -42,28 +39,29 @@ open class DefaultPropDescFactory(
         @Suppress("UNCHECKED_CAST")
         val deepGetter: (Any) -> Any? = { entity -> receiverResolver(entity)?.let { prop.call(it) } }
         @Suppress("UNCHECKED_CAST")
-        val kind = determineKind(type, consParam, prop, hierarchy, deepGetter) as PropKind<R>
-        val column = consParam.findAnnotation<Column>()
+        val kind = determineKind(metadata, type, consParam, prop, hierarchy, deepGetter) as PropKind<R>
+        val column = metadata?.columnList?.find { it.propName == prop.name }
         val name = column?.name ?: namingStrategy.fromKotlinToDb(consParam.name!!)
         val columnLabel = name.split('.').first().toLowerCase()
         val columnName = if (column?.quote == true) quote(name) else name
         return PropDesc(type, consParam, copyParam, prop, deepGetter, kind, columnLabel, columnName)
     }
 
-    protected open fun determineKind(
+    protected open fun <T : Any> determineKind(
+        metadata: Metadata<T>?,
         type: KClass<*>,
         consParam: KParameter,
-        prop: KProperty1<*, *>,
+        prop: KProperty1<T, *>,
         hierarchy: List<KClass<*>>,
         deepGetter: (Any) -> Any?
     ): PropKind<*> {
-        val id = consParam.findAnnotation<Id>()
-        val version = consParam.findAnnotation<Version>()
-        val createdAt = consParam.findAnnotation<CreatedAt>()
-        val updatedAt = consParam.findAnnotation<UpdatedAt>()
-        val embedded = consParam.findAnnotation<Embedded>()
+        val id = metadata?.idList?.find { it.propName == prop.name }
+        val version = metadata?.version?.let { if (it.propName == prop.name) it else null }
+        val createdAt = metadata?.createdAt?.let { if (it.propName == prop.name) it else null }
+        val updatedAt = metadata?.updatedAt?.let { if (it.propName == prop.name) it else null }
+        val embedded = metadata?.embeddedList?.find { it.propName == prop.name }
         return when {
-            id != null -> idKind(type, consParam, prop)
+            id != null -> idKind(type, consParam, prop, id)
             version != null -> versionKind(type, consParam, prop)
             createdAt != null -> createdAtKind(type, consParam, prop)
             updatedAt != null -> updatedAtKind(type, consParam, prop)
@@ -72,12 +70,10 @@ open class DefaultPropDescFactory(
         }
     }
 
-    protected open fun idKind(type: KClass<*>, consParam: KParameter, prop: KProperty1<*, *>): PropKind<*> {
-        val generator = consParam.findAnnotation<SequenceGenerator>()
-        return if (generator != null) {
-            sequenceKind(type, consParam, prop, generator)
-        } else {
-            PropKind.Id.Assign
+    protected open fun idKind(type: KClass<*>, consParam: KParameter, prop: KProperty1<*, *>, idMeta: IdMeta): PropKind<*> {
+        return when (idMeta) {
+            is IdMeta.PlainId -> PropKind.Id.Assign
+            is IdMeta.SequenceId -> sequenceKind(type, consParam, prop, idMeta.generator)
         }
     }
 

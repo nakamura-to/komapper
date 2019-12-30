@@ -25,69 +25,94 @@ import org.komapper.core.desc.EntityListener
 import org.komapper.core.jdbc.H2Dialect
 import org.komapper.core.jdbc.SimpleDataSource
 import org.komapper.core.logging.StdoutLogger
+import org.komapper.core.metadata.EntityMetadata
+import org.komapper.core.metadata.SequenceGenerator
 import org.komapper.core.sql.Sql
 
 @Suppress("UNUSED")
 internal class DbTest {
 
     data class Address(
-        @Id
         val addressId: Int,
         val street: String,
-        @Version
         val version: Int
     )
 
-    @Table(name = "COMP_KEY_ADDRESS")
+    object AddressMetadata : EntityMetadata<Address>({
+        id(Address::addressId)
+        version(Address::version)
+    })
+
     data class CompositeKeyAddress(
-        @Id
         val addressId1: Int,
-        @Id
         val addressId2: Int,
         val street: String,
-        @Version
         val version: Int
     )
 
-    @Table(name = "SEQUENCE_STRATEGY")
+    object CompositeKeyAddressMetadata : EntityMetadata<CompositeKeyAddress>({
+        id(CompositeKeyAddress::addressId1)
+        id(CompositeKeyAddress::addressId2)
+        version(CompositeKeyAddress::version)
+        table {
+            name("COMP_KEY_ADDRESS")
+        }
+    })
+
     data class SequenceStrategy(
-        @Id
-        @SequenceGenerator(name = "SEQUENCE_STRATEGY_ID", incrementBy = 100)
         val id: Int,
         val value: String
     )
 
-    @Table(name = "SEQUENCE_STRATEGY")
+    object SequenceStrategyMetadata : EntityMetadata<SequenceStrategy>({
+        id(SequenceStrategy::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", 100))
+        table {
+            name("SEQUENCE_STRATEGY")
+        }
+    })
+
     data class MultiSequenceStrategy(
-        @Id
-        @SequenceGenerator(name = "SEQUENCE_STRATEGY_ID", incrementBy = 100)
         val id: Int,
-        @Id
-        @SequenceGenerator(name = "MY_SEQUENCE_STRATEGY_ID", incrementBy = 100)
         val value: Long
     )
 
-    @Table(name = "SEQUENCE_STRATEGY", quote = true)
+    object MultiSequenceStrategyMetadata : EntityMetadata<MultiSequenceStrategy>({
+        id(MultiSequenceStrategy::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", 100))
+        id(MultiSequenceStrategy::value, SequenceGenerator("MY_SEQUENCE_STRATEGY_ID", 100))
+
+        table {
+            name("SEQUENCE_STRATEGY")
+        }
+    })
+
     data class Quotes(
-        @Id
-        @SequenceGenerator(name = "SEQUENCE_STRATEGY_ID", incrementBy = 100, quote = true)
-        @Column(name = "ID", quote = true)
         val id: Int,
-        @Column(name = "VALUE", quote = true)
         val value: String
     )
 
+    object QuotesMetadata : EntityMetadata<Quotes>({
+        id(Quotes::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", quote = true))
+        table {
+            name(name = "SEQUENCE_STRATEGY", quote = true)
+            column(Quotes::id, "ID", quote = true)
+            column(Quotes::value, "VALUE", quote = true)
+        }
+    })
+
     data class Person(
-        @Id
         val personId: Int,
         val name: String,
-        @CreatedAt
         val createdAt: LocalDateTime = LocalDateTime.MIN,
-        @UpdatedAt
         val updatedAt: LocalDateTime = LocalDateTime.MIN
     )
 
-    private enum class Direction {
+    object PersonMetadata : EntityMetadata<Person>({
+        id(Person::personId)
+        createdAt(Person::createdAt)
+        updatedAt(Person::updatedAt)
+    })
+
+    enum class Direction {
         NORTH, SOUTH, WEST, EAST
     }
 
@@ -97,70 +122,91 @@ internal class DbTest {
     )
 
     data class Employee(
-        @Id
         val employeeId: Int,
         val employeeNo: Int,
         val employeeName: String,
         val managerId: Int?,
-        @Embedded
         val detail: EmployeeDetail,
         val departmentId: Int,
         val addressId: Int,
-        @Version
         val version: Int
     )
+
+    object EmployeeMetadata : EntityMetadata<Employee>({
+        id(Employee::employeeId)
+        embedded(Employee::detail)
+        version(Employee::version)
+    })
 
     data class WorkerSalary(val salary: BigDecimal)
 
     data class WorkerDetail(
         val hiredate: LocalDate,
-        @Embedded
         val salary: WorkerSalary
     )
 
-    @Table(name = "employee")
+    object WorkerDetailMetadata : EntityMetadata<WorkerDetail>({
+        embedded(WorkerDetail::salary)
+    })
+
     data class Worker(
-        @Id
         val employeeId: Int,
         val employeeNo: Int,
         val employeeName: String,
         val managerId: Int?,
-        @Embedded
         val detail: WorkerDetail,
         val departmentId: Int,
         val addressId: Int,
-        @Version
         val version: Int
     )
 
+    object WorkerMetadata : EntityMetadata<Worker>({
+        id(Worker::employeeId)
+        embedded(Worker::detail)
+        version(Worker::version)
+        table {
+            name("employee")
+        }
+    })
+
     data class Common(
-        @Id
-        @SequenceGenerator(name = "PERSON_ID_SEQUENCE", incrementBy = 100)
         val personId: Int = 0,
-        @CreatedAt
         val createdAt: LocalDateTime = LocalDateTime.of(2000, 1, 1, 0, 0, 0),
-        @UpdatedAt
         val updatedAt: LocalDateTime = LocalDateTime.of(2000, 1, 1, 0, 0, 0),
-        @Version
         val version: Int = 0
     )
 
-    @Table(name = "person")
+    class CommonMetadata : EntityMetadata<Common>({
+        id(Common::personId, SequenceGenerator("PERSON_ID_SEQUENCE", 100))
+        createdAt(Common::createdAt)
+        updatedAt(Common::updatedAt)
+        version(Common::version)
+    })
+
     data class Human(
         val name: String,
-        @Embedded
         val common: Common
     )
 
+    object HumanMetadata : EntityMetadata<Human>({
+        embedded(Human::common)
+        table {
+            name("person")
+        }
+    })
+
     data class Department(
-        @Id
         val departmentId: Int,
         val departmentNo: Int,
         val departmentName: String,
         val Location: String,
-        @Version
         val version: Int
     )
+
+    object DepartmentMetadata : EntityMetadata<Department>({
+        id(Department::departmentId)
+        version(Department::version)
+    })
 
     private val config = DbConfig(
         dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"),
@@ -1888,16 +1934,100 @@ internal class DbTest {
         }
     }
 
+    data class AnyPerson(val name: String) : Serializable
+    data class AnyTest(val id: Int, val value: Any)
+    object AnyTestMetadata : EntityMetadata<AnyTest>({
+        id(AnyTest::id)
+    })
+
+    @Suppress("ArrayInDataClass")
+    data class ByteArrayTest(val id: Int, val value: ByteArray)
+    object ByteArrayTestMetadata : EntityMetadata<ByteArrayTest>({
+        id(ByteArrayTest::id)
+    })
+
+    data class BigDecimalTest(val id: Int, val value: BigDecimal)
+    object BigDecimalTestMetadata : EntityMetadata<BigDecimalTest>({
+        id(BigDecimalTest::id)
+    })
+
+    data class BigIntegerTest(val id: Int, val value: BigInteger)
+    object BigIntegerTestMetadata : EntityMetadata<BigIntegerTest>({
+        id(BigIntegerTest::id)
+    })
+
+    data class BooleanTest(val id: Int, val value: Boolean)
+    object BooleanTestMetadata : EntityMetadata<BooleanTest>({
+        id(BooleanTest::id)
+    })
+
+    data class ByteTest(val id: Int, val value: Byte)
+    object ByteTestMetadata : EntityMetadata<ByteTest>({
+        id(ByteTest::id)
+    })
+
+    data class DoubleTest(val id: Int, val value: Double)
+    object DoubleTestMetadata : EntityMetadata<DoubleTest>({
+        id(DoubleTest::id)
+    })
+
+    data class EnumTest(val id: Int, val value: Direction)
+    object EnumTestMetadata : EntityMetadata<EnumTest>({
+        id(EnumTest::id)
+    })
+
+    data class FloatTest(val id: Int, val value: Float)
+    object FloatTestMetadata : EntityMetadata<FloatTest>({
+        id(FloatTest::id)
+    })
+
+    data class IntTest(val id: Int, val value: Int)
+    object IntTestMetadata : EntityMetadata<IntTest>({
+        id(IntTest::id)
+    })
+
+    data class LocalDateTest(val id: Int, val value: LocalDate)
+    object LocalDateTestMetadata : EntityMetadata<LocalDateTest>({
+        id(LocalDateTest::id)
+    })
+
+    data class LocalDateTimeTest(val id: Int, val value: LocalDateTime)
+    object LocalDateTimeTestMetadata : EntityMetadata<LocalDateTimeTest>({
+        id(LocalDateTimeTest::id)
+    })
+
+    data class LocalTimeTest(val id: Int, val value: LocalTime)
+    object LocalTimeTestMetadata : EntityMetadata<LocalTimeTest>({
+        id(LocalTimeTest::id)
+    })
+
+    data class LongTest(val id: Int, val value: Long)
+    object LongTestMetadata : EntityMetadata<LongTest>({
+        id(LongTest::id)
+    })
+
+    data class OffsetDateTimeTest(val id: Int, val value: OffsetDateTime)
+    object OffsetDateTimeTestMetadata : EntityMetadata<OffsetDateTimeTest>({
+        id(OffsetDateTimeTest::id)
+    })
+
+    data class ShortTest(val id: Int, val value: Short)
+    object ShortTestMetadata : EntityMetadata<ShortTest>({
+        id(ShortTest::id)
+    })
+
+    data class StringTest(val id: Int, val value: String)
+    object StringTestMetadata : EntityMetadata<StringTest>({
+        id(StringTest::id)
+    })
+
     @Nested
     inner class DataTypeTest {
 
         @Test
         fun any() {
-            data class Person(val name: String) : Serializable
-            data class AnyTest(@Id val id: Int, val value: Any)
-
             val db = Db(config)
-            val data = AnyTest(1, Person("ABC"))
+            val data = AnyTest(1, AnyPerson("ABC"))
             db.insert(data)
             val data2 = db.findById<AnyTest>(1)
             assertEquals(data, data2)
@@ -1905,8 +2035,6 @@ internal class DbTest {
 
         @Test
         fun bigDecimal() {
-            data class BigDecimalTest(@Id val id: Int, val value: BigDecimal)
-
             val db = Db(config)
             val data = BigDecimalTest(1, BigDecimal.TEN)
             db.insert(data)
@@ -1916,8 +2044,6 @@ internal class DbTest {
 
         @Test
         fun bigInteger() {
-            data class BigIntegerTest(@Id val id: Int, val value: BigInteger)
-
             val db = Db(config)
             val data = BigIntegerTest(1, BigInteger.TEN)
             db.insert(data)
@@ -1927,8 +2053,6 @@ internal class DbTest {
 
         @Test
         fun boolean() {
-            data class BooleanTest(@Id val id: Int, val value: Boolean)
-
             val db = Db(config)
             val data = BooleanTest(1, true)
             db.insert(data)
@@ -1938,8 +2062,6 @@ internal class DbTest {
 
         @Test
         fun byte() {
-            data class ByteTest(@Id val id: Int, val value: Byte)
-
             val db = Db(config)
             val data = ByteTest(1, 10)
             db.insert(data)
@@ -1949,9 +2071,6 @@ internal class DbTest {
 
         @Test
         fun byteArray() {
-            @Suppress("ArrayInDataClass")
-            data class ByteArrayTest(@Id val id: Int, val value: ByteArray)
-
             val db = Db(config)
             val data = ByteArrayTest(1, byteArrayOf(10, 20, 30))
             db.insert(data)
@@ -1962,8 +2081,6 @@ internal class DbTest {
 
         @Test
         fun double() {
-            data class DoubleTest(@Id val id: Int, val value: Double)
-
             val db = Db(config)
             val data = DoubleTest(1, 10.0)
             db.insert(data)
@@ -1973,8 +2090,6 @@ internal class DbTest {
 
         @Test
         fun enum() {
-            data class EnumTest(@Id val id: Int, val value: Direction)
-
             val db = Db(config)
             val data = EnumTest(1, Direction.EAST)
             db.insert(data)
@@ -1984,8 +2099,6 @@ internal class DbTest {
 
         @Test
         fun float() {
-            data class FloatTest(@Id val id: Int, val value: Float)
-
             val db = Db(config)
             val data = FloatTest(1, 10.0f)
             db.insert(data)
@@ -1995,8 +2108,6 @@ internal class DbTest {
 
         @Test
         fun int() {
-            data class IntTest(@Id val id: Int, val value: Int)
-
             val db = Db(config)
             val data = IntTest(1, 10)
             db.insert(data)
@@ -2006,8 +2117,6 @@ internal class DbTest {
 
         @Test
         fun localDateTime() {
-            data class LocalDateTimeTest(@Id val id: Int, val value: LocalDateTime)
-
             val db = Db(config)
             val data = LocalDateTimeTest(1, LocalDateTime.of(2019, 6, 1, 12, 11, 10))
             db.insert(data)
@@ -2017,8 +2126,6 @@ internal class DbTest {
 
         @Test
         fun localDate() {
-            data class LocalDateTest(@Id val id: Int, val value: LocalDate)
-
             val db = Db(config)
             val data = LocalDateTest(1, LocalDate.of(2019, 6, 1))
             db.insert(data)
@@ -2028,8 +2135,6 @@ internal class DbTest {
 
         @Test
         fun localTime() {
-            data class LocalTimeTest(@Id val id: Int, val value: LocalTime)
-
             val db = Db(config)
             val data = LocalTimeTest(1, LocalTime.of(12, 11, 10))
             db.insert(data)
@@ -2039,8 +2144,6 @@ internal class DbTest {
 
         @Test
         fun long() {
-            data class LongTest(@Id val id: Int, val value: Long)
-
             val db = Db(config)
             val data = LongTest(1, 10L)
             db.insert(data)
@@ -2050,8 +2153,6 @@ internal class DbTest {
 
         @Test
         fun offsetDateTime() {
-            data class OffsetDateTimeTest(@Id val id: Int, val value: OffsetDateTime)
-
             val db = Db(config)
             val dateTime = LocalDateTime.of(2019, 6, 1, 12, 11, 10)
             val offset = ZoneOffset.ofHours(9)
@@ -2064,8 +2165,6 @@ internal class DbTest {
 
         @Test
         fun short() {
-            data class ShortTest(@Id val id: Int, val value: Short)
-
             val db = Db(config)
             val data = ShortTest(1, 10)
             db.insert(data)
@@ -2075,8 +2174,6 @@ internal class DbTest {
 
         @Test
         fun string() {
-            data class StringTest(@Id val id: Int, val value: String)
-
             val db = Db(config)
             val data = StringTest(1, "ABC")
             db.insert(data)

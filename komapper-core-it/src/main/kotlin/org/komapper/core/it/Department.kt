@@ -1,14 +1,16 @@
 package org.komapper.core.it
 
-import org.komapper.core.Id
-import org.komapper.core.Version
+import org.komapper.core.metadata.EntityMetadata
 
 data class Department(
-    @Id
     val departmentId: Int,
     val departmentNo: Int,
     val departmentName: String,
     val Location: String,
-    @Version
     val version: Int
 )
+
+object DepartmentMetadata : EntityMetadata<Department>({
+    id(Department::departmentId)
+    version(Department::version)
+})

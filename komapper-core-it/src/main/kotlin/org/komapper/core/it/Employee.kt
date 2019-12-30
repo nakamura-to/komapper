@@ -2,11 +2,9 @@ package org.komapper.core.it
 
 import java.math.BigDecimal
 import java.time.LocalDate
-import org.komapper.core.Id
-import org.komapper.core.Version
+import org.komapper.core.metadata.EntityMetadata
 
 data class Employee(
-    @Id
     val employeeId: Int,
     val employeeNo: Int,
     val employeeName: String,
@@ -15,6 +13,10 @@ data class Employee(
     val salary: BigDecimal,
     val departmentId: Int,
     val addressId: Int,
-    @Version
     val version: Int
 )
+
+object EmployeeMetadata : EntityMetadata<Employee>({
+    id(Employee::employeeId)
+    version(Employee::version)
+})

@@ -6,23 +6,25 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.komapper.core.DeleteOption
-import org.komapper.core.Embedded
-import org.komapper.core.Id
 import org.komapper.core.InsertOption
 import org.komapper.core.UpdateOption
-import org.komapper.core.Version
+import org.komapper.core.metadata.DefaultMetadataResolver
+import org.komapper.core.metadata.EntityMetadata
 
 internal class DefaultEntitySqlBuilderTest {
+
+    private val metadataResolver = DefaultMetadataResolver()
 
     private val namingStrategy = CamelToSnake()
 
     private val factory = DefaultEntityDescFactory(
+        metadataResolver,
         { it },
         namingStrategy,
         DefaultPropDescFactory(
             { it },
             namingStrategy,
-            DefaultEmbeddedMetaFactory()
+            DefaultEmbeddedDescFactory(metadataResolver)
         )
     )
 
@@ -34,25 +36,28 @@ internal class DefaultEntitySqlBuilderTest {
     )
 
     data class Employee(
-        @Id
         val employeeId: Int = 0,
         val employeeNo: Int = 10,
         val employeeName: String = "a",
-        @Embedded
         val detail: EmployeeDetail = EmployeeDetail(
             hiredate = LocalDate.of(2019, 7, 6),
             salary = BigDecimal(2000.00)
         ),
-        @Version
         val version: Int = 1
     )
+
+    object EmployeeMetadata : EntityMetadata<Employee>({
+        id(Employee::employeeId)
+        embedded(Employee::detail)
+        version(Employee::version)
+    })
 
     @Nested
     inner class Insert {
         @Test
         fun test() {
-            val meta = factory.get(Employee::class)
-            val sql = builder.buildInsert(meta, Employee(), InsertOption())
+            val desc = factory.get(Employee::class)
+            val sql = builder.buildInsert(desc, Employee(), InsertOption())
             assertEquals(
                 "insert into employee (employee_id, employee_no, employee_name, hiredate, salary, version) " +
                         "values (?, ?, ?, ?, ?, ?)", sql.text
@@ -61,9 +66,9 @@ internal class DefaultEntitySqlBuilderTest {
 
         @Test
         fun include() {
-            val meta = factory.get(Employee::class)
+            val desc = factory.get(Employee::class)
             val sql = builder.buildInsert(
-                meta,
+                desc,
                 Employee(),
                 InsertOption(include = listOf(Employee::employeeName, EmployeeDetail::salary))
             )
@@ -74,9 +79,9 @@ internal class DefaultEntitySqlBuilderTest {
 
         @Test
         fun exclude() {
-            val meta = factory.get(Employee::class)
+            val desc = factory.get(Employee::class)
             val sql = builder.buildInsert(
-                meta,
+                desc,
                 Employee(),
                 InsertOption(exclude = listOf(Employee::employeeName, EmployeeDetail::salary))
             )
@@ -111,10 +116,10 @@ internal class DefaultEntitySqlBuilderTest {
     inner class Update {
         @Test
         fun test() {
-            val meta = factory.get(Employee::class)
+            val desc = factory.get(Employee::class)
             val entity = Employee()
             val newEntity = entity.copy(version = entity.version.inc())
-            val sql = builder.buildUpdate(meta, entity, newEntity, UpdateOption())
+            val sql = builder.buildUpdate(desc, entity, newEntity, UpdateOption())
             assertEquals(
                 "update employee set employee_no = ?, employee_name = ?, hiredate = ?, salary = ?, " +
                         "version = ? where employee_id = ? and version = ?", sql.text
@@ -123,10 +128,10 @@ internal class DefaultEntitySqlBuilderTest {
 
         @Test
         fun ignoreVersion() {
-            val meta = factory.get(Employee::class)
+            val desc = factory.get(Employee::class)
             val entity = Employee()
             val newEntity = entity.copy(version = entity.version.inc())
-            val sql = builder.buildUpdate(meta, entity, newEntity, UpdateOption(ignoreVersion = true))
+            val sql = builder.buildUpdate(desc, entity, newEntity, UpdateOption(ignoreVersion = true))
             assertEquals(
                 "update employee set employee_no = ?, employee_name = ?, hiredate = ?, salary = ?, " +
                         "version = ? where employee_id = ?", sql.text
@@ -135,11 +140,11 @@ internal class DefaultEntitySqlBuilderTest {
 
         @Test
         fun include() {
-            val meta = factory.get(Employee::class)
+            val desc = factory.get(Employee::class)
             val entity = Employee()
             val newEntity = entity.copy(version = entity.version.inc())
             val sql = builder.buildUpdate(
-                meta,
+                desc,
                 entity,
                 newEntity,
                 UpdateOption(include = listOf(Employee::employeeName, EmployeeDetail::salary))
@@ -152,11 +157,11 @@ internal class DefaultEntitySqlBuilderTest {
 
         @Test
         fun exclude() {
-            val meta = factory.get(Employee::class)
+            val desc = factory.get(Employee::class)
             val entity = Employee()
             val newEntity = entity.copy(version = entity.version.inc())
             val sql = builder.buildUpdate(
-                meta,
+                desc,
                 entity,
                 newEntity,
                 UpdateOption(exclude = listOf(Employee::employeeName, EmployeeDetail::salary))
@@ -172,10 +177,10 @@ internal class DefaultEntitySqlBuilderTest {
     inner class Upsert {
         @Test
         fun test() {
-            val meta = factory.get(Employee::class)
+            val desc = factory.get(Employee::class)
             val entity = Employee()
             val newEntity = entity.copy(version = entity.version.inc())
-            val sql = builder.buildUpsert(meta, entity, newEntity, emptyList(), InsertOption(), UpdateOption())
+            val sql = builder.buildUpsert(desc, entity, newEntity, emptyList(), InsertOption(), UpdateOption())
             assertEquals(
                 "insert into employee as t_ " +
                         "(employee_id, employee_no, employee_name, hiredate, salary, version) " +
@@ -187,11 +192,11 @@ internal class DefaultEntitySqlBuilderTest {
 
         @Test
         fun insert_include() {
-            val meta = factory.get(Employee::class)
+            val desc = factory.get(Employee::class)
             val entity = Employee()
             val newEntity = entity.copy(version = entity.version.inc())
             val sql = builder.buildUpsert(
-                meta,
+                desc,
                 entity,
                 newEntity,
                 emptyList(),
@@ -209,11 +214,11 @@ internal class DefaultEntitySqlBuilderTest {
 
         @Test
         fun insert_exclude() {
-            val meta = factory.get(Employee::class)
+            val desc = factory.get(Employee::class)
             val entity = Employee()
             val newEntity = entity.copy(version = entity.version.inc())
             val sql = builder.buildUpsert(
-                meta,
+                desc,
                 entity,
                 newEntity,
                 emptyList(),
@@ -231,11 +236,11 @@ internal class DefaultEntitySqlBuilderTest {
 
         @Test
         fun update_ignoreVersion() {
-            val meta = factory.get(Employee::class)
+            val desc = factory.get(Employee::class)
             val entity = Employee()
             val newEntity = entity.copy(version = entity.version.inc())
             val sql = builder.buildUpsert(
-                meta,
+                desc,
                 entity,
                 newEntity,
                 emptyList(),
@@ -253,11 +258,11 @@ internal class DefaultEntitySqlBuilderTest {
 
         @Test
         fun update_include() {
-            val meta = factory.get(Employee::class)
+            val desc = factory.get(Employee::class)
             val entity = Employee()
             val newEntity = entity.copy(version = entity.version.inc())
             val sql = builder.buildUpsert(
-                meta,
+                desc,
                 entity,
                 newEntity,
                 emptyList(),
@@ -275,11 +280,11 @@ internal class DefaultEntitySqlBuilderTest {
 
         @Test
         fun update_exclude() {
-            val meta = factory.get(Employee::class)
+            val desc = factory.get(Employee::class)
             val entity = Employee()
             val newEntity = entity.copy(version = entity.version.inc())
             val sql = builder.buildUpsert(
-                meta,
+                desc,
                 entity,
                 newEntity,
                 emptyList(),

@@ -2,32 +2,50 @@ package org.komapper.core.desc
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.komapper.core.Embedded
-import org.komapper.core.Id
+import org.komapper.core.metadata.DefaultMetadataResolver
+import org.komapper.core.metadata.EntityMetadata
 
 internal class DefaultEntityDescFactoryTest {
+
+    private val metadataResolver = DefaultMetadataResolver()
 
     private val namingStrategy = CamelToSnake()
 
     private val factory = DefaultEntityDescFactory(
+        metadataResolver,
         { it },
         namingStrategy,
         DefaultPropDescFactory(
             { it },
             namingStrategy,
-            DefaultEmbeddedMetaFactory()
+            DefaultEmbeddedDescFactory(metadataResolver)
         )
     )
 
-    private data class Person(@Embedded val nested: Person)
+    data class Person(val nested: Person)
+    object PersonMetadata : EntityMetadata<Person>({
+        embedded(Person::nested)
+    })
 
-    private data class EmployeeInfo(@Embedded val manager: Employee)
+    data class EmployeeInfo(val manager: Employee)
+    object EmployeeInfoMetadata : EntityMetadata<EmployeeInfo>({
+        embedded(EmployeeInfo::manager)
+    })
 
-    private data class Employee(@Embedded val info: EmployeeInfo)
+    data class Employee(val info: EmployeeInfo)
+    object EmployeeMetadata : EntityMetadata<Employee>({
+        embedded(Employee::info)
+    })
 
-    private data class AddressInfo(@Id val id: Int)
+    data class AddressInfo(val id: Int)
+    object AddressInfoMetadata : EntityMetadata<AddressInfo>({
+        id(AddressInfo::id)
+    })
 
-    private data class Address(@Embedded val info: AddressInfo)
+    data class Address(val info: AddressInfo)
+    object AddressMetadata : EntityMetadata<Address>({
+        id(Address::info)
+    })
 
     @Test
     fun get_directCircularReference() {

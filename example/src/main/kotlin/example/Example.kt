@@ -1,30 +1,30 @@
 package example
 
 import java.time.LocalDateTime
-import org.komapper.core.Column
-import org.komapper.core.CreatedAt
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
-import org.komapper.core.Id
-import org.komapper.core.SequenceGenerator
-import org.komapper.core.UpdatedAt
-import org.komapper.core.Version
 import org.komapper.core.jdbc.H2Dialect
 import org.komapper.core.jdbc.SimpleDataSource
+import org.komapper.core.metadata.EntityMetadata
+import org.komapper.core.metadata.SequenceGenerator
 
 data class Address(
-    @Id
-    @SequenceGenerator(name = "ADDRESS_SEQ", incrementBy = 100)
-    @Column(name = "address_id")
     val id: Int = 0,
     val street: String,
-    @CreatedAt
     val createdAt: LocalDateTime? = null,
-    @UpdatedAt
     val updatedAt: LocalDateTime? = null,
-    @Version
     val version: Int = 0
 )
+
+object AddressMetadata : EntityMetadata<Address>({
+    id(Address::id, SequenceGenerator("ADDRESS_SEQ", 100))
+    createdAt(Address::createdAt)
+    updatedAt(Address::updatedAt)
+    version(Address::version)
+    table {
+        column(Address::id, "address_id")
+    }
+})
 
 fun main() {
     val db = Db(

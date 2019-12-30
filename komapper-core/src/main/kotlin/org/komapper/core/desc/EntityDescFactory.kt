@@ -2,14 +2,14 @@ package org.komapper.core.desc
 
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
-import kotlin.reflect.full.findAnnotation
-import org.komapper.core.Table
+import org.komapper.core.metadata.MetadataResolver
 
 interface EntityDescFactory {
     fun <T : Any> get(clazz: KClass<T>): EntityDesc<T>
 }
 
 open class DefaultEntityDescFactory(
+    private val metadataResolver: MetadataResolver,
     private val quote: (String) -> String,
     private val namingStrategy: NamingStrategy,
     private val propDescFactory: PropDescFactory
@@ -25,10 +25,10 @@ open class DefaultEntityDescFactory(
     }
 
     protected open fun <T : Any> create(clazz: KClass<T>): EntityDesc<T> {
-        val meta = DataClassDesc(clazz, propDescFactory, listOf(clazz)) { it }
-        val table = clazz.findAnnotation<Table>()
-        val name = table?.name ?: namingStrategy.fromKotlinToDb(clazz.simpleName!!)
-        val tableName = if (table?.quote == true) quote(name) else name
-        return EntityDesc(clazz, meta.cons, meta.copy, meta.propMetaList, tableName)
+        val metadata = metadataResolver.resolve(clazz)
+        val desc = DataClassDesc(clazz, metadata, propDescFactory, listOf(clazz)) { it }
+        val name = metadata.table.name ?: namingStrategy.fromKotlinToDb(clazz.simpleName!!)
+        val tableName = if (metadata.table.quote) quote(name) else name
+        return EntityDesc(clazz, desc.cons, desc.copy, desc.propMetaList, tableName)
     }
 }

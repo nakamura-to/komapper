@@ -1,16 +1,18 @@
 package org.komapper.core.it
 
-import org.komapper.core.Column
-import org.komapper.core.Id
-import org.komapper.core.SequenceGenerator
-import org.komapper.core.Table
+import org.komapper.core.metadata.EntityMetadata
+import org.komapper.core.metadata.SequenceGenerator
 
-@Table(name = "sequence_strategy", quote = true)
 data class SequenceStrategy(
-    @Id
-    @SequenceGenerator(name = "SEQUENCE_STRATEGY_ID", incrementBy = 100)
-    @Column(name = "id", quote = true)
     val id: Int = 0,
-    @Column(name = "value", quote = true)
     val value: String
 )
+
+object SequenceStrategyMetadata : EntityMetadata<SequenceStrategy>({
+    id(SequenceStrategy::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", 100))
+    table {
+        name("sequence_strategy", true)
+        column(SequenceStrategy::id, "id", true)
+        column(SequenceStrategy::value, "value", true)
+    }
+})

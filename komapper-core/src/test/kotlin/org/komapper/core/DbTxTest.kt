@@ -16,18 +16,22 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.komapper.core.jdbc.H2Dialect
 import org.komapper.core.jdbc.SimpleDataSource
+import org.komapper.core.metadata.EntityMetadata
 import org.komapper.core.tx.TransactionIsolationLevel
 
 @Suppress("UNUSED")
 internal class DbTxTest {
 
     data class Address(
-        @Id
         val addressId: Int,
         val street: String,
-        @Version
         val version: Int
     )
+
+    object AddressMetadata : EntityMetadata<Address>({
+        id(Address::addressId)
+        version(Address::version)
+    })
 
     val simpleDataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
 
@@ -322,13 +326,36 @@ internal class DbTxTest {
         println(exception)
     }
 
+    data class ArrayTest(val id: Int, val value: java.sql.Array)
+    object ArrayTestMetadata : EntityMetadata<ArrayTest>({
+        id(ArrayTest::id)
+    })
+
+    data class BlobTest(val id: Int, val value: Blob)
+    object BlobTestMetadata : EntityMetadata<BlobTest>({
+        id(BlobTest::id)
+    })
+
+    data class ClobTest(val id: Int, val value: Clob)
+    object ClobTestMetadata : EntityMetadata<ClobTest>({
+        id(ClobTest::id)
+    })
+
+    data class NClobTest(val id: Int, val value: NClob)
+    object NClobTestMetadata : EntityMetadata<NClobTest>({
+        id(NClobTest::id)
+    })
+
+    data class SqlXmlTest(val id: Int, val value: SQLXML)
+    object SqlXmlTestMetadata : EntityMetadata<SqlXmlTest>({
+        id(SqlXmlTest::id)
+    })
+
     @Nested
     inner class DataType {
 
         @Test
         fun array() {
-            data class ArrayTest(@Id val id: Int, val value: java.sql.Array)
-
             val db = Db(config)
             db.transaction {
                 val array = db.createArrayOf("INTEGER", listOf(10, 20, 30))
@@ -342,8 +369,6 @@ internal class DbTxTest {
 
         @Test
         fun blob() {
-            data class BlobTest(@Id val id: Int, val value: Blob)
-
             val db = Db(config)
             db.transaction {
                 val blob = db.createBlob()
@@ -359,8 +384,6 @@ internal class DbTxTest {
 
         @Test
         fun clob() {
-            data class ClobTest(@Id val id: Int, val value: Clob)
-
             val db = Db(config)
             db.transaction {
                 val clob = db.createClob()
@@ -375,8 +398,6 @@ internal class DbTxTest {
 
         @Test
         fun nclob() {
-            data class NClobTest(@Id val id: Int, val value: NClob)
-
             val db = Db(config)
             db.transaction {
                 val nclob = db.createNClob()
@@ -391,8 +412,6 @@ internal class DbTxTest {
 
         @Test
         fun sqlXml() {
-            data class SqlXmlTest(@Id val id: Int, val value: SQLXML)
-
             val db = Db(config)
             db.transaction {
                 val sqlXml = db.createSQLXML()
