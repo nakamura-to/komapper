@@ -11,14 +11,14 @@ import org.komapper.core.metadata.Metadata
 import org.komapper.core.metadata.SequenceGenerator
 
 interface PropDescFactory {
-    fun <T : Any, R : Any?> create(
-        metadata: Metadata<T>?,
+    fun create(
+        metadata: Metadata<*>?,
         consParam: KParameter,
         copyParam: KParameter,
-        prop: KProperty1<T, R>,
+        prop: KProperty1<*, *>,
         hierarchy: List<KClass<*>>,
         receiverResolver: (Any) -> Any?
-    ): PropDesc<T, R>
+    ): PropDesc
 }
 
 open class DefaultPropDescFactory(
@@ -27,19 +27,19 @@ open class DefaultPropDescFactory(
     private val embeddedDescFactory: EmbeddedDescFactory
 ) : PropDescFactory {
 
-    override fun <T : Any, R : Any?> create(
-        metadata: Metadata<T>?,
+    override fun create(
+        metadata: Metadata<*>?,
         consParam: KParameter,
         copyParam: KParameter,
-        prop: KProperty1<T, R>,
+        prop: KProperty1<*, *>,
         hierarchy: List<KClass<*>>,
         receiverResolver: (Any) -> Any?
-    ): PropDesc<T, R> {
+    ): PropDesc {
         val type = consParam.type.jvmErasure
         @Suppress("UNCHECKED_CAST")
         val deepGetter: (Any) -> Any? = { entity -> receiverResolver(entity)?.let { prop.call(it) } }
         @Suppress("UNCHECKED_CAST")
-        val kind = determineKind(metadata, type, consParam, prop, hierarchy, deepGetter) as PropKind<R>
+        val kind = determineKind(metadata, type, consParam, prop, hierarchy, deepGetter) as PropKind
         val column = metadata?.columnList?.find { it.propName == prop.name }
         val name = column?.name ?: namingStrategy.fromKotlinToDb(consParam.name!!)
         val columnLabel = name.split('.').first().toLowerCase()
@@ -47,14 +47,14 @@ open class DefaultPropDescFactory(
         return PropDesc(type, consParam, copyParam, prop, deepGetter, kind, columnLabel, columnName)
     }
 
-    protected open fun <T : Any> determineKind(
-        metadata: Metadata<T>?,
+    protected open fun determineKind(
+        metadata: Metadata<*>?,
         type: KClass<*>,
         consParam: KParameter,
-        prop: KProperty1<T, *>,
+        prop: KProperty1<*, *>,
         hierarchy: List<KClass<*>>,
         deepGetter: (Any) -> Any?
-    ): PropKind<*> {
+    ): PropKind {
         val id = metadata?.idList?.find { it.propName == prop.name }
         val version = metadata?.version?.let { if (it.propName == prop.name) it else null }
         val createdAt = metadata?.createdAt?.let { if (it.propName == prop.name) it else null }
@@ -70,7 +70,7 @@ open class DefaultPropDescFactory(
         }
     }
 
-    protected open fun idKind(type: KClass<*>, consParam: KParameter, prop: KProperty1<*, *>, idMeta: IdMeta): PropKind<*> {
+    protected open fun idKind(type: KClass<*>, consParam: KParameter, prop: KProperty1<*, *>, idMeta: IdMeta): PropKind {
         return when (idMeta) {
             is IdMeta.PlainId -> PropKind.Id.Assign
             is IdMeta.SequenceId -> sequenceKind(type, consParam, prop, idMeta.generator)
@@ -82,7 +82,7 @@ open class DefaultPropDescFactory(
         consParam: KParameter,
         prop: KProperty1<*, *>,
         generator: SequenceGenerator
-    ): PropKind<*> {
+    ): PropKind {
         val quotedName = if (generator.quote) quote(generator.name) else generator.name
         return when (type) {
             Int::class -> PropKind.Id.Sequence(quotedName, generator.incrementBy) { it.toInt() }
@@ -91,21 +91,21 @@ open class DefaultPropDescFactory(
         }
     }
 
-    protected open fun versionKind(type: KClass<*>, consParam: KParameter, prop: KProperty1<*, *>): PropKind<*> =
+    protected open fun versionKind(type: KClass<*>, consParam: KParameter, prop: KProperty1<*, *>): PropKind =
         when (type) {
-            Int::class -> PropKind.Version(Int::inc)
-            Long::class -> PropKind.Version(Long::inc)
+            Int::class -> PropKind.Version(Int::inc as (Any) -> Any)
+            Long::class -> PropKind.Version(Long::inc as (Any) -> Any)
             else -> error("The @Version parameter must be Int or Long.")
         }
 
-    protected open fun createdAtKind(type: KClass<*>, consParam: KParameter, prop: KProperty1<*, *>): PropKind<*> =
+    protected open fun createdAtKind(type: KClass<*>, consParam: KParameter, prop: KProperty1<*, *>): PropKind =
         when (type) {
             LocalDateTime::class -> PropKind.CreatedAt(LocalDateTime::now)
             OffsetDateTime::class -> PropKind.CreatedAt(OffsetDateTime::now)
             else -> error("The @CreatedAt parameter must be either LocalDateTime or OffsetDateTime.")
         }
 
-    protected open fun updatedAtKind(type: KClass<*>, consParam: KParameter, prop: KProperty1<*, *>): PropKind<*> =
+    protected open fun updatedAtKind(type: KClass<*>, consParam: KParameter, prop: KProperty1<*, *>): PropKind =
         when (type) {
             LocalDateTime::class -> PropKind.UpdatedAt(LocalDateTime::now)
             OffsetDateTime::class -> PropKind.UpdatedAt(OffsetDateTime::now)
@@ -118,7 +118,7 @@ open class DefaultPropDescFactory(
         prop: KProperty1<*, *>,
         hierarchy: List<KClass<*>>,
         deepGetter: (Any) -> Any?
-    ): PropKind<*> =
+    ): PropKind =
         when {
             !type.isData -> error("The @Embedded parameter must be a data class.")
             type.isAbstract -> error("The @Embedded parameter must not be an abstract class.")

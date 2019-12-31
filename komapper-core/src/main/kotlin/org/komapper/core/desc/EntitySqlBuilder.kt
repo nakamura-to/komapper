@@ -244,7 +244,7 @@ open class DefaultEntitySqlBuilder(
         return SqlBuffer(formatter)
     }
 
-    protected fun <T> PropDesc<*, *>.getValue(entity: T): Value {
+    protected fun <T> PropDesc.getValue(entity: T): Value {
         val obj = this.deepGetter(entity as Any)
         return Value(obj, this.type)
     }

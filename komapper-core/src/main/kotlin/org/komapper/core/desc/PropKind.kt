@@ -2,18 +2,18 @@ package org.komapper.core.desc
 
 import java.util.concurrent.ConcurrentHashMap
 
-sealed class PropKind<T> {
-    sealed class Id<T> : PropKind<T>() {
-        object Assign : Id<Any?>()
-        data class Sequence<T>(
+sealed class PropKind {
+    sealed class Id : PropKind() {
+        object Assign : Id()
+        data class Sequence(
             private val name: String,
             private val incrementBy: Int,
-            private val cast: (Long) -> T
+            private val cast: (Long) -> Any
         ) :
-            Id<T>() {
+            Id() {
             private val cache = ConcurrentHashMap<String, IdGenerator>()
 
-            fun next(key: String, callNextValue: (String) -> Long): T {
+            fun next(key: String, callNextValue: (String) -> Long): Any {
                 val generator = cache.computeIfAbsent(key) {
                     IdGenerator(incrementBy) { callNextValue(name) }
                 }
@@ -22,9 +22,9 @@ sealed class PropKind<T> {
         }
     }
 
-    data class CreatedAt<T>(val now: () -> T) : PropKind<T>()
-    data class UpdatedAt<T>(val now: () -> T) : PropKind<T>()
-    data class Version<T>(val inc: (T) -> T) : PropKind<T>()
-    data class Embedded<T>(val embeddedDesc: EmbeddedDesc<T>) : PropKind<T>()
-    object Basic : PropKind<Any?>()
+    data class CreatedAt(val now: () -> Any) : PropKind()
+    data class UpdatedAt(val now: () -> Any) : PropKind()
+    data class Version(val inc: (Any) -> Any) : PropKind()
+    data class Embedded(val embeddedDesc: EmbeddedDesc) : PropKind()
+    object Basic : PropKind()
 }

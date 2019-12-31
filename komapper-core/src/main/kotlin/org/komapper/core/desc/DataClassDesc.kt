@@ -1,16 +1,15 @@
 package org.komapper.core.desc
 
 import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.jvmErasure
 import org.komapper.core.metadata.Metadata
 
-class DataClassDesc<T : Any>(
-    clazz: KClass<T>,
-    metadata: Metadata<T>?,
+class DataClassDesc(
+    clazz: KClass<*>,
+    metadata: Metadata<*>?,
     propDescFactory: PropDescFactory,
     hierarchy: List<KClass<*>>,
     receiverResolver: (Any) -> Any?
@@ -18,9 +17,6 @@ class DataClassDesc<T : Any>(
     val cons = clazz.primaryConstructor ?: error("The clazz has no primary constructor.")
     val copy = clazz.memberFunctions.find {
         it.name == "copy" && it.returnType.jvmErasure == clazz && it.parameters.size == cons.parameters.size + 1
-    }?.let {
-        @Suppress("UNCHECKED_CAST")
-        it as KFunction<T>
     } ?: error("The clazz does'n have a copy function.")
     val propMetaList = cons.parameters
         .zip(copy.parameters.subList(1, copy.parameters.size))

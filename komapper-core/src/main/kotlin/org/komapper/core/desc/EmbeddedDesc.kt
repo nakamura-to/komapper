@@ -3,19 +3,19 @@ package org.komapper.core.desc
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 
-class EmbeddedDesc<T>(
+class EmbeddedDesc(
     val type: KClass<*>,
-    val cons: KFunction<T>,
-    val copy: KFunction<T>,
-    val propDescList: List<PropDesc<T, *>>
+    val cons: KFunction<*>,
+    val copy: KFunction<*>,
+    val propDescList: List<PropDesc>
 ) {
 
-    fun new(leaves: Map<PropDesc<*, *>, Any?>): T {
+    fun new(leaves: Map<PropDesc, Any?>): Any? {
         val args = propDescList.map { it.consParam to it.new(leaves) }.toMap()
         return cons.callBy(args)
     }
 
-    fun copy(embedded: T, predicate: (PropDesc<*, *>) -> Boolean, block: (PropDesc<*, *>, () -> Any?) -> Any?): Any? {
+    fun copy(embedded: Any, predicate: (PropDesc) -> Boolean, block: (PropDesc, () -> Any?) -> Any?): Any? {
         val valueArgs = propDescList.mapNotNull { it.copy(embedded, predicate, block) }.toMap()
         return if (valueArgs.isEmpty()) {
             null
@@ -25,6 +25,6 @@ class EmbeddedDesc<T>(
         }
     }
 
-    fun getLeafPropMetaList(): List<PropDesc<*, *>> =
+    fun getLeafPropMetaList(): List<PropDesc> =
         propDescList.flatMap { it.getLeafPropMetaList() }
 }

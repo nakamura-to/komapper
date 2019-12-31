@@ -5,9 +5,9 @@ import kotlin.reflect.KFunction
 
 class EntityDesc<T>(
     val type: KClass<*>,
-    val cons: KFunction<T>,
-    val copy: KFunction<T>,
-    val propDescList: List<PropDesc<T, *>>,
+    val cons: KFunction<*>,
+    val copy: KFunction<*>,
+    val propDescList: List<PropDesc>,
     val tableName: String
 ) {
     val leafPropMetaList = propDescList.flatMap { it.getLeafPropMetaList() }
@@ -21,9 +21,9 @@ class EntityDesc<T>(
     val propMap = leafPropMetaList.associateBy { it.prop }
     val expander: (String) -> List<String> = { prefix -> leafPropMetaList.map { prefix + it.columnName } }
 
-    fun new(leafValues: Map<PropDesc<*, *>, Any?>): T {
+    fun new(leafValues: Map<PropDesc, Any?>): T {
         val args = propDescList.map { it.consParam to it.new(leafValues) }.toMap()
-        return cons.callBy(args)
+        return cons.callBy(args) as T
     }
 
     fun assignId(entity: T, key: String, callNextValue: (String) -> Long): T =
@@ -56,11 +56,11 @@ class EntityDesc<T>(
 
     private fun copy(
         entity: T,
-        predicate: (PropDesc<*, *>) -> Boolean,
-        block: (PropDesc<*, *>, () -> Any?) -> Any?
+        predicate: (PropDesc) -> Boolean,
+        block: (PropDesc, () -> Any?) -> Any?
     ): T {
         val receiverArg = copy.parameters[0] to entity
-        val valueArgs = propDescList.mapNotNull { it.copy(entity, predicate, block) }.toMap()
-        return copy.callBy(mapOf(receiverArg) + valueArgs)
+        val valueArgs = propDescList.mapNotNull { it.copy(entity as Any, predicate, block) }.toMap()
+        return copy.callBy(mapOf(receiverArg) + valueArgs) as T
     }
 }

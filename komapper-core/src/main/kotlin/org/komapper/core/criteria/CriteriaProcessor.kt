@@ -32,7 +32,7 @@ class CriteriaProcessor(
         entityMeta.leafPropMetaList.map { it.prop to "$alias.${it.columnName}" }
     }.toMap()
 
-    override val leafPropDescList: List<PropDesc<*, *>> = entityDescList.flatMap { it.leafPropMetaList }
+    override val leafPropDescList: List<PropDesc> = entityDescList.flatMap { it.leafPropMetaList }
 
     fun buildSelect(): Sql {
         buf.append("select ")
@@ -221,7 +221,7 @@ class CriteriaProcessor(
             .bind(Value(range.second, prop.returnType))
     }
 
-    override fun new(leafValues: Map<PropDesc<*, *>, Any?>): List<Any> {
+    override fun new(leafValues: Map<PropDesc, Any?>): List<Any> {
         return entityDescList.map { entityMeta ->
             entityMeta.new(leafValues) as Any
         }

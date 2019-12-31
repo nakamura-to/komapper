@@ -4,24 +4,24 @@ import kotlin.reflect.KClass
 import org.komapper.core.metadata.MetadataResolver
 
 interface EmbeddedDescFactory {
-    fun <T : Any> create(
-        clazz: KClass<T>,
+    fun create(
+        clazz: KClass<*>,
         propDescFactory: PropDescFactory,
         hierarchy: List<KClass<*>>,
         receiverResolver: (Any) -> Any?
-    ): EmbeddedDesc<T>
+    ): EmbeddedDesc
 }
 
 open class DefaultEmbeddedDescFactory(
     private val metadataResolver: MetadataResolver
 ) : EmbeddedDescFactory {
 
-    override fun <T : Any> create(
-        clazz: KClass<T>,
+    override fun create(
+        clazz: KClass<*>,
         propDescFactory: PropDescFactory,
         hierarchy: List<KClass<*>>,
         receiverResolver: (Any) -> Any?
-    ): EmbeddedDesc<T> {
+    ): EmbeddedDesc {
         require(clazz.isData) { "The clazz must be a data class." }
         require(!clazz.isAbstract) { "The clazz must not be abstract." }
         val result = kotlin.runCatching {

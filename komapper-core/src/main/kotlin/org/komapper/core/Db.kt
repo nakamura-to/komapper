@@ -275,7 +275,7 @@ class Db(val config: DbConfig) {
         desc: MultiEntityDesc
     ): Stream<List<Any>> = executeQuery(sql) { rs ->
         fromResultSetToStream(rs) {
-            val row = mutableMapOf<PropDesc<*, *>, Any?>()
+            val row = mutableMapOf<PropDesc, Any?>()
             for ((i, propMeta) in desc.leafPropDescList.withIndex()) {
                 val value = config.dialect.getValue(it, i + 1, propMeta.type)
                 row[propMeta] = value
@@ -288,7 +288,7 @@ class Db(val config: DbConfig) {
         sql: Sql,
         desc: EntityDesc<T>
     ): Stream<T> = executeQuery(sql) { rs ->
-        val propMetaMap = mutableMapOf<Int, PropDesc<*, *>>()
+        val propMetaMap = mutableMapOf<Int, PropDesc>()
         val metaData = rs.metaData
         val count = metaData.columnCount
         for (i in 1..count) {
@@ -297,7 +297,7 @@ class Db(val config: DbConfig) {
             propMetaMap[i] = propMeta
         }
         fromResultSetToStream(rs) {
-            val row = mutableMapOf<PropDesc<*, *>, Any?>()
+            val row = mutableMapOf<PropDesc, Any?>()
             for ((index, propMeta) in propMetaMap) {
                 val value = config.dialect.getValue(it, index, propMeta.type)
                 row[propMeta] = value
