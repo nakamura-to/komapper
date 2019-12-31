@@ -25,6 +25,6 @@ sealed class PropKind {
     data class CreatedAt(val now: () -> Any) : PropKind()
     data class UpdatedAt(val now: () -> Any) : PropKind()
     data class Version(val inc: (Any) -> Any) : PropKind()
-    data class Embedded(val embeddedDesc: EmbeddedDesc) : PropKind()
+    data class Embedded(val embeddedDesc: DataDesc) : PropKind()
     object Basic : PropKind()
 }

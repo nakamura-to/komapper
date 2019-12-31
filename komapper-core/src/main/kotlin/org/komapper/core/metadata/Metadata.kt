@@ -13,7 +13,7 @@ interface Metadata<T : Any> {
     val embeddedList: List<EmbeddedMeta>
 }
 
-abstract class EntityMetadata<T : Any>(val block: EntityScope<T>.() -> Unit = {}) :
+open class EntityMetadata<T : Any>(val block: EntityScope<T>.() -> Unit = {}) :
     Metadata<T> {
     private val entityScope = EntityScope<T>()
 
@@ -50,8 +50,8 @@ data class UpdatedAtMeta(val propName: String)
 sealed class IdMeta {
     abstract val propName: String
 
-    data class PlainId(override val propName: String) : IdMeta()
-    data class SequenceId(
+    data class Assign(override val propName: String) : IdMeta()
+    data class Sequence(
         override val propName: String,
         val generator: SequenceGenerator
     ) : IdMeta()
@@ -80,12 +80,12 @@ class EntityScope<T : Any> {
     fun table(block: TableScope<T>.() -> Unit) = tableScope.block()
 
     fun id(property: KProperty1<T, *>) {
-        val idMeta = IdMeta.PlainId(property.name)
+        val idMeta = IdMeta.Assign(property.name)
         idList.add(idMeta)
     }
 
     fun id(property: KProperty1<T, *>, generator: SequenceGenerator) {
-        val idMeta = IdMeta.SequenceId(property.name, generator)
+        val idMeta = IdMeta.Sequence(property.name, generator)
         idList.add(idMeta)
     }
 
@@ -106,7 +106,7 @@ class EntityScope<T : Any> {
     }
 
     fun embedded(property: KProperty1<T, *>) {
-        var embedded = EmbeddedMeta(property.name)
+        val embedded = EmbeddedMeta(property.name)
         embeddedList.add(embedded)
     }
 

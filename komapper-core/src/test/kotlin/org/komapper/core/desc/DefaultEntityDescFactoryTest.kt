@@ -11,15 +11,18 @@ internal class DefaultEntityDescFactoryTest {
 
     private val namingStrategy = CamelToSnake()
 
-    private val factory = DefaultEntityDescFactory(
+    private val dataDescFactory = DefaultDataDescFactory(
         metadataResolver,
-        { it },
-        namingStrategy,
         DefaultPropDescFactory(
             { it },
-            namingStrategy,
-            DefaultEmbeddedDescFactory(metadataResolver)
+            namingStrategy
         )
+    )
+
+    private val factory = DefaultEntityDescFactory(
+        dataDescFactory,
+        { it },
+        namingStrategy
     )
 
     data class Person(val nested: Person)

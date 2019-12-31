@@ -4,13 +4,13 @@ import java.sql.Connection
 import java.sql.PreparedStatement
 import javax.sql.DataSource
 import org.komapper.core.desc.CamelToSnake
-import org.komapper.core.desc.DefaultEmbeddedDescFactory
+import org.komapper.core.desc.DataDescFactory
+import org.komapper.core.desc.DefaultDataDescFactory
 import org.komapper.core.desc.DefaultEntityDescFactory
 import org.komapper.core.desc.DefaultEntityListener
 import org.komapper.core.desc.DefaultEntitySqlBuilder
 import org.komapper.core.desc.DefaultObjectDescFactory
 import org.komapper.core.desc.DefaultPropDescFactory
-import org.komapper.core.desc.EmbeddedDescFactory
 import org.komapper.core.desc.EntityDescFactory
 import org.komapper.core.desc.EntityListener
 import org.komapper.core.desc.EntitySqlBuilder
@@ -47,7 +47,7 @@ import org.komapper.core.tx.TransactionScope
  * @property namingStrategy the naming strategy for entity classes and properties.
  * @property metadataResolver the metadata resolver
  * @property objectDescFactory the object description factory
- * @property embeddedDescFactory the embedded description factory
+ * @property dataDescFactory the data class description factory
  * @property propDescFactory the property description factory
  * @property entityDescFactory the entity description factory
  * @property listener the entity listener
@@ -73,17 +73,18 @@ data class DbConfig(
     val namingStrategy: NamingStrategy = CamelToSnake(),
     val metadataResolver: MetadataResolver = DefaultMetadataResolver(),
     val objectDescFactory: ObjectDescFactory = DefaultObjectDescFactory(),
-    val embeddedDescFactory: EmbeddedDescFactory = DefaultEmbeddedDescFactory(metadataResolver),
     val propDescFactory: PropDescFactory = DefaultPropDescFactory(
         dialect::quote,
-        namingStrategy,
-        embeddedDescFactory
+        namingStrategy
+    ),
+    val dataDescFactory: DataDescFactory = DefaultDataDescFactory(
+        metadataResolver,
+        propDescFactory
     ),
     val entityDescFactory: EntityDescFactory = DefaultEntityDescFactory(
-        metadataResolver,
+        dataDescFactory,
         dialect::quote,
-        namingStrategy,
-        propDescFactory
+        namingStrategy
     ),
     val listener: EntityListener = DefaultEntityListener(),
     val entitySqlBuilder: EntitySqlBuilder = DefaultEntitySqlBuilder(

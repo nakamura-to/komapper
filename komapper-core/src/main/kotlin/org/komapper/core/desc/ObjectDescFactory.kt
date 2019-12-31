@@ -16,7 +16,7 @@ open class DefaultObjectDescFactory : ObjectDescFactory {
 
     private val cache = ConcurrentHashMap<KClass<*>, ObjectDesc>()
 
-    override fun <T : Any> get(clazz: KClass<T>): ObjectDesc = cache.computeIfAbsent(clazz) { c ->
+    override fun <T : Any> get(kClass: KClass<T>): ObjectDesc = cache.computeIfAbsent(kClass) { c ->
         val props: Collection<KProperty1<*, *>> = c.memberProperties.filter { it.visibility == KVisibility.PUBLIC }
         ObjectDesc(props)
     }

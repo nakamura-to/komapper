@@ -5,8 +5,8 @@ import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
 
 class PropDesc(
-    val type: KClass<*>,
-    val consParam: KParameter,
+    val kClass: KClass<*>,
+    val constructorParam: KParameter,
     val copyParam: KParameter,
     val prop: KProperty1<*, *>,
     val deepGetter: (Any) -> Any?,
@@ -43,8 +43,8 @@ class PropDesc(
         }
     }
 
-    fun getLeafPropMetaList(): List<PropDesc> = when (kind) {
-        is PropKind.Embedded -> kind.embeddedDesc.getLeafPropMetaList()
+    fun getLeafPropDescList(): List<PropDesc> = when (kind) {
+        is PropKind.Embedded -> kind.embeddedDesc.getLeafPropDescList()
         else -> listOf(this)
     }
 

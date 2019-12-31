@@ -29,10 +29,10 @@ class CriteriaProcessor(
     private val qualifiedColumnMap: Map<KProperty1<*, *>, String> = entityDescList.mapIndexed { index, entityMeta ->
         tableAliases[index] to entityMeta
     }.flatMap { (alias, entityMeta) ->
-        entityMeta.leafPropMetaList.map { it.prop to "$alias.${it.columnName}" }
+        entityMeta.leafPropDescList.map { it.prop to "$alias.${it.columnName}" }
     }.toMap()
 
-    override val leafPropDescList: List<PropDesc> = entityDescList.flatMap { it.leafPropMetaList }
+    override val leafPropDescList: List<PropDesc> = entityDescList.flatMap { it.leafPropDescList }
 
     fun buildSelect(): Sql {
         buf.append("select ")

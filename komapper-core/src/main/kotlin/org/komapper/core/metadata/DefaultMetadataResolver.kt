@@ -10,9 +10,13 @@ open class DefaultMetadataResolver(private val suffix: String = "Metadata") : Me
 
     override fun <T : Any> resolve(kClass: KClass<T>): Metadata<T> {
         val metadataClassName = kClass.java.name + suffix
-        val clazz: Class<*> = Class.forName(metadataClassName)
-        @Suppress("UNCHECKED_CAST")
-        val metadataClass: Class<Metadata<T>> = clazz as Class<Metadata<T>>
-        return metadataClass.kotlin.objectInstance ?: metadataClass.newInstance()
+        val result = runCatching {
+            val clazz: Class<*> = Class.forName(metadataClassName)
+            @Suppress("UNCHECKED_CAST")
+            val metadataClass: Class<Metadata<T>> = clazz as Class<Metadata<T>>
+            metadataClass.kotlin.objectInstance ?: metadataClass.newInstance()
+        }
+        // TODO
+        return result.getOrDefault(EntityMetadata())
     }
 }

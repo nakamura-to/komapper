@@ -42,25 +42,25 @@ open class DefaultEntitySqlBuilder(
     override fun <T> buildFindById(entityDesc: EntityDesc<T>, id: Any, versionValue: Any?): Sql {
         with(entityDesc) {
             val buf = newSqlBuffer().append("select ")
-            leafPropMetaList.forEach { buf.append("${it.columnName}, ") }
+            leafPropDescList.forEach { buf.append("${it.columnName}, ") }
             buf.cutBack(2).append(" from $tableName where ")
             when (id) {
                 is Collection<*> -> {
                     require(id.size == idList.size) { "The number of id must be {$idList.size}." }
-                    id.zip(idList).forEach { (obj, propMeta) ->
-                        val value = Value(obj, propMeta.type)
-                        buf.append("${propMeta.columnName} = ").bind(value).append(" and ")
+                    id.zip(idList).forEach { (obj, propDesc) ->
+                        val value = Value(obj, propDesc.kClass)
+                        buf.append("${propDesc.columnName} = ").bind(value).append(" and ")
                     }
                 }
                 else -> {
                     require(idList.size == 1) { "The number of id must be ${idList.size}." }
-                    val value = Value(id, idList[0].type)
+                    val value = Value(id, idList[0].kClass)
                     buf.append("${idList[0].columnName} = ").bind(value).append(" and ")
                 }
             }
             buf.cutBack(5)
             if (versionValue != null && version != null) {
-                val value = Value(versionValue, version.type)
+                val value = Value(versionValue, version.kClass)
                 buf.append(" and ").append("${version.columnName} = ").bind(value)
             }
             return buf.toSql()
@@ -70,12 +70,12 @@ open class DefaultEntitySqlBuilder(
     override fun <T> buildInsert(entityDesc: EntityDesc<T>, newEntity: T, option: InsertOption): Sql {
         with(entityDesc) {
             val buf = newSqlBuffer().append("insert into $tableName (")
-            val propMetaList = leafPropMetaList
+            val propDescList = leafPropDescList
                 .filter { option.include.isEmpty() || it.prop in option.include }
                 .filter { option.exclude.isEmpty() || it.prop !in option.exclude }
-            propMetaList.forEach { buf.append("${it.columnName}, ") }
+            propDescList.forEach { buf.append("${it.columnName}, ") }
             buf.cutBack(2).append(") values (")
-            propMetaList.forEach {
+            propDescList.forEach {
                 val value = it.getValue(newEntity as Any)
                 buf.bind(value).append(", ")
             }
@@ -120,13 +120,13 @@ open class DefaultEntitySqlBuilder(
         with(entityDesc) {
             val buf = newSqlBuffer().append("merge into $tableName using dual on ")
             if (keys.isNotEmpty()) {
-                val keyPropMetaList = keys.map { prop ->
+                val keyPropDescList = keys.map { prop ->
                     propMap[prop] ?: error(
                         "The property \"${prop.name}\" is not found " +
-                                "in the class \"${entityDesc.type.qualifiedName}\""
+                                "in the class \"${entityDesc.kClass.qualifiedName}\""
                     )
                 }
-                keyPropMetaList.forEach {
+                keyPropDescList.forEach {
                     val value = it.getValue(newEntity)
                     buf.append("${it.columnName} = ").bind(value).append(" and ")
                 }
@@ -138,12 +138,12 @@ open class DefaultEntitySqlBuilder(
             }
             buf.cutBack(5)
             buf.append(" when not matched then insert (")
-            val propMetaList = leafPropMetaList
+            val propDescList = leafPropDescList
                 .filter { insertOption.include.isEmpty() || it.prop in insertOption.include }
                 .filter { insertOption.exclude.isEmpty() || it.prop !in insertOption.exclude }
-            propMetaList.forEach { buf.append("${it.columnName}, ") }
+            propDescList.forEach { buf.append("${it.columnName}, ") }
             buf.cutBack(2).append(") values (")
-            propMetaList.forEach {
+            propDescList.forEach {
                 val value = it.getValue(newEntity)
                 buf.bind(value).append(", ")
             }
@@ -177,12 +177,12 @@ open class DefaultEntitySqlBuilder(
     ): Sql {
         with(entityDesc) {
             val buf = newSqlBuffer().append("insert into $tableName as t_ (")
-            val propMetaList = leafPropMetaList
+            val propDescList = leafPropDescList
                 .filter { insertOption.include.isEmpty() || it.prop in insertOption.include }
                 .filter { insertOption.exclude.isEmpty() || it.prop !in insertOption.exclude }
-            propMetaList.forEach { buf.append("${it.columnName}, ") }
+            propDescList.forEach { buf.append("${it.columnName}, ") }
             buf.cutBack(2).append(") values(")
-            propMetaList.forEach {
+            propDescList.forEach {
                 val value = it.getValue(newEntity)
                 buf.bind(value).append(", ")
             }
@@ -191,13 +191,13 @@ open class DefaultEntitySqlBuilder(
                 keys.map { prop ->
                     propMap[prop] ?: error(
                         "The property \"${prop.name}\" is not found " +
-                                "in the class \"${entityDesc.type.qualifiedName}\""
+                                "in the class \"${entityDesc.kClass.qualifiedName}\""
                     )
-                }.forEach { propMeta ->
-                    buf.append("${propMeta.columnName}, ")
+                }.forEach { propDesc ->
+                    buf.append("${propDesc.columnName}, ")
                 }
             } else {
-                idList.forEach { propMeta -> buf.append("${propMeta.columnName}, ") }
+                idList.forEach { propDesc -> buf.append("${propDesc.columnName}, ") }
             }
             buf.cutBack(2).append(")")
             buf.append(" do update set ")
@@ -246,6 +246,6 @@ open class DefaultEntitySqlBuilder(
 
     protected fun <T> PropDesc.getValue(entity: T): Value {
         val obj = this.deepGetter(entity as Any)
-        return Value(obj, this.type)
+        return Value(obj, this.kClass)
     }
 }

@@ -17,15 +17,18 @@ internal class DefaultEntitySqlBuilderTest {
 
     private val namingStrategy = CamelToSnake()
 
-    private val factory = DefaultEntityDescFactory(
+    private val dataDescFactory = DefaultDataDescFactory(
         metadataResolver,
-        { it },
-        namingStrategy,
         DefaultPropDescFactory(
             { it },
-            namingStrategy,
-            DefaultEmbeddedDescFactory(metadataResolver)
+            namingStrategy
         )
+    )
+
+    private val factory = DefaultEntityDescFactory(
+        dataDescFactory,
+        { it },
+        namingStrategy
     )
 
     val builder = DefaultEntitySqlBuilder { value, _ -> value.toString() }

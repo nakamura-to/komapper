@@ -1,29 +1,31 @@
 package org.komapper.core.desc
 
-import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
-
 class EntityDesc<T>(
-    val type: KClass<*>,
-    val cons: KFunction<*>,
-    val copy: KFunction<*>,
-    val propDescList: List<PropDesc>,
+    private val dataDesc: DataDesc,
     val tableName: String
 ) {
-    val leafPropMetaList = propDescList.flatMap { it.getLeafPropMetaList() }
-    val idList = leafPropMetaList.filter { it.kind is PropKind.Id }
+    val kClass = dataDesc.kClass
+    val leafPropDescList = dataDesc.getLeafPropDescList()
+    val idList = leafPropDescList.filter { it.kind is PropKind.Id }
     val sequenceIdList = idList.filter { it.kind is PropKind.Id.Sequence }
-    val nonIdList = leafPropMetaList - idList
-    val version = leafPropMetaList.find { it.kind is PropKind.Version }
-    val createdAt = leafPropMetaList.find { it.kind is PropKind.CreatedAt }
-    val updatedAt = leafPropMetaList.find { it.kind is PropKind.UpdatedAt }
-    val columnLabelMap = leafPropMetaList.associateBy { it.columnLabel }
-    val propMap = leafPropMetaList.associateBy { it.prop }
-    val expander: (String) -> List<String> = { prefix -> leafPropMetaList.map { prefix + it.columnName } }
+    val nonIdList = leafPropDescList - idList
+    val version = leafPropDescList.find { it.kind is PropKind.Version }
+    val createdAt = leafPropDescList.find { it.kind is PropKind.CreatedAt }
+    val updatedAt = leafPropDescList.find { it.kind is PropKind.UpdatedAt }
+    val columnLabelMap = leafPropDescList.associateBy { it.columnLabel }
+    val propMap = leafPropDescList.associateBy { it.prop }
+    val expander: (String) -> List<String> = { prefix -> leafPropDescList.map { prefix + it.columnName } }
 
-    fun new(leafValues: Map<PropDesc, Any?>): T {
-        val args = propDescList.map { it.consParam to it.new(leafValues) }.toMap()
-        return cons.callBy(args) as T
+    fun new(leaves: Map<PropDesc, Any?>): T {
+        return dataDesc.new(leaves) as T
+    }
+
+    private fun copy(
+        entity: T,
+        predicate: (PropDesc) -> Boolean,
+        block: (PropDesc, () -> Any?) -> Any?
+    ): T {
+        return dataDesc.copy(entity as Any, predicate, block) as T
     }
 
     fun assignId(entity: T, key: String, callNextValue: (String) -> Long): T =
@@ -53,14 +55,4 @@ class EntityDesc<T>(
         } else {
             copy(entity, { it == updatedAt }) { meta, _ -> meta.now() }
         }
-
-    private fun copy(
-        entity: T,
-        predicate: (PropDesc) -> Boolean,
-        block: (PropDesc, () -> Any?) -> Any?
-    ): T {
-        val receiverArg = copy.parameters[0] to entity
-        val valueArgs = propDescList.mapNotNull { it.copy(entity as Any, predicate, block) }.toMap()
-        return copy.callBy(mapOf(receiverArg) + valueArgs) as T
-    }
 }
