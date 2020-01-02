@@ -8,7 +8,7 @@ import kotlin.reflect.full.memberProperties
 import org.komapper.core.value.Value
 
 interface ObjectDescFactory {
-    fun <T : Any> get(clazz: KClass<T>): ObjectDesc
+    fun <T : Any> get(kClass: KClass<T>): ObjectDesc
     fun toMap(obj: Any?): Map<String, Value>
 }
 

@@ -10,6 +10,7 @@ import org.komapper.core.metadata.MetadataResolver
 interface DataDescFactory {
     fun <T : Any> create(
         kClass: KClass<T>,
+        isMarkedNullable: Boolean,
         hierarchy: List<KClass<*>>,
         receiverResolver: (Any) -> Any?
     ): DataDesc<T>
@@ -21,6 +22,7 @@ open class DefaultDataDescFactory(
 ) : DataDescFactory {
     override fun <T : Any> create(
         kClass: KClass<T>,
+        isMarkedNullable: Boolean,
         hierarchy: List<KClass<*>>,
         receiverResolver: (Any) -> Any?
     ): DataDesc<T> {
@@ -50,6 +52,6 @@ open class DefaultDataDescFactory(
                     receiverResolver
                 )
             }
-        return DataDesc(kClass, metadata, constructor, copy, propDescList)
+        return DataDesc(kClass, isMarkedNullable, metadata, constructor, copy, propDescList)
     }
 }

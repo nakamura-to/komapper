@@ -6,12 +6,13 @@ import org.komapper.core.metadata.Metadata
 
 data class DataDesc<T : Any>(
     val kClass: KClass<T>,
+    private val isMarkedNullable: Boolean,
     val metadata: Metadata<T>?,
-    private val constructor: KFunction<*>,
+    private val constructor: KFunction<T>,
     private val copy: KFunction<*>,
     private val propDescList: List<PropDesc>
 ) {
-    fun new(leaves: Map<PropDesc, Any?>): Any? {
+    fun new(leaves: Map<PropDesc, Any?>): T {
         val args = propDescList.map { it.constructorParam to it.new(leaves) }.toMap()
         return constructor.callBy(args)
     }
@@ -22,7 +23,7 @@ data class DataDesc<T : Any>(
         block: (PropDesc, () -> Any?) -> Any?
     ): Any? {
         val valueArgs = propDescList.mapNotNull { it.copy(receiver, predicate, block) }.toMap()
-        return if (valueArgs.isEmpty()) {
+        return if (valueArgs.isEmpty() && isMarkedNullable) {
             null
         } else {
             val receiverArg = copy.parameters[0] to receiver

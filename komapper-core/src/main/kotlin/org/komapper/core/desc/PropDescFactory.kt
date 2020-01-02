@@ -70,7 +70,12 @@ open class DefaultPropDescFactory(
         }
     }
 
-    protected open fun idKind(kClass: KClass<*>, constructorParam: KParameter, prop: KProperty1<*, *>, idMeta: IdMeta): PropKind {
+    protected open fun idKind(
+        kClass: KClass<*>,
+        constructorParam: KParameter,
+        prop: KProperty1<*, *>,
+        idMeta: IdMeta
+    ): PropKind {
         return when (idMeta) {
             is IdMeta.Assign -> PropKind.Id.Assign
             is IdMeta.Sequence -> sequenceKind(kClass, constructorParam, prop, idMeta.generator)
@@ -91,6 +96,7 @@ open class DefaultPropDescFactory(
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     protected open fun versionKind(kClass: KClass<*>, constructorParam: KParameter, prop: KProperty1<*, *>): PropKind =
         when (kClass) {
             Int::class -> PropKind.Version(Int::inc as (Any) -> Any)
@@ -98,14 +104,22 @@ open class DefaultPropDescFactory(
             else -> error("The @Version parameter must be Int or Long.")
         }
 
-    protected open fun createdAtKind(kClass: KClass<*>, constructorParam: KParameter, prop: KProperty1<*, *>): PropKind =
+    protected open fun createdAtKind(
+        kClass: KClass<*>,
+        constructorParam: KParameter,
+        prop: KProperty1<*, *>
+    ): PropKind =
         when (kClass) {
             LocalDateTime::class -> PropKind.CreatedAt(LocalDateTime::now)
             OffsetDateTime::class -> PropKind.CreatedAt(OffsetDateTime::now)
             else -> error("The @CreatedAt parameter must be either LocalDateTime or OffsetDateTime.")
         }
 
-    protected open fun updatedAtKind(kClass: KClass<*>, constructorParam: KParameter, prop: KProperty1<*, *>): PropKind =
+    protected open fun updatedAtKind(
+        kClass: KClass<*>,
+        constructorParam: KParameter,
+        prop: KProperty1<*, *>
+    ): PropKind =
         when (kClass) {
             LocalDateTime::class -> PropKind.UpdatedAt(LocalDateTime::now)
             OffsetDateTime::class -> PropKind.UpdatedAt(OffsetDateTime::now)
@@ -130,7 +144,12 @@ open class DefaultPropDescFactory(
                                 "The type \"${kClass.qualifiedName}\" is circularly referenced in the hierarchy."
                     )
                 }
-                val dataDesc = dataDescFactory.create(kClass, hierarchy + kClass, deepGetter)
+                val dataDesc = dataDescFactory.create(
+                    kClass,
+                    constructorParam.type.isMarkedNullable,
+                    hierarchy + kClass,
+                    deepGetter
+                )
                 PropKind.Embedded(dataDesc)
             }
         }

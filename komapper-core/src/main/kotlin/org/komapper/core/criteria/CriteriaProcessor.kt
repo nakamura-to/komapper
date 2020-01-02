@@ -223,7 +223,7 @@ class CriteriaProcessor(
 
     override fun new(leafValues: Map<PropDesc, Any?>): List<Any> {
         return entityDescList.map { entityMeta ->
-            entityMeta.new(leafValues) as Any
+            entityMeta.new(leafValues)
         }
     }
 

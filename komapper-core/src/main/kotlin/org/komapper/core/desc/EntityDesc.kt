@@ -18,7 +18,7 @@ class EntityDesc<T : Any>(
     val listener = dataDesc.metadata?.listener?.instance
 
     fun new(leaves: Map<PropDesc, Any?>): T {
-        return dataDesc.new(leaves) as T
+        return dataDesc.new(leaves)
     }
 
     private fun copy(
@@ -26,6 +26,7 @@ class EntityDesc<T : Any>(
         predicate: (PropDesc) -> Boolean,
         block: (PropDesc, () -> Any?) -> Any?
     ): T {
+        @Suppress("UNCHECKED_CAST")
         return dataDesc.copy(entity as Any, predicate, block) as T
     }
 
