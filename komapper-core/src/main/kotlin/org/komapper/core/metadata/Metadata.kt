@@ -2,6 +2,7 @@ package org.komapper.core.metadata
 
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
+import org.komapper.core.desc.EntityListener
 
 interface Metadata<T : Any> {
     val table: TableMeta
@@ -11,6 +12,7 @@ interface Metadata<T : Any> {
     val createdAt: CreatedAtMeta?
     val updatedAt: UpdatedAtMeta?
     val embeddedList: List<EmbeddedMeta>
+    val listener: ListenerMeta<T>?
 }
 
 open class EntityMetadata<T : Any>(val block: EntityScope<T>.() -> Unit = {}) :
@@ -38,6 +40,9 @@ open class EntityMetadata<T : Any>(val block: EntityScope<T>.() -> Unit = {}) :
     override val embeddedList: List<EmbeddedMeta>
         get() = entityScope.embeddedList
 
+    override val listener: ListenerMeta<T>?
+        get() = entityScope.listener
+
     init {
         entityScope.block()
     }
@@ -59,6 +64,7 @@ sealed class IdMeta {
 
 data class VersionMeta(val propName: String)
 data class EmbeddedMeta(val propName: String)
+data class ListenerMeta<T : Any>(val instance: EntityListener<T>)
 data class SequenceGenerator(
     val name: String,
     val incrementBy: Int = 1,
@@ -76,6 +82,7 @@ class EntityScope<T : Any> {
     internal var createdAt: CreatedAtMeta? = null
     internal var updatedAt: UpdatedAtMeta? = null
     internal val embeddedList = mutableListOf<EmbeddedMeta>()
+    internal var listener: ListenerMeta<T>? = null
 
     fun table(block: TableScope<T>.() -> Unit) = tableScope.block()
 
@@ -110,7 +117,8 @@ class EntityScope<T : Any> {
         embeddedList.add(embedded)
     }
 
-    fun listener(property: KProperty1<T, *>) {
+    fun listener(entityListener: EntityListener<T>) {
+        listener = ListenerMeta(entityListener)
     }
 }
 

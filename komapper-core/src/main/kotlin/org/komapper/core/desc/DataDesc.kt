@@ -4,9 +4,9 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import org.komapper.core.metadata.Metadata
 
-data class DataDesc(
-    val kClass: KClass<*>,
-    val metadata: Metadata<*>?,
+data class DataDesc<T : Any>(
+    val kClass: KClass<T>,
+    val metadata: Metadata<T>?,
     private val constructor: KFunction<*>,
     private val copy: KFunction<*>,
     private val propDescList: List<PropDesc>

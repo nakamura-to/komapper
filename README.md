@@ -60,11 +60,10 @@ object AddressMetadata : EntityMetadata<Address>({
 
 fun main() {
     val db = Db(
-        DbConfig(
-            dataSource = SimpleDataSource("jdbc:h2:mem:example;DB_CLOSE_DELAY=-1"),
-            dialect = H2Dialect(),
-            useTransaction = true
-        )
+        object : DbConfig() {
+            override val dataSource = SimpleDataSource("jdbc:h2:mem:example;DB_CLOSE_DELAY=-1")
+            override val dialect = H2Dialect()
+        }
     )
 
     // set up schema
@@ -93,8 +92,7 @@ fun main() {
         // select address_id, street, created_at, updated_at, version from address where address_id = 1
         val foundA = db.findById<Address>(1)
 
-        // true
-        println(addressA == foundA)
+        assert(addressA == foundA)
 
         // update address set street = 'street B', created_at = '2019-09-07T17:24:25.729', updated_at = '2019-09-07T17:24:25.816', version = 1 where address_id = 1 and version = 0
         val addressB = db.update(addressA.copy(street = "street B"))
@@ -117,8 +115,7 @@ fun main() {
             }
         ).first()
 
-        // true
-        println(addressB == foundB1 && foundB1 == foundB2)
+        assert(addressB == foundB1 && foundB1 == foundB2)
 
         // delete from address where address_id = 1 and version = 1
         db.delete(addressB)
@@ -126,11 +123,9 @@ fun main() {
         // select t0_.address_id, t0_.street, t0_.created_at, t0_.updated_at, t0_.version from address t0_
         val addressList = db.select<Address>()
 
-        // 0
-        println(addressList.size)
+        assert(addressList.isEmpty())
     }
 }
-
 ```
 
 ## License

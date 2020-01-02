@@ -10,11 +10,11 @@ import org.komapper.core.sql.SqlBuffer
 import org.komapper.core.value.Value
 
 interface EntitySqlBuilder {
-    fun <T> buildFindById(entityDesc: EntityDesc<T>, id: Any, versionValue: Any?): Sql
-    fun <T> buildInsert(entityDesc: EntityDesc<T>, newEntity: T, option: InsertOption): Sql
-    fun <T> buildDelete(entityDesc: EntityDesc<T>, entity: T, option: DeleteOption): Sql
-    fun <T> buildUpdate(entityDesc: EntityDesc<T>, entity: T, newEntity: T, option: UpdateOption): Sql
-    fun <T> buildMerge(
+    fun <T : Any> buildFindById(entityDesc: EntityDesc<T>, id: Any, versionValue: Any?): Sql
+    fun <T : Any> buildInsert(entityDesc: EntityDesc<T>, newEntity: T, option: InsertOption): Sql
+    fun <T : Any> buildDelete(entityDesc: EntityDesc<T>, entity: T, option: DeleteOption): Sql
+    fun <T : Any> buildUpdate(entityDesc: EntityDesc<T>, entity: T, newEntity: T, option: UpdateOption): Sql
+    fun <T : Any> buildMerge(
         entityDesc: EntityDesc<T>,
         entity: T,
         newEntity: T,
@@ -23,7 +23,7 @@ interface EntitySqlBuilder {
         updateOption: UpdateOption
     ): Sql
 
-    fun <T> buildUpsert(
+    fun <T : Any> buildUpsert(
         entityDesc: EntityDesc<T>,
         entity: T,
         newEntity: T,
@@ -39,7 +39,7 @@ open class DefaultEntitySqlBuilder(
 
 ) : EntitySqlBuilder {
 
-    override fun <T> buildFindById(entityDesc: EntityDesc<T>, id: Any, versionValue: Any?): Sql {
+    override fun <T : Any> buildFindById(entityDesc: EntityDesc<T>, id: Any, versionValue: Any?): Sql {
         with(entityDesc) {
             val buf = newSqlBuffer().append("select ")
             leafPropDescList.forEach { buf.append("${it.columnName}, ") }
@@ -67,7 +67,7 @@ open class DefaultEntitySqlBuilder(
         }
     }
 
-    override fun <T> buildInsert(entityDesc: EntityDesc<T>, newEntity: T, option: InsertOption): Sql {
+    override fun <T : Any> buildInsert(entityDesc: EntityDesc<T>, newEntity: T, option: InsertOption): Sql {
         with(entityDesc) {
             val buf = newSqlBuffer().append("insert into $tableName (")
             val propDescList = leafPropDescList
@@ -84,7 +84,7 @@ open class DefaultEntitySqlBuilder(
         }
     }
 
-    override fun <T> buildDelete(entityDesc: EntityDesc<T>, entity: T, option: DeleteOption): Sql {
+    override fun <T : Any> buildDelete(entityDesc: EntityDesc<T>, entity: T, option: DeleteOption): Sql {
         with(entityDesc) {
             val buf = newSqlBuffer()
             buf.append("delete from $tableName")
@@ -93,7 +93,7 @@ open class DefaultEntitySqlBuilder(
         }
     }
 
-    override fun <T> buildUpdate(entityDesc: EntityDesc<T>, entity: T, newEntity: T, option: UpdateOption): Sql {
+    override fun <T : Any> buildUpdate(entityDesc: EntityDesc<T>, entity: T, newEntity: T, option: UpdateOption): Sql {
         with(entityDesc) {
             val buf = newSqlBuffer().append("update $tableName set ")
             nonIdList
@@ -109,7 +109,7 @@ open class DefaultEntitySqlBuilder(
         }
     }
 
-    override fun <T> buildMerge(
+    override fun <T : Any> buildMerge(
         entityDesc: EntityDesc<T>,
         entity: T,
         newEntity: T,
@@ -166,7 +166,7 @@ open class DefaultEntitySqlBuilder(
         }
     }
 
-    override fun <T> buildUpsert(
+    override fun <T : Any> buildUpsert(
         entityDesc: EntityDesc<T>,
         entity: T,
         newEntity: T,
@@ -217,7 +217,7 @@ open class DefaultEntitySqlBuilder(
         }
     }
 
-    protected open fun <T> buildWhereClauseForIdAndVersion(
+    protected open fun <T : Any> buildWhereClauseForIdAndVersion(
         entityDesc: EntityDesc<T>,
         entity: T,
         ignoreVersion: Boolean,
@@ -244,8 +244,8 @@ open class DefaultEntitySqlBuilder(
         return SqlBuffer(formatter)
     }
 
-    protected fun <T> PropDesc.getValue(entity: T): Value {
-        val obj = this.deepGetter(entity as Any)
+    protected fun <T : Any> PropDesc.getValue(entity: T): Value {
+        val obj = this.deepGetter(entity)
         return Value(obj, this.kClass)
     }
 }

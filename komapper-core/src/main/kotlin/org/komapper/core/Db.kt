@@ -405,7 +405,11 @@ class Db(val config: DbConfig) {
         }
         return `access$executeUpdate`(sql, false) { count ->
             check(count == 1)
-            config.listener.postInsert(newEntity, desc)
+            newEntity.let { newEntity ->
+                desc.listener?.postInsert(newEntity, desc) ?: newEntity
+            }.let { newEntity ->
+                config.listener.postInsert(newEntity, desc)
+            }
         }
     }
 
@@ -423,7 +427,11 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val (sql, desc, newEntity) = dryRun.delete(entity, option)
         return `access$executeUpdate`(sql, !option.ignoreVersion && desc.version != null) {
-            config.listener.postDelete(newEntity, desc)
+            newEntity.let { newEntity ->
+                desc.listener?.postDelete(newEntity, desc) ?: newEntity
+            }.let { newEntity ->
+                config.listener.postDelete(newEntity, desc)
+            }
         }
     }
 
@@ -442,7 +450,11 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val (sql, desc, newEntity) = dryRun.update(entity, option)
         return `access$executeUpdate`(sql, !option.ignoreVersion && desc.version != null) {
-            config.listener.postUpdate(newEntity, desc)
+            newEntity.let { newEntity ->
+                desc.listener?.postUpdate(newEntity, desc) ?: newEntity
+            }.let { newEntity ->
+                config.listener.postUpdate(newEntity, desc)
+            }
         }
     }
 
@@ -483,7 +495,11 @@ class Db(val config: DbConfig) {
             }
         )
         return `access$executeUpdate`(sql, !updateOption.ignoreVersion && desc.version != null) {
-            config.listener.postMerge(newEntity, desc)
+            newEntity.let { newEntity ->
+                desc.listener?.postMerge(newEntity, desc) ?: newEntity
+            }.let {
+                config.listener.postMerge(newEntity, desc)
+            }
         }
     }
 
@@ -528,7 +544,13 @@ class Db(val config: DbConfig) {
         }
         return `access$executeBatch`(sqls, false) { counts ->
             check(counts.all { it == 1 })
-            newEntities.map { config.listener.postInsert(it, desc) }
+            newEntities.map {
+                it.let { newEntity ->
+                    desc.listener?.postInsert(newEntity, desc) ?: newEntity
+                }.let { newEntity ->
+                    config.listener.postInsert(newEntity, desc)
+                }
+            }
         }
     }
 
@@ -547,7 +569,13 @@ class Db(val config: DbConfig) {
         if (entities.isEmpty()) return entities
         val (sqls, desc, newEntities) = dryRun.batchDelete(entities, option)
         return `access$executeBatch`(sqls, !option.ignoreVersion && desc.version != null) {
-            newEntities.map { config.listener.postDelete(it, desc) }
+            newEntities.map {
+                it.let { newEntity ->
+                    desc.listener?.postDelete(newEntity, desc) ?: newEntity
+                }.let { newEntity ->
+                    config.listener.postDelete(newEntity, desc)
+                }
+            }
         }
     }
 
@@ -566,7 +594,13 @@ class Db(val config: DbConfig) {
         require(!T::class.isAbstract) { "The T must not be abstract." }
         val (sqls, desc, newEntities) = dryRun.batchUpdate(entities, option)
         return `access$executeBatch`(sqls, !option.ignoreVersion && desc.version != null) {
-            newEntities.map { config.listener.postUpdate(it, desc) }
+            newEntities.map {
+                it.let { newEntity ->
+                    desc.listener?.postUpdate(newEntity, desc) ?: newEntity
+                }.let { newEntity ->
+                    config.listener.postUpdate(newEntity, desc)
+                }
+            }
         }
     }
 
@@ -608,7 +642,13 @@ class Db(val config: DbConfig) {
             }
         )
         return `access$executeBatch`(sqls, !updateOption.ignoreVersion && desc.version != null) {
-            newEntities.map { config.listener.postMerge(it, desc) }
+            newEntities.map {
+                it.let { newEntity ->
+                    desc.listener?.postMerge(newEntity, desc) ?: newEntity
+                }.let { newEntity ->
+                    config.listener.postMerge(newEntity, desc)
+                }
+            }
         }
     }
 
@@ -945,6 +985,8 @@ class Db(val config: DbConfig) {
             }.let { newEntity ->
                 if (option.assignTimestamp) desc.assignTimestamp(newEntity) else newEntity
             }.let { newEntity ->
+                desc.listener?.preInsert(newEntity, desc) ?: newEntity
+            }.let { newEntity ->
                 config.listener.preInsert(newEntity, desc)
             }.let { newEntity ->
                 val sql = config.entitySqlBuilder.buildInsert(desc, newEntity, option)
@@ -967,10 +1009,13 @@ class Db(val config: DbConfig) {
             require(T::class.isData) { "The T must be a data class." }
             require(!T::class.isAbstract) { "The T must not be abstract." }
             val desc = config.entityDescFactory.get(T::class)
-            return config.listener.preDelete(entity, desc).let { newEntity ->
-                val sql = config.entitySqlBuilder.buildDelete(desc, newEntity, option)
-                Triple(sql, desc, newEntity)
-            }
+            return (desc.listener?.preDelete(entity, desc) ?: entity)
+                .let { newEntity ->
+                    config.listener.preDelete(newEntity, desc)
+                }.let { newEntity ->
+                    val sql = config.entitySqlBuilder.buildDelete(desc, newEntity, option)
+                    Triple(sql, desc, newEntity)
+                }
         }
 
         /**
@@ -990,6 +1035,8 @@ class Db(val config: DbConfig) {
             val desc = config.entityDescFactory.get(T::class)
             return (if (option.incrementVersion) desc.incrementVersion(entity) else entity).let { newEntity ->
                 if (option.updateTimestamp) desc.updateTimestamp(newEntity) else newEntity
+            }.let { newEntity ->
+                desc.listener?.preUpdate(newEntity, desc) ?: newEntity
             }.let { newEntity ->
                 config.listener.preUpdate(newEntity, desc)
             }.let { newEntity ->
@@ -1039,6 +1086,8 @@ class Db(val config: DbConfig) {
             }.let { newEntity ->
                 if (updateOption.updateTimestamp) desc.updateTimestamp(newEntity) else newEntity
             }.let { newEntity ->
+                desc.listener?.preMerge(newEntity, desc) ?: newEntity
+            }.let { newEntity ->
                 config.listener.preMerge(newEntity, desc)
             }.let { newEntity ->
                 val buildMerge: (EntityDesc<T>, T, T, List<KProperty1<*, *>>, InsertOption, UpdateOption) -> Sql =
@@ -1077,6 +1126,8 @@ class Db(val config: DbConfig) {
                 }.let { newEntity ->
                     if (option.assignTimestamp) desc.assignTimestamp(newEntity) else newEntity
                 }.let { newEntity ->
+                    desc.listener?.preInsert(newEntity, desc) ?: newEntity
+                }.let { newEntity ->
                     config.listener.preInsert(newEntity, desc)
                 }.let { newEntity ->
                     val sql = config.entitySqlBuilder.buildInsert(desc, newEntity, option)
@@ -1104,10 +1155,13 @@ class Db(val config: DbConfig) {
             require(!T::class.isAbstract) { "The T must not be abstract." }
             val desc = config.entityDescFactory.get(T::class)
             val (sqls, newEntities) = entities.map { entity ->
-                config.listener.preDelete(entity, desc).let { newEntity ->
-                    val sql = config.entitySqlBuilder.buildDelete(desc, newEntity, option)
-                    sql to newEntity
-                }
+                (desc.listener?.preDelete(entity, desc) ?: entity)
+                    .let { newEntity ->
+                        config.listener.preDelete(newEntity, desc)
+                    }.let { newEntity ->
+                        val sql = config.entitySqlBuilder.buildDelete(desc, newEntity, option)
+                        sql to newEntity
+                    }
             }.fold(entities.size.let { ArrayList<Sql>(it) to ArrayList<T>(it) }) { acc, (s, e) ->
                 acc.also { it.first.add(s); it.second.add(e) }
             }
@@ -1132,6 +1186,8 @@ class Db(val config: DbConfig) {
             val (sqls, newEntities) = entities.map { entity ->
                 (if (option.incrementVersion) desc.incrementVersion(entity) else entity).let { newEntity ->
                     if (option.updateTimestamp) desc.updateTimestamp(newEntity) else newEntity
+                }.let { newEntity ->
+                    desc.listener?.preUpdate(newEntity, desc) ?: newEntity
                 }.let { newEntity ->
                     config.listener.preUpdate(newEntity, desc)
                 }.let { newEntity ->
@@ -1185,6 +1241,8 @@ class Db(val config: DbConfig) {
                     if (updateOption.incrementVersion) desc.incrementVersion(newEntity) else newEntity
                 }.let { newEntity ->
                     if (updateOption.updateTimestamp) desc.updateTimestamp(newEntity) else newEntity
+                }.let { newEntity ->
+                    desc.listener?.preMerge(newEntity, desc) ?: newEntity
                 }.let { newEntity ->
                     config.listener.preMerge(newEntity, desc)
                 }.let { newEntity ->

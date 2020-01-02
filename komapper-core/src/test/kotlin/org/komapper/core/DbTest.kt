@@ -8,6 +8,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import kotlin.reflect.KClass
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -22,10 +23,14 @@ import org.komapper.core.criteria.OrderByScope
 import org.komapper.core.criteria.WhereScope
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityListener
+import org.komapper.core.desc.GlobalEntityListener
 import org.komapper.core.jdbc.H2Dialect
 import org.komapper.core.jdbc.SimpleDataSource
+import org.komapper.core.logging.Logger
 import org.komapper.core.logging.StdoutLogger
 import org.komapper.core.metadata.EntityMetadata
+import org.komapper.core.metadata.Metadata
+import org.komapper.core.metadata.MetadataResolver
 import org.komapper.core.metadata.SequenceGenerator
 import org.komapper.core.sql.Sql
 
@@ -42,6 +47,24 @@ internal class DbTest {
         id(Address::addressId)
         version(Address::version)
     })
+
+    class AddressListenerConfig(config: DbConfig, listener: EntityListener<Address>) : DbConfig() {
+        private val metadata = object : EntityMetadata<Address>({
+            id(Address::addressId)
+            version(Address::version)
+            listener(listener)
+        }) {}
+        override val dataSource = config.dataSource
+        override val dialect = config.dialect
+        override val metadataResolver by lazy {
+            object : MetadataResolver {
+                override fun <T : Any> resolve(kClass: KClass<T>): Metadata<T> {
+                    @Suppress("UNCHECKED_CAST")
+                    return metadata as Metadata<T>
+                }
+            }
+        }
+    }
 
     data class CompositeKeyAddress(
         val addressId1: Int,
@@ -208,11 +231,11 @@ internal class DbTest {
         version(Department::version)
     })
 
-    private val config = DbConfig(
-        dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"),
-        dialect = H2Dialect(),
-        batchSize = 2
-    )
+    private val config = object : DbConfig() {
+        override val dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
+        override val dialect = H2Dialect()
+        override val batchSize = 2
+    }
 
     @BeforeEach
     fun before() {
@@ -1070,20 +1093,46 @@ internal class DbTest {
 
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
         @Test
-        fun listener() {
-            val db = Db(config.copy(listener = object : EntityListener {
-                override fun <T> preDelete(entity: T, desc: EntityDesc<T>): T {
-                    return when (entity) {
-                        is Address -> entity.copy(street = "*${entity.street}")
-                        else -> entity
-                    } as T
+        fun globalEntityListener() {
+            val db = Db(
+                object : DbConfig() {
+                    override val dataSource = config.dataSource
+                    override val dialect = config.dialect
+                    override val listener: GlobalEntityListener = object : GlobalEntityListener {
+                        override fun <T : Any> preDelete(entity: T, desc: EntityDesc<T>): T {
+                            return when (entity) {
+                                is Address -> entity.copy(street = "*${entity.street}")
+                                else -> entity
+                            } as T
+                        }
+
+                        override fun <T : Any> postDelete(entity: T, desc: EntityDesc<T>): T {
+                            return when (entity) {
+                                is Address -> entity.copy(street = "${entity.street}*")
+                                else -> entity
+                            } as T
+                        }
+                    }
+                }
+            )
+
+            val sql = "select * from address where address_id = 15"
+            val address = db.query<Address>(sql).first()
+            val address2 = db.delete(address)
+            assertEquals(Address(15, "*STREET 15*", 1), address2)
+            val address3 = db.query<Address>(sql).firstOrNull()
+            assertNull(address3)
+        }
+
+        @Test
+        fun entityListener() {
+            val db = Db(AddressListenerConfig(config, object : EntityListener<Address> {
+                override fun preDelete(entity: Address, desc: EntityDesc<Address>): Address {
+                    return entity.copy(street = "*${entity.street}")
                 }
 
-                override fun <T> postDelete(entity: T, desc: EntityDesc<T>): T {
-                    return when (entity) {
-                        is Address -> entity.copy(street = "${entity.street}*")
-                        else -> entity
-                    } as T
+                override fun postDelete(entity: Address, desc: EntityDesc<Address>): Address {
+                    return entity.copy(street = "${entity.street}*")
                 }
             }))
 
@@ -1175,20 +1224,43 @@ internal class DbTest {
 
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
         @Test
-        fun listener() {
-            val db = Db(config.copy(listener = object : EntityListener {
-                override fun <T> preInsert(entity: T, desc: EntityDesc<T>): T {
-                    return when (entity) {
-                        is Address -> entity.copy(street = "*${entity.street}")
-                        else -> entity
-                    } as T
+        fun globalEntityListener() {
+            val db = Db(object : DbConfig() {
+                override val dataSource = config.dataSource
+                override val dialect = config.dialect
+                override val listener = object : GlobalEntityListener {
+                    override fun <T : Any> preInsert(entity: T, desc: EntityDesc<T>): T {
+                        return when (entity) {
+                            is Address -> entity.copy(street = "*${entity.street}")
+                            else -> entity
+                        } as T
+                    }
+
+                    override fun <T : Any> postInsert(entity: T, desc: EntityDesc<T>): T {
+                        return when (entity) {
+                            is Address -> entity.copy(street = "${entity.street}*")
+                            else -> entity
+                        } as T
+                    }
+                }
+            })
+
+            val address = Address(16, "STREET 16", 0)
+            val address2 = db.insert(address)
+            assertEquals(Address(16, "*STREET 16*", 0), address2)
+            val address3 = db.query<Address>("select * from address where address_id = 16").firstOrNull()
+            assertEquals(Address(16, "*STREET 16", 0), address3)
+        }
+
+        @Test
+        fun entityListener() {
+            val db = Db(AddressListenerConfig(config, object : EntityListener<Address> {
+                override fun preInsert(entity: Address, desc: EntityDesc<Address>): Address {
+                    return entity.copy(street = "*${entity.street}")
                 }
 
-                override fun <T> postInsert(entity: T, desc: EntityDesc<T>): T {
-                    return when (entity) {
-                        is Address -> entity.copy(street = "${entity.street}*")
-                        else -> entity
-                    } as T
+                override fun postInsert(entity: Address, desc: EntityDesc<Address>): Address {
+                    return entity.copy(street = "${entity.street}*")
                 }
             }))
 
@@ -1311,20 +1383,45 @@ internal class DbTest {
 
         @Test
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-        fun listener() {
-            val db = Db(config.copy(listener = object : EntityListener {
-                override fun <T> preUpdate(entity: T, desc: EntityDesc<T>): T {
-                    return when (entity) {
-                        is Address -> entity.copy(street = "*${entity.street}")
-                        else -> entity
-                    } as T
+        fun globalEntityListener() {
+            val db = Db(object : DbConfig() {
+                override val dataSource = config.dataSource
+                override val dialect = config.dialect
+                override val listener = object : GlobalEntityListener {
+                    override fun <T : Any> preUpdate(entity: T, desc: EntityDesc<T>): T {
+                        return when (entity) {
+                            is Address -> entity.copy(street = "*${entity.street}")
+                            else -> entity
+                        } as T
+                    }
+
+                    override fun <T : Any> postUpdate(entity: T, desc: EntityDesc<T>): T {
+                        return when (entity) {
+                            is Address -> entity.copy(street = "${entity.street}*")
+                            else -> entity
+                        } as T
+                    }
+                }
+            })
+
+            val sql = "select * from address where address_id = 15"
+            val address = db.query<Address>(sql).first()
+            val newAddress = address.copy(street = "NY street")
+            val address2 = db.update(newAddress)
+            assertEquals(Address(15, "*NY street*", 2), address2)
+            val address3 = db.query<Address>(sql).firstOrNull()
+            assertEquals(Address(15, "*NY street", 2), address3)
+        }
+
+        @Test
+        fun entityListener() {
+            val db = Db(AddressListenerConfig(config, object : EntityListener<Address> {
+                override fun preUpdate(entity: Address, desc: EntityDesc<Address>): Address {
+                    return entity.copy(street = "*${entity.street}")
                 }
 
-                override fun <T> postUpdate(entity: T, desc: EntityDesc<T>): T {
-                    return when (entity) {
-                        is Address -> entity.copy(street = "${entity.street}*")
-                        else -> entity
-                    } as T
+                override fun postUpdate(entity: Address, desc: EntityDesc<Address>): Address {
+                    return entity.copy(street = "${entity.street}*")
                 }
             }))
 
@@ -1493,20 +1590,55 @@ internal class DbTest {
 
         @Test
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-        fun listener() {
-            val db = Db(config.copy(listener = object : EntityListener {
-                override fun <T> preDelete(entity: T, desc: EntityDesc<T>): T {
-                    return when (entity) {
-                        is Address -> entity.copy(street = "*${entity.street}")
-                        else -> entity
-                    } as T
+        fun globalEntityListener() {
+            val db = Db(object : DbConfig() {
+                override val dataSource = config.dataSource
+                override val dialect = config.dialect
+                override val listener = object : GlobalEntityListener {
+                    override fun <T : Any> preDelete(entity: T, desc: EntityDesc<T>): T {
+                        return when (entity) {
+                            is Address -> entity.copy(street = "*${entity.street}")
+                            else -> entity
+                        } as T
+                    }
+
+                    override fun <T : Any> postDelete(entity: T, desc: EntityDesc<T>): T {
+                        return when (entity) {
+                            is Address -> entity.copy(street = "${entity.street}*")
+                            else -> entity
+                        } as T
+                    }
+                }
+            })
+
+            val addressList = listOf(
+                Address(16, "STREET 16", 0),
+                Address(17, "STREET 17", 0),
+                Address(18, "STREET 18", 0)
+            )
+            db.batchInsert(addressList)
+            val sql = "select * from address where address_id in (16, 17, 18)"
+            assertEquals(addressList, db.query<Address>(sql))
+            val list = db.batchDelete(addressList)
+            assertEquals(
+                listOf(
+                    Address(16, "*STREET 16*", 0),
+                    Address(17, "*STREET 17*", 0),
+                    Address(18, "*STREET 18*", 0)
+                ), list
+            )
+            assertTrue(db.query<Address>(sql).isEmpty())
+        }
+
+        @Test
+        fun entityListener() {
+            val db = Db(AddressListenerConfig(config, object : EntityListener<Address> {
+                override fun preDelete(entity: Address, desc: EntityDesc<Address>): Address {
+                    return entity.copy(street = "*${entity.street}")
                 }
 
-                override fun <T> postDelete(entity: T, desc: EntityDesc<T>): T {
-                    return when (entity) {
-                        is Address -> entity.copy(street = "${entity.street}*")
-                        else -> entity
-                    } as T
+                override fun postDelete(entity: Address, desc: EntityDesc<Address>): Address {
+                    return entity.copy(street = "${entity.street}*")
                 }
             }))
 
@@ -1568,20 +1700,59 @@ internal class DbTest {
 
         @Test
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-        fun listener() {
-            val db = Db(config.copy(listener = object : EntityListener {
-                override fun <T> preInsert(entity: T, desc: EntityDesc<T>): T {
-                    return when (entity) {
-                        is Address -> entity.copy(street = "*${entity.street}")
-                        else -> entity
-                    } as T
+        fun globalEntityListener() {
+            val db = Db(object : DbConfig() {
+                override val dataSource = config.dataSource
+                override val dialect = config.dialect
+                override val listener = object : GlobalEntityListener {
+                    override fun <T : Any> preInsert(entity: T, desc: EntityDesc<T>): T {
+                        return when (entity) {
+                            is Address -> entity.copy(street = "*${entity.street}")
+                            else -> entity
+                        } as T
+                    }
+
+                    override fun <T : Any> postInsert(entity: T, desc: EntityDesc<T>): T {
+                        return when (entity) {
+                            is Address -> entity.copy(street = "${entity.street}*")
+                            else -> entity
+                        } as T
+                    }
+                }
+            })
+
+            val addressList = listOf(
+                Address(16, "STREET 16", 0),
+                Address(17, "STREET 17", 0),
+                Address(18, "STREET 18", 0)
+            )
+            val list = db.batchInsert(addressList)
+            assertEquals(
+                listOf(
+                    Address(16, "*STREET 16*", 0),
+                    Address(17, "*STREET 17*", 0),
+                    Address(18, "*STREET 18*", 0)
+                ), list
+            )
+            val list2 = db.query<Address>("select * from address where address_id in (16, 17, 18)")
+            assertEquals(
+                listOf(
+                    Address(16, "*STREET 16", 0),
+                    Address(17, "*STREET 17", 0),
+                    Address(18, "*STREET 18", 0)
+                ), list2
+            )
+        }
+
+        @Test
+        fun entityListener() {
+            val db = Db(AddressListenerConfig(config, object : EntityListener<Address> {
+                override fun preInsert(entity: Address, desc: EntityDesc<Address>): Address {
+                    return entity.copy(street = "*${entity.street}")
                 }
 
-                override fun <T> postInsert(entity: T, desc: EntityDesc<T>): T {
-                    return when (entity) {
-                        is Address -> entity.copy(street = "${entity.street}*")
-                        else -> entity
-                    } as T
+                override fun postInsert(entity: Address, desc: EntityDesc<Address>): Address {
+                    return entity.copy(street = "${entity.street}*")
                 }
             }))
 
@@ -1641,20 +1812,56 @@ internal class DbTest {
 
         @Test
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
-        fun listener() {
-            val db = Db(config.copy(listener = object : EntityListener {
-                override fun <T> preUpdate(entity: T, desc: EntityDesc<T>): T {
-                    return when (entity) {
-                        is Address -> entity.copy(street = "*${entity.street}")
-                        else -> entity
-                    } as T
+        fun globalEntityListener() {
+            val db = Db(object : DbConfig() {
+                override val dataSource = config.dataSource
+                override val dialect = config.dialect
+                override val listener = object : GlobalEntityListener {
+                    override fun <T : Any> preUpdate(entity: T, desc: EntityDesc<T>): T {
+                        return when (entity) {
+                            is Address -> entity.copy(street = "*${entity.street}")
+                            else -> entity
+                        } as T
+                    }
+
+                    override fun <T : Any> postUpdate(entity: T, desc: EntityDesc<T>): T {
+                        return when (entity) {
+                            is Address -> entity.copy(street = "${entity.street}*")
+                            else -> entity
+                        } as T
+                    }
+                }
+            })
+
+            val sql = "select * from address where address_id in (1,2,3)"
+            val addressList = db.query<Address>(sql)
+            val list = db.batchUpdate(addressList)
+            assertEquals(
+                listOf(
+                    Address(1, "*STREET 1*", 2),
+                    Address(2, "*STREET 2*", 2),
+                    Address(3, "*STREET 3*", 2)
+                ), list
+            )
+            val list2 = db.query<Address>(sql)
+            assertEquals(
+                listOf(
+                    Address(1, "*STREET 1", 2),
+                    Address(2, "*STREET 2", 2),
+                    Address(3, "*STREET 3", 2)
+                ), list2
+            )
+        }
+
+        @Test
+        fun entityListener() {
+            val db = Db(AddressListenerConfig(config, object : EntityListener<Address> {
+                override fun preUpdate(entity: Address, desc: EntityDesc<Address>): Address {
+                    return entity.copy(street = "*${entity.street}")
                 }
 
-                override fun <T> postUpdate(entity: T, desc: EntityDesc<T>): T {
-                    return when (entity) {
-                        is Address -> entity.copy(street = "${entity.street}*")
-                        else -> entity
-                    } as T
+                override fun postUpdate(entity: Address, desc: EntityDesc<Address>): Address {
+                    return entity.copy(street = "${entity.street}*")
                 }
             }))
 
@@ -1942,6 +2149,7 @@ internal class DbTest {
 
     @Suppress("ArrayInDataClass")
     data class ByteArrayTest(val id: Int, val value: ByteArray)
+
     object ByteArrayTestMetadata : EntityMetadata<ByteArrayTest>({
         id(ByteArrayTest::id)
     })
@@ -2195,7 +2403,12 @@ internal class DbTest {
                     messages.add(message)
                 }
             }
-            val myConfig = config.copy(logger = logger)
+            val myConfig = object : DbConfig() {
+                override val dataSource = config.dataSource
+                override val dialect = config.dialect
+                override val logger: Logger = logger
+            }
+
             val db = Db(myConfig)
             db.insert(Quotes(id = 0, value = "aaa"))
             assertEquals(

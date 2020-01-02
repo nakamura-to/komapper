@@ -8,22 +8,22 @@ import kotlin.reflect.jvm.jvmErasure
 import org.komapper.core.metadata.MetadataResolver
 
 interface DataDescFactory {
-    fun create(
-        kClass: KClass<*>,
+    fun <T : Any> create(
+        kClass: KClass<T>,
         hierarchy: List<KClass<*>>,
         receiverResolver: (Any) -> Any?
-    ): DataDesc
+    ): DataDesc<T>
 }
 
 open class DefaultDataDescFactory(
     private val metadataResolver: MetadataResolver,
     private val propDescFactory: PropDescFactory
 ) : DataDescFactory {
-    override fun create(
-        kClass: KClass<*>,
+    override fun <T : Any> create(
+        kClass: KClass<T>,
         hierarchy: List<KClass<*>>,
         receiverResolver: (Any) -> Any?
-    ): DataDesc {
+    ): DataDesc<T> {
         val metadata = metadataResolver.resolve(kClass)
         val constructor = kClass.primaryConstructor ?: error("The clazz has no primary constructor.")
         val copy = kClass.memberFunctions.find {

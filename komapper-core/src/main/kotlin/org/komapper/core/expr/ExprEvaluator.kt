@@ -17,7 +17,7 @@ interface ExprEvaluator {
     fun eval(expression: String, ctx: Map<String, Value> = emptyMap()): Value
 }
 
-class DefaultExprEvaluator(
+open class DefaultExprEvaluator(
     private val exprNodeFactory: ExprNodeFactory,
     private val exprEnvironment: ExprEnvironment,
     private val classResolver: (String) -> Class<*> = { Class.forName(it) }

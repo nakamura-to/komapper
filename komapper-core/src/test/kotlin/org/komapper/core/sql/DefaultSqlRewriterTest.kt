@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test
 
 internal class DefaultSqlRewriterTest {
 
-    private val rewiter = DefaultSqlRewriter(NoCacheSqlNodeFactory())
+    private val rewriter = DefaultSqlRewriter()
 
     @Test
     fun rewriteForPagination() {
@@ -24,7 +24,7 @@ internal class DefaultSqlRewriterTest {
                 name, /*# embedded */
             for update
         """.trimIndent()
-        val rewrittenSql = rewiter.rewriteForPagination(sql, 5, 10)
+        val rewrittenSql = rewriter.rewriteForPagination(sql, 5, 10)
         assertEquals("$sql limit 5 offset 10", rewrittenSql.toString())
     }
 
@@ -45,7 +45,7 @@ internal class DefaultSqlRewriterTest {
                 name, /*# embedded */
             for update
         """.trimIndent()
-        val rewrittenSql = rewiter.rewriteForCount(sql)
+        val rewrittenSql = rewriter.rewriteForCount(sql)
         assertEquals("select count(*) from ($sql) t_", rewrittenSql.toString())
     }
 }

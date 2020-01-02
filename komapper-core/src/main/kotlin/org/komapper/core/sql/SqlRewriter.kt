@@ -5,8 +5,7 @@ interface SqlRewriter {
     fun rewriteForCount(template: CharSequence): CharSequence
 }
 
-class DefaultSqlRewriter(private val sqlNodeFactory: SqlNodeFactory) :
-    SqlRewriter {
+open class DefaultSqlRewriter : SqlRewriter {
 
     override fun rewriteForPagination(template: CharSequence, limit: Int?, offset: Int?): CharSequence {
         val buf = StringBuilder(template.length + 32)

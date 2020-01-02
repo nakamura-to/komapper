@@ -21,11 +21,10 @@ class Env : BeforeAllCallback,
     val port: String = System.getenv("PGPORT") ?: "5432"
 
     val db = Db(
-        DbConfig(
-            dataSource = SimpleDataSource(url = "jdbc:postgresql://127.0.0.1:$port/komapper", user = "postgres"),
-            dialect = PostgreSqlDialect(),
-            useTransaction = true
-        )
+        object : DbConfig() {
+            override val dataSource = SimpleDataSource(url = "jdbc:postgresql://127.0.0.1:$port/komapper", user = "postgres")
+            override val dialect = PostgreSqlDialect()
+        }
     )
 
     override fun beforeAll(context: ExtensionContext?) =

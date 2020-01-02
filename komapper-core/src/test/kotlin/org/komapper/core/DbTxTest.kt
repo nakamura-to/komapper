@@ -35,11 +35,10 @@ internal class DbTxTest {
 
     val simpleDataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
 
-    val config = DbConfig(
-        dataSource = simpleDataSource,
-        dialect = H2Dialect(),
-        useTransaction = true
-    )
+    val config = object : DbConfig() {
+        override val dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
+        override val dialect = H2Dialect()
+    }
 
     @BeforeEach
     fun before() {
@@ -312,18 +311,6 @@ internal class DbTxTest {
             val address = db.query<Address>(sql).firstOrNull()
             assertNull(address)
         }
-    }
-
-    @Test
-    fun `specify useTransaction`() {
-        val config = DbConfig(
-            dataSource = simpleDataSource,
-            dialect = H2Dialect()
-        )
-        val db = Db(config)
-        val exception =
-            org.junit.jupiter.api.assertThrows<IllegalStateException> { db.transaction }
-        println(exception)
     }
 
     data class ArrayTest(val id: Int, val value: java.sql.Array)
