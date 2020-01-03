@@ -7,7 +7,7 @@ import org.komapper.core.metadata.Metadata
 data class DataDesc<T : Any>(
     val kClass: KClass<T>,
     private val isMarkedNullable: Boolean,
-    val metadata: Metadata<T>?,
+    val metadata: Metadata<T>,
     private val constructor: KFunction<T>,
     private val copy: KFunction<*>,
     private val propDescList: List<PropDesc>

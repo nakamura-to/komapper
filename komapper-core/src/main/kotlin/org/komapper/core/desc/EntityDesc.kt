@@ -15,7 +15,7 @@ class EntityDesc<T : Any>(
     val columnLabelMap = leafPropDescList.associateBy { it.columnLabel }
     val propMap = leafPropDescList.associateBy { it.prop }
     val expander: (String) -> List<String> = { prefix -> leafPropDescList.map { prefix + it.columnName } }
-    val listener = dataDesc.metadata?.listener?.instance
+    val listener = dataDesc.metadata.listener?.instance
 
     fun new(leaves: Map<PropDesc, Any?>): T {
         return dataDesc.new(leaves)

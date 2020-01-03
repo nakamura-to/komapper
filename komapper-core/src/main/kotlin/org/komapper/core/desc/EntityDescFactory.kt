@@ -24,9 +24,9 @@ open class DefaultEntityDescFactory(
 
     protected open fun <T : Any> create(clazz: KClass<T>): EntityDesc<T> {
         val desc = dataDescFactory.create(clazz, false, listOf(clazz)) { it }
-        val table = desc.metadata?.table
-        val name = table?.name ?: namingStrategy.fromKotlinToDb(clazz.simpleName!!)
-        val tableName = if (table?.quote == true) quote(name) else name
+        val table = desc.metadata.table
+        val name = table.name ?: namingStrategy.fromKotlinToDb(clazz.simpleName!!)
+        val tableName = if (table.quote) quote(name) else name
         return EntityDesc(desc, tableName)
     }
 }
