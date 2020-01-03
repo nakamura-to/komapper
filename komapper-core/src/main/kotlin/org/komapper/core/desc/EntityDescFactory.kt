@@ -4,7 +4,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 
 interface EntityDescFactory {
-    fun <T : Any> get(clazz: KClass<T>): EntityDesc<T>
+    fun <T : Any> get(kClass: KClass<T>): EntityDesc<T>
 }
 
 open class DefaultEntityDescFactory(
@@ -15,16 +15,16 @@ open class DefaultEntityDescFactory(
 
     private val cache = ConcurrentHashMap<KClass<*>, EntityDesc<*>>()
 
-    override fun <T : Any> get(clazz: KClass<T>): EntityDesc<T> {
-        require(clazz.isData) { "The clazz must be a data class." }
+    override fun <T : Any> get(kClass: KClass<T>): EntityDesc<T> {
+        require(kClass.isData) { "The kClass must be a data class." }
         @Suppress("UNCHECKED_CAST")
-        return cache.computeIfAbsent(clazz) { create(it) } as EntityDesc<T>
+        return cache.computeIfAbsent(kClass) { create(it) } as EntityDesc<T>
     }
 
-    protected open fun <T : Any> create(clazz: KClass<T>): EntityDesc<T> {
-        val desc = dataDescFactory.create(clazz, false, listOf(clazz)) { it }
+    protected open fun <T : Any> create(kClass: KClass<T>): EntityDesc<T> {
+        val desc = dataDescFactory.create(kClass, false, listOf(kClass)) { it }
         val table = desc.metadata.table
-        val name = table.name ?: namingStrategy.fromKotlinToDb(clazz.simpleName!!)
+        val name = table.name ?: namingStrategy.fromKotlinToDb(kClass.simpleName!!)
         val tableName = if (table.quote) quote(name) else name
         return EntityDesc(desc, tableName)
     }

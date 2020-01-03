@@ -26,11 +26,12 @@ open class DefaultDataDescFactory(
         hierarchy: List<KClass<*>>,
         receiverResolver: (Any) -> Any?
     ): DataDesc<T> {
+        require(kClass.isData) { "The kClass must be a data class." }
         val metadata = metadataResolver.resolve(kClass)
-        val constructor = kClass.primaryConstructor ?: error("The clazz has no primary constructor.")
+        val constructor = kClass.primaryConstructor ?: error("The kClazz has no primary constructor.")
         val copy = kClass.memberFunctions.find {
             it.name == "copy" && it.returnType.jvmErasure == kClass && it.parameters.size == constructor.parameters.size + 1
-        } ?: error("The clazz does'n have a copy function.")
+        } ?: error("The kClazz doesn't have a copy function.")
         val propDescList = constructor.parameters
             .zip(copy.parameters.subList(1, copy.parameters.size))
             .map { (constructorParam, copyParam) ->

@@ -53,7 +53,7 @@ class Db(val config: DbConfig) {
      * @return the found entity
      */
     inline fun <reified T : Any> findById(id: Any, version: Any? = null): T? {
-        require(T::class.isData) { "The T must be a data class." }
+        require(T::class.isData) { "The type parameter T must be a data class." }
         val (sql, desc) = dryRun.findById<T>(id, version)
         return `access$streamEntity`(sql, desc).use { stream ->
             stream.toList().firstOrNull()
@@ -70,7 +70,7 @@ class Db(val config: DbConfig) {
     inline fun <reified T : Any> select(
         criteriaBlock: CriteriaScope<T>.() -> Unit = { }
     ): List<T> {
-        require(T::class.isData) { "The T must be a data class." }
+        require(T::class.isData) { "The type parameter T must be a data class." }
         return select(criteriaBlock, Sequence<T>::toList)
     }
 
@@ -86,7 +86,7 @@ class Db(val config: DbConfig) {
         criteriaBlock: CriteriaScope<T>.() -> Unit = { },
         sequenceBlock: (Sequence<T>) -> R
     ): R {
-        require(T::class.isData) { "The T must be a data class." }
+        require(T::class.isData) { "The type parameter T must be a data class." }
         val (sql, desc) = dryRun.select(criteriaBlock)
         return `access$streamMultiEntity`(sql, desc).use { stream ->
             stream.asSequence().map { entities ->
@@ -110,7 +110,7 @@ class Db(val config: DbConfig) {
         template: CharSequence,
         condition: Any? = null
     ): List<T> {
-        require(T::class.isData) { "The T must be a data class." }
+        require(T::class.isData) { "The type parameter T must be a data class." }
         return query(template, condition, Sequence<T>::toList)
     }
 
@@ -128,7 +128,7 @@ class Db(val config: DbConfig) {
         condition: Any? = null,
         block: (Sequence<T>) -> R
     ): R {
-        require(T::class.isData) { "The T must be a data class." }
+        require(T::class.isData) { "The type parameter T must be a data class." }
         val (sql, desc) = dryRun.query<T>(template, condition)
         return `access$streamEntity`(sql, desc).use { stream ->
             block(stream.asSequence())
@@ -256,7 +256,7 @@ class Db(val config: DbConfig) {
         limit: Int?,
         offset: Int?
     ): Pair<List<T>, Int> {
-        require(T::class.isData) { "The T must be a data class." }
+        require(T::class.isData) { "The type parameter T must be a data class." }
         val paginationTemplate = config.sqlRewriter.rewriteForPagination(template, limit, offset)
         val countTemplate = config.sqlRewriter.rewriteForCount(template)
         val list = query<T>(paginationTemplate, condition)
@@ -392,7 +392,7 @@ class Db(val config: DbConfig) {
      * @throws UniqueConstraintException if the unique constraint is violated
      */
     inline fun <reified T : Any> insert(entity: T, option: InsertOption = InsertOption()): T {
-        require(T::class.isData) { "The T must be a data class." }
+        require(T::class.isData) { "The type parameter T must be a data class." }
         val (sql, desc, newEntity) = dryRun.insert(entity, option) { sequenceName ->
             queryOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
         }
@@ -416,7 +416,7 @@ class Db(val config: DbConfig) {
      * @throws OptimisticLockException if the optimistic lock is failed
      */
     inline fun <reified T : Any> delete(entity: T, option: DeleteOption = DeleteOption()): T {
-        require(T::class.isData) { "The T must be a data class." }
+        require(T::class.isData) { "The type parameter T must be a data class." }
         val (sql, desc, newEntity) = dryRun.delete(entity, option)
         return `access$executeUpdate`(sql, !option.ignoreVersion && desc.version != null) {
             newEntity.let { newEntity ->
@@ -438,7 +438,7 @@ class Db(val config: DbConfig) {
      * @throws OptimisticLockException if the optimistic lock is failed
      */
     inline fun <reified T : Any> update(entity: T, option: UpdateOption = UpdateOption()): T {
-        require(T::class.isData) { "The T must be a data class." }
+        require(T::class.isData) { "The type parameter T must be a data class." }
         val (sql, desc, newEntity) = dryRun.update(entity, option)
         return `access$executeUpdate`(sql, !option.ignoreVersion && desc.version != null) {
             newEntity.let { newEntity ->
@@ -474,7 +474,7 @@ class Db(val config: DbConfig) {
             ignoreVersion = true
         )
     ): T {
-        require(T::class.isData) { "The T must be a data class." }
+        require(T::class.isData) { "The type parameter T must be a data class." }
         val (sql, desc, newEntity) = dryRun.merge(
             entity = entity,
             keys = *keys,
@@ -526,7 +526,7 @@ class Db(val config: DbConfig) {
      * @throws UniqueConstraintException if the unique constraint is violated
      */
     inline fun <reified T : Any> batchInsert(entities: List<T>, option: InsertOption = InsertOption()): List<T> {
-        require(T::class.isData) { "The T must be a data class." }
+        require(T::class.isData) { "The type parameter T must be a data class." }
         if (entities.isEmpty()) return entities
         val (sqls, desc, newEntities) = dryRun.batchInsert(entities, option) { sequenceName ->
             queryOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
@@ -553,7 +553,7 @@ class Db(val config: DbConfig) {
      * @throws OptimisticLockException if the optimistic lock is failed
      */
     inline fun <reified T : Any> batchDelete(entities: List<T>, option: DeleteOption = DeleteOption()): List<T> {
-        require(T::class.isData) { "The T must be a data class." }
+        require(T::class.isData) { "The type parameter T must be a data class." }
         if (entities.isEmpty()) return entities
         val (sqls, desc, newEntities) = dryRun.batchDelete(entities, option)
         return `access$executeBatch`(sqls, !option.ignoreVersion && desc.version != null) {
@@ -578,7 +578,7 @@ class Db(val config: DbConfig) {
      * @throws OptimisticLockException if the optimistic lock is failed
      */
     inline fun <reified T : Any> batchUpdate(entities: List<T>, option: UpdateOption = UpdateOption()): List<T> {
-        require(T::class.isData) { "The T must be a data class." }
+        require(T::class.isData) { "The type parameter T must be a data class." }
         val (sqls, desc, newEntities) = dryRun.batchUpdate(entities, option)
         return `access$executeBatch`(sqls, !option.ignoreVersion && desc.version != null) {
             newEntities.map {
@@ -616,7 +616,7 @@ class Db(val config: DbConfig) {
             ignoreVersion = true
         )
     ): List<T> {
-        require(T::class.isData) { "The T must be a data class." }
+        require(T::class.isData) { "The type parameter T must be a data class." }
         if (entities.isEmpty()) return entities
         val (sqls, desc, newEntities) = dryRun.batchMerge(
             entities = entities,
@@ -832,7 +832,7 @@ class Db(val config: DbConfig) {
          * @return the SQL and the metadata
          */
         inline fun <reified T : Any> findById(id: Any, version: Any? = null): Pair<Sql, EntityDesc<T>> {
-            require(T::class.isData) { "The T must be a data class." }
+            require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             val sql = config.entitySqlBuilder.buildFindById(desc, id, version)
             return sql to desc
@@ -848,7 +848,7 @@ class Db(val config: DbConfig) {
         inline fun <reified T : Any> select(
             criteriaBlock: CriteriaScope<T>.() -> Unit = { }
         ): Pair<Sql, MultiEntityDesc> {
-            require(T::class.isData) { "The T must be a data class." }
+            require(T::class.isData) { "The type parameter T must be a data class." }
             val scope = CriteriaScope(T::class).also { it.criteriaBlock() }
             val processor = CriteriaProcessor(config.dialect, config.entityDescFactory, scope())
             val sql = processor.buildSelect()
@@ -867,7 +867,7 @@ class Db(val config: DbConfig) {
             template: CharSequence,
             condition: Any? = null
         ): Pair<Sql, EntityDesc<T>> {
-            require(T::class.isData) { "The T must be a data class." }
+            require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             val ctx = config.objectDescFactory.toMap(condition)
             val sql = config.sqlBuilder.build(template, ctx, desc.expander)
@@ -935,7 +935,7 @@ class Db(val config: DbConfig) {
             limit: Int?,
             offset: Int?
         ): Triple<Sql, EntityDesc<T>, Sql> {
-            require(T::class.isData) { "The T must be a data class." }
+            require(T::class.isData) { "The type parameter T must be a data class." }
             val paginationTemplate = config.sqlRewriter.rewriteForPagination(template, limit, offset)
             val countTemplate = config.sqlRewriter.rewriteForCount(template)
             val (sql, desc) = query<T>(paginationTemplate, condition)
@@ -957,7 +957,7 @@ class Db(val config: DbConfig) {
             option: InsertOption = InsertOption(),
             noinline callNextValue: (String) -> Long = { 0L }
         ): Triple<Sql, EntityDesc<T>, T> {
-            require(T::class.isData) { "The T must be a data class." }
+            require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             return if (option.assignId) {
                 desc.assignId(entity, config.name, callNextValue)
@@ -987,7 +987,7 @@ class Db(val config: DbConfig) {
             entity: T,
             option: DeleteOption = DeleteOption()
         ): Triple<Sql, EntityDesc<T>, T> {
-            require(T::class.isData) { "The T must be a data class." }
+            require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             return (desc.listener?.preDelete(entity, desc) ?: entity)
                 .let { newEntity ->
@@ -1010,7 +1010,7 @@ class Db(val config: DbConfig) {
             entity: T,
             option: UpdateOption = UpdateOption()
         ): Triple<Sql, EntityDesc<T>, T> {
-            require(T::class.isData) { "The T must be a data class." }
+            require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             return (if (option.incrementVersion) desc.incrementVersion(entity) else entity).let { newEntity ->
                 if (option.updateTimestamp) desc.updateTimestamp(newEntity) else newEntity
@@ -1049,7 +1049,7 @@ class Db(val config: DbConfig) {
             ),
             noinline callNextValue: (String) -> Long = { 0L }
         ): Triple<Sql, EntityDesc<T>, T> {
-            require(T::class.isData) { "The T must be a data class." }
+            require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             return if (insertOption.assignId) {
                 desc.assignId(entity, config.name, callNextValue)
@@ -1093,7 +1093,7 @@ class Db(val config: DbConfig) {
             option: InsertOption = InsertOption(),
             noinline callNextValue: (String) -> Long = { 0L }
         ): Triple<List<Sql>, EntityDesc<T>, List<T>> {
-            require(T::class.isData) { "The T must be a data class." }
+            require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             val (sqls, newEntities) = entities.map { entity ->
                 if (option.assignId) {
@@ -1128,7 +1128,7 @@ class Db(val config: DbConfig) {
             entities: List<T>,
             option: DeleteOption = DeleteOption()
         ): Triple<List<Sql>, EntityDesc<T>, List<T>> {
-            require(T::class.isData) { "The T must be a data class." }
+            require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             val (sqls, newEntities) = entities.map { entity ->
                 (desc.listener?.preDelete(entity, desc) ?: entity)
@@ -1156,7 +1156,7 @@ class Db(val config: DbConfig) {
             entities: List<T>,
             option: UpdateOption = UpdateOption()
         ): Triple<List<Sql>, EntityDesc<T>, List<T>> {
-            require(T::class.isData) { "The T must be a data class." }
+            require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             val (sqls, newEntities) = entities.map { entity ->
                 (if (option.incrementVersion) desc.incrementVersion(entity) else entity).let { newEntity ->
@@ -1200,7 +1200,7 @@ class Db(val config: DbConfig) {
             ),
             noinline callNextValue: (String) -> Long = { 0L }
         ): Triple<List<Sql>, EntityDesc<T>, List<T>> {
-            require(T::class.isData) { "The T must be a data class." }
+            require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             val (sqls, newEntities) = entities.map { entity ->
                 if (insertOption.assignId) {
