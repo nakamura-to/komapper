@@ -34,7 +34,6 @@ class CriteriaScope<T : Any>(private val type: KClass<T>) {
         noinline block: (T, S) -> Unit = { _, _ -> }
     ) {
         require(S::class.isData) { "The S must be a data class." }
-        require(!S::class.isAbstract) { "The S must not be abstract." }
         val onScope = OnScope().apply(on)
         @Suppress("UNCHECKED_CAST")
         joins.add(Join(JoinKind.INNER, S::class, onScope, block as (Any, Any) -> Unit))
@@ -45,7 +44,6 @@ class CriteriaScope<T : Any>(private val type: KClass<T>) {
         noinline block: (T, S) -> Unit = { _, _ -> }
     ) {
         require(S::class.isData) { "The S must be a data class." }
-        require(!S::class.isAbstract) { "The S must not be abstract." }
         val onScope = OnScope().apply(on)
         @Suppress("UNCHECKED_CAST")
         joins.add(Join(JoinKind.LEFT, S::class, onScope, block as (Any, Any) -> Unit))

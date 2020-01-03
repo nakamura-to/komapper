@@ -124,10 +124,6 @@ open class DefaultPropDescFactory(
                 "The embedded property \"${prop.name}\" " +
                         "must be a data class."
             )
-            kClass.isAbstract -> error(
-                "The embedded property \"${prop.name}\" " +
-                        "must not be an abstract class."
-            )
             else -> {
                 if (kClass in hierarchy) {
                     error(

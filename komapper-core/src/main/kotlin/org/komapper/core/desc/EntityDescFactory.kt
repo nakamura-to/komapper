@@ -17,7 +17,6 @@ open class DefaultEntityDescFactory(
 
     override fun <T : Any> get(clazz: KClass<T>): EntityDesc<T> {
         require(clazz.isData) { "The clazz must be a data class." }
-        require(!clazz.isAbstract) { "The clazz must not be abstract." }
         @Suppress("UNCHECKED_CAST")
         return cache.computeIfAbsent(clazz) { create(it) } as EntityDesc<T>
     }
