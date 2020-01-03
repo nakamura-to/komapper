@@ -1,4 +1,4 @@
-package org.komapper.core.it
+package org.komapper.jdbc.postgresql
 
 import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.AfterTestExecutionCallback
@@ -9,7 +9,6 @@ import org.junit.jupiter.api.extension.ParameterContext
 import org.junit.jupiter.api.extension.ParameterResolver
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
-import org.komapper.core.jdbc.PostgreSqlDialect
 import org.komapper.core.jdbc.SimpleDataSource
 
 class Env : BeforeAllCallback,

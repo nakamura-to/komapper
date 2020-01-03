@@ -1,6 +1,6 @@
-package org.komapper.core.it
+package org.komapper.jdbc.postgresql
 
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
@@ -8,28 +8,27 @@ import org.komapper.core.Db
 import org.komapper.core.UniqueConstraintException
 
 @ExtendWith(Env::class)
-class InsertTest {
+class BatchInsertTest {
 
     @Test
     fun test(db: Db) {
         val address = Address(100, "a", 0)
-        db.insert(address)
+        val address2 = Address(101, "a", 0)
+        db.batchInsert(listOf(address, address2))
     }
 
     @Test
     fun uniqueConstraintException(db: Db) {
         val address = Address(100, "a", 0)
         db.insert(address)
-        assertThrows<UniqueConstraintException> { db.insert(address) }
+        assertThrows<UniqueConstraintException> { db.batchInsert(listOf(address)) }
     }
 
     @Test
     fun sequence(db: Db) {
-        for (i in 0..200) {
-            val strategy = SequenceStrategy(i, "value$i")
-            db.insert(strategy)
-        }
+        val list = (0..200).map { SequenceStrategy(it, "value$it") }
+        db.batchInsert(list)
         val idList = db.select<SequenceStrategy>().map { it.id }
-        assertEquals((1..201).toList(), idList)
+        Assertions.assertEquals((1..201).toList(), idList)
     }
 }

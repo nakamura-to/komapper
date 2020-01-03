@@ -1,4 +1,4 @@
-package org.komapper.core.it
+package org.komapper.jdbc.postgresql
 
 import java.math.BigDecimal
 import java.time.LocalDate

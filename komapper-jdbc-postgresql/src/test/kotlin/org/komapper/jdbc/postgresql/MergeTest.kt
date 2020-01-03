@@ -1,4 +1,4 @@
-package org.komapper.core.it
+package org.komapper.jdbc.postgresql
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull

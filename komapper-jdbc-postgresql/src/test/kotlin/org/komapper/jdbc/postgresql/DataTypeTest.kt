@@ -1,4 +1,4 @@
-package org.komapper.core.it
+package org.komapper.jdbc.postgresql
 
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -137,7 +137,8 @@ class DataTypeTest {
 
     @Test
     fun byteArray(db: Db) {
-        val data = ByteArrayTest(1, byteArrayOf(10, 20, 30))
+        val data =
+            ByteArrayTest(1, byteArrayOf(10, 20, 30))
         db.insert(data)
         val data2 = db.findById<ByteArrayTest>(1)
         assertEquals(data.id, data2!!.id)
@@ -154,7 +155,10 @@ class DataTypeTest {
 
     @Test
     fun enum(db: Db) {
-        val data = EnumTest(1, Direction.EAST)
+        val data = EnumTest(
+            1,
+            Direction.EAST
+        )
         db.insert(data)
         val data2 = db.findById<EnumTest>(1)
         assertEquals(data, data2)
@@ -178,7 +182,10 @@ class DataTypeTest {
 
     @Test
     fun localDateTime(db: Db) {
-        val data = LocalDateTimeTest(1, LocalDateTime.of(2019, 6, 1, 12, 11, 10))
+        val data = LocalDateTimeTest(
+            1,
+            LocalDateTime.of(2019, 6, 1, 12, 11, 10)
+        )
         db.insert(data)
         val data2 = db.findById<LocalDateTimeTest>(1)
         assertEquals(data, data2)
@@ -186,7 +193,8 @@ class DataTypeTest {
 
     @Test
     fun localDate(db: Db) {
-        val data = LocalDateTest(1, LocalDate.of(2019, 6, 1))
+        val data =
+            LocalDateTest(1, LocalDate.of(2019, 6, 1))
         db.insert(data)
         val data2 = db.findById<LocalDateTest>(1)
         assertEquals(data, data2)
@@ -194,7 +202,8 @@ class DataTypeTest {
 
     @Test
     fun localTime(db: Db) {
-        val data = LocalTimeTest(1, LocalTime.of(12, 11, 10))
+        val data =
+            LocalTimeTest(1, LocalTime.of(12, 11, 10))
         db.insert(data)
         val data2 = db.findById<LocalTimeTest>(1)
         assertEquals(data, data2)

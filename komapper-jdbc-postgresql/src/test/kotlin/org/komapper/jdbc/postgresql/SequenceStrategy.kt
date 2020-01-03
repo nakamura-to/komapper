@@ -1,4 +1,4 @@
-package org.komapper.core.it
+package org.komapper.jdbc.postgresql
 
 import org.komapper.core.metadata.EntityMetadata
 import org.komapper.core.metadata.SequenceGenerator
