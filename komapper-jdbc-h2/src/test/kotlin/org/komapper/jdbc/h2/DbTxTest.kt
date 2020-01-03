@@ -1,4 +1,4 @@
-package org.komapper.core
+package org.komapper.jdbc.h2
 
 import java.sql.Blob
 import java.sql.Clob
@@ -14,7 +14,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.komapper.core.jdbc.H2Dialect
+import org.komapper.core.Db
+import org.komapper.core.DbConfig
 import org.komapper.core.jdbc.SimpleDataSource
 import org.komapper.core.metadata.EntityMetadata
 import org.komapper.core.tx.TransactionIsolationLevel

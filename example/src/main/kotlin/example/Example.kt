@@ -3,10 +3,10 @@ package example
 import java.time.LocalDateTime
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
-import org.komapper.core.jdbc.H2Dialect
 import org.komapper.core.jdbc.SimpleDataSource
 import org.komapper.core.metadata.EntityMetadata
 import org.komapper.core.metadata.SequenceGenerator
+import org.komapper.jdbc.h2.H2Dialect
 
 data class Address(
     val id: Int = 0,

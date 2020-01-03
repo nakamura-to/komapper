@@ -10,8 +10,10 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":komapper-jdbc-h2"))
-    runtime("com.h2database:h2:1.4.199")
+    api(project(":komapper-core"))
+    implementation("com.h2database:h2:1.4.199")
+    testRuntime("org.junit.platform:junit-platform-launcher:1.5.1")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.5.1")
 }
 
 tasks.withType<Test> {

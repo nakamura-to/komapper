@@ -1,4 +1,4 @@
-package org.komapper.core
+package org.komapper.jdbc.h2
 
 import java.io.Serializable
 import java.math.BigDecimal
@@ -19,12 +19,15 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.komapper.core.Db
+import org.komapper.core.DbConfig
+import org.komapper.core.OptimisticLockException
+import org.komapper.core.UniqueConstraintException
 import org.komapper.core.criteria.OrderByScope
 import org.komapper.core.criteria.WhereScope
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityListener
 import org.komapper.core.desc.GlobalEntityListener
-import org.komapper.core.jdbc.H2Dialect
 import org.komapper.core.jdbc.SimpleDataSource
 import org.komapper.core.logging.Logger
 import org.komapper.core.logging.StdoutLogger
@@ -1126,15 +1129,25 @@ internal class DbTest {
 
         @Test
         fun entityListener() {
-            val db = Db(AddressListenerConfig(config, object : EntityListener<Address> {
-                override fun preDelete(entity: Address, desc: EntityDesc<Address>): Address {
-                    return entity.copy(street = "*${entity.street}")
-                }
+            val db = Db(
+                AddressListenerConfig(
+                    config,
+                    object : EntityListener<Address> {
+                        override fun preDelete(
+                            entity: Address,
+                            desc: EntityDesc<Address>
+                        ): Address {
+                            return entity.copy(street = "*${entity.street}")
+                        }
 
-                override fun postDelete(entity: Address, desc: EntityDesc<Address>): Address {
-                    return entity.copy(street = "${entity.street}*")
-                }
-            }))
+                        override fun postDelete(
+                            entity: Address,
+                            desc: EntityDesc<Address>
+                        ): Address {
+                            return entity.copy(street = "${entity.street}*")
+                        }
+                    })
+            )
 
             val sql = "select * from address where address_id = 15"
             val address = db.query<Address>(sql).first()
@@ -1161,7 +1174,10 @@ internal class DbTest {
                 employeeNo = 9999,
                 employeeName = "aaa",
                 managerId = null,
-                detail = EmployeeDetail(LocalDate.of(2019, 6, 15), BigDecimal("2000.00")),
+                detail = EmployeeDetail(
+                    LocalDate.of(2019, 6, 15),
+                    BigDecimal("2000.00")
+                ),
                 departmentId = 1,
                 addressId = 1,
                 version = 1
@@ -1254,15 +1270,25 @@ internal class DbTest {
 
         @Test
         fun entityListener() {
-            val db = Db(AddressListenerConfig(config, object : EntityListener<Address> {
-                override fun preInsert(entity: Address, desc: EntityDesc<Address>): Address {
-                    return entity.copy(street = "*${entity.street}")
-                }
+            val db = Db(
+                AddressListenerConfig(
+                    config,
+                    object : EntityListener<Address> {
+                        override fun preInsert(
+                            entity: Address,
+                            desc: EntityDesc<Address>
+                        ): Address {
+                            return entity.copy(street = "*${entity.street}")
+                        }
 
-                override fun postInsert(entity: Address, desc: EntityDesc<Address>): Address {
-                    return entity.copy(street = "${entity.street}*")
-                }
-            }))
+                        override fun postInsert(
+                            entity: Address,
+                            desc: EntityDesc<Address>
+                        ): Address {
+                            return entity.copy(street = "${entity.street}*")
+                        }
+                    })
+            )
 
             val address = Address(16, "STREET 16", 0)
             val address2 = db.insert(address)
@@ -1315,7 +1341,10 @@ internal class DbTest {
                 employeeNo = 9999,
                 employeeName = "aaa",
                 managerId = null,
-                detail = EmployeeDetail(LocalDate.of(2019, 6, 15), BigDecimal("2000.00")),
+                detail = EmployeeDetail(
+                    LocalDate.of(2019, 6, 15),
+                    BigDecimal("2000.00")
+                ),
                 departmentId = 1,
                 addressId = 1,
                 version = 1
@@ -1415,15 +1444,25 @@ internal class DbTest {
 
         @Test
         fun entityListener() {
-            val db = Db(AddressListenerConfig(config, object : EntityListener<Address> {
-                override fun preUpdate(entity: Address, desc: EntityDesc<Address>): Address {
-                    return entity.copy(street = "*${entity.street}")
-                }
+            val db = Db(
+                AddressListenerConfig(
+                    config,
+                    object : EntityListener<Address> {
+                        override fun preUpdate(
+                            entity: Address,
+                            desc: EntityDesc<Address>
+                        ): Address {
+                            return entity.copy(street = "*${entity.street}")
+                        }
 
-                override fun postUpdate(entity: Address, desc: EntityDesc<Address>): Address {
-                    return entity.copy(street = "${entity.street}*")
-                }
-            }))
+                        override fun postUpdate(
+                            entity: Address,
+                            desc: EntityDesc<Address>
+                        ): Address {
+                            return entity.copy(street = "${entity.street}*")
+                        }
+                    })
+            )
 
             val sql = "select * from address where address_id = 15"
             val address = db.query<Address>(sql).first()
@@ -1458,7 +1497,10 @@ internal class DbTest {
                 employeeNo = 9999,
                 employeeName = "aaa",
                 managerId = null,
-                detail = EmployeeDetail(LocalDate.of(2019, 6, 15), BigDecimal("2000.00")),
+                detail = EmployeeDetail(
+                    LocalDate.of(2019, 6, 15),
+                    BigDecimal("2000.00")
+                ),
                 departmentId = 1,
                 addressId = 1,
                 version = 1
@@ -1632,15 +1674,25 @@ internal class DbTest {
 
         @Test
         fun entityListener() {
-            val db = Db(AddressListenerConfig(config, object : EntityListener<Address> {
-                override fun preDelete(entity: Address, desc: EntityDesc<Address>): Address {
-                    return entity.copy(street = "*${entity.street}")
-                }
+            val db = Db(
+                AddressListenerConfig(
+                    config,
+                    object : EntityListener<Address> {
+                        override fun preDelete(
+                            entity: Address,
+                            desc: EntityDesc<Address>
+                        ): Address {
+                            return entity.copy(street = "*${entity.street}")
+                        }
 
-                override fun postDelete(entity: Address, desc: EntityDesc<Address>): Address {
-                    return entity.copy(street = "${entity.street}*")
-                }
-            }))
+                        override fun postDelete(
+                            entity: Address,
+                            desc: EntityDesc<Address>
+                        ): Address {
+                            return entity.copy(street = "${entity.street}*")
+                        }
+                    })
+            )
 
             val addressList = listOf(
                 Address(16, "STREET 16", 0),
@@ -1746,15 +1798,25 @@ internal class DbTest {
 
         @Test
         fun entityListener() {
-            val db = Db(AddressListenerConfig(config, object : EntityListener<Address> {
-                override fun preInsert(entity: Address, desc: EntityDesc<Address>): Address {
-                    return entity.copy(street = "*${entity.street}")
-                }
+            val db = Db(
+                AddressListenerConfig(
+                    config,
+                    object : EntityListener<Address> {
+                        override fun preInsert(
+                            entity: Address,
+                            desc: EntityDesc<Address>
+                        ): Address {
+                            return entity.copy(street = "*${entity.street}")
+                        }
 
-                override fun postInsert(entity: Address, desc: EntityDesc<Address>): Address {
-                    return entity.copy(street = "${entity.street}*")
-                }
-            }))
+                        override fun postInsert(
+                            entity: Address,
+                            desc: EntityDesc<Address>
+                        ): Address {
+                            return entity.copy(street = "${entity.street}*")
+                        }
+                    })
+            )
 
             val addressList = listOf(
                 Address(16, "STREET 16", 0),
@@ -1855,15 +1917,25 @@ internal class DbTest {
 
         @Test
         fun entityListener() {
-            val db = Db(AddressListenerConfig(config, object : EntityListener<Address> {
-                override fun preUpdate(entity: Address, desc: EntityDesc<Address>): Address {
-                    return entity.copy(street = "*${entity.street}")
-                }
+            val db = Db(
+                AddressListenerConfig(
+                    config,
+                    object : EntityListener<Address> {
+                        override fun preUpdate(
+                            entity: Address,
+                            desc: EntityDesc<Address>
+                        ): Address {
+                            return entity.copy(street = "*${entity.street}")
+                        }
 
-                override fun postUpdate(entity: Address, desc: EntityDesc<Address>): Address {
-                    return entity.copy(street = "${entity.street}*")
-                }
-            }))
+                        override fun postUpdate(
+                            entity: Address,
+                            desc: EntityDesc<Address>
+                        ): Address {
+                            return entity.copy(street = "${entity.street}*")
+                        }
+                    })
+            )
 
             val sql = "select * from address where address_id in (1,2,3)"
             val addressList = db.query<Address>(sql)
@@ -2235,7 +2307,10 @@ internal class DbTest {
         @Test
         fun any() {
             val db = Db(config)
-            val data = AnyTest(1, AnyPerson("ABC"))
+            val data = AnyTest(
+                1,
+                AnyPerson("ABC")
+            )
             db.insert(data)
             val data2 = db.findById<AnyTest>(1)
             assertEquals(data, data2)
@@ -2299,7 +2374,10 @@ internal class DbTest {
         @Test
         fun enum() {
             val db = Db(config)
-            val data = EnumTest(1, Direction.EAST)
+            val data = EnumTest(
+                1,
+                Direction.EAST
+            )
             db.insert(data)
             val data2 = db.findById<EnumTest>(1)
             assertEquals(data, data2)
@@ -2326,7 +2404,10 @@ internal class DbTest {
         @Test
         fun localDateTime() {
             val db = Db(config)
-            val data = LocalDateTimeTest(1, LocalDateTime.of(2019, 6, 1, 12, 11, 10))
+            val data = LocalDateTimeTest(
+                1,
+                LocalDateTime.of(2019, 6, 1, 12, 11, 10)
+            )
             db.insert(data)
             val data2 = db.findById<LocalDateTimeTest>(1)
             assertEquals(data, data2)
