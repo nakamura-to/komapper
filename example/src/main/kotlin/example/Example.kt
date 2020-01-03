@@ -8,6 +8,7 @@ import org.komapper.core.metadata.EntityMetadata
 import org.komapper.core.metadata.SequenceGenerator
 import org.komapper.jdbc.h2.H2Dialect
 
+// entity
 data class Address(
     val id: Int = 0,
     val street: String,
@@ -16,6 +17,7 @@ data class Address(
     val version: Int = 0
 )
 
+// entity metadata
 object AddressMetadata : EntityMetadata<Address>({
     id(Address::id, SequenceGenerator("ADDRESS_SEQ", 100))
     createdAt(Address::createdAt)
@@ -29,7 +31,9 @@ object AddressMetadata : EntityMetadata<Address>({
 fun main() {
     val db = Db(
         object : DbConfig() {
+            // dataSource for H2
             override val dataSource = SimpleDataSource("jdbc:h2:mem:example;DB_CLOSE_DELAY=-1")
+            // dialect for H2
             override val dialect = H2Dialect()
         }
     )
