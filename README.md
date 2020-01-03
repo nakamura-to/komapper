@@ -2,7 +2,7 @@ Komapper: Kotlin SQL Mapper
 ===========================
 
 [![Build Status](https://travis-ci.org/nakamura-to/komapper.svg?branch=master)](https://travis-ci.org/nakamura-to/komapper)
-[ ![Download](https://api.bintray.com/packages/nakamura-to/maven/komapper/images/download.svg) ](https://bintray.com/nakamura-to/maven/komapper/_latestVersion)
+[ ![Download](https://api.bintray.com/packages/nakamura-to/maven/komapper-core/images/download.svg) ](https://bintray.com/nakamura-to/maven/komapper-core/_latestVersion)
 
 Komapper is a prototype for a simple database access library for Kotlin.
 
