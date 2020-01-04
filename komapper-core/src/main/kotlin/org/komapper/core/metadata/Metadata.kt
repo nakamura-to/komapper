@@ -3,6 +3,8 @@ package org.komapper.core.metadata
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import org.komapper.core.desc.EntityListener
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
 
 interface Metadata<T : Any> {
     val table: TableMeta
@@ -91,23 +93,60 @@ class EntityScope<T : Any> {
         idList.add(idMeta)
     }
 
-    fun id(property: KProperty1<T, *>, generator: SequenceGenerator) {
+    fun id(
+        property: KProperty1<T, Int?>, generator: SequenceGenerator,
+        @Suppress("UNUSED_PARAMETER") `_`: Int? = null
+    ) {
         val idMeta = IdMeta.Sequence(property.name, generator)
         idList.add(idMeta)
     }
 
-    fun version(property: KProperty1<T, *>) {
+    fun id(
+        property: KProperty1<T, Long?>, generator: SequenceGenerator,
+        @Suppress("UNUSED_PARAMETER") `_`: Long? = null
+    ) {
+        val idMeta = IdMeta.Sequence(property.name, generator)
+        idList.add(idMeta)
+    }
+
+    fun version(
+        property: KProperty1<T, Int?>,
+        @Suppress("UNUSED_PARAMETER") `_`: Int? = null
+    ) {
+        version = VersionMeta(property.name)
+    }
+
+    fun version(
+        property: KProperty1<T, Long?>,
+        @Suppress("UNUSED_PARAMETER") `_`: Long? = null
+    ) {
         version = VersionMeta(property.name)
     }
 
     fun createdAt(
-        property: KProperty1<T, *>
+        property: KProperty1<T, LocalDateTime?>,
+        @Suppress("UNUSED_PARAMETER") `_`: LocalDateTime? = null
+    ) {
+        createdAt = CreatedAtMeta(property.name)
+    }
+
+    fun createdAt(
+        property: KProperty1<T, OffsetDateTime?>,
+        @Suppress("UNUSED_PARAMETER") `_`: OffsetDateTime? = null
     ) {
         createdAt = CreatedAtMeta(property.name)
     }
 
     fun updatedAt(
-        property: KProperty1<T, *>
+        property: KProperty1<T, LocalDateTime?>,
+        @Suppress("UNUSED_PARAMETER") `_`: LocalDateTime? = null
+    ) {
+        updatedAt = UpdatedAtMeta(property.name)
+    }
+
+    fun updatedAt(
+        property: KProperty1<T, OffsetDateTime?>,
+        @Suppress("UNUSED_PARAMETER") `_`: OffsetDateTime? = null
     ) {
         updatedAt = UpdatedAtMeta(property.name)
     }
