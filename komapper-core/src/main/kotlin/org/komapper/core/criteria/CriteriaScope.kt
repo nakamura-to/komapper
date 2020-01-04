@@ -53,12 +53,12 @@ class CriteriaScope<T : Any>(private val type: KClass<T>) {
 
     fun orderBy(block: OrderByScope.() -> Unit) = orderBy.block()
 
-    fun limit(block: LimitScope.() -> Int) {
-        limit = LimitScope.block()
+    fun limit(value: Int) {
+        limit = value
     }
 
-    fun offset(block: OffsetScope.() -> Int) {
-        offset = OffsetScope.block()
+    fun offset(value: Int) {
+        offset = value
     }
 
     fun forUpdate(block: ForUpdateScope.() -> Unit) {

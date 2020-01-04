@@ -442,13 +442,13 @@ internal class DbTest {
             val db = Db(config)
             val list = db.select<Address> {
                 where {
-                    Address::addressId ge 1
+                    Address::addressId.ge(1)
                 }
                 orderBy {
                     Address::addressId.desc()
                 }
-                limit { 2 }
-                offset { 5 }
+                limit(2)
+                offset(5)
             }
             assertEquals(
                 listOf(
@@ -463,7 +463,7 @@ internal class DbTest {
             val db = Db(config)
             val list = db.select<Address> {
                 where = WhereScope().apply {
-                    Address::addressId ge 1
+                    Address::addressId.ge(1)
                 }
                 orderBy = OrderByScope().apply {
                     Address::addressId.desc()
@@ -484,7 +484,7 @@ internal class DbTest {
             val db = Db(config)
             val idList = db.select<Address> {
                 where {
-                    Address::street like "STREET 1_"
+                    Address::street.like("STREET 1_")
                 }
                 orderBy {
                     Address::addressId.asc()
@@ -498,7 +498,7 @@ internal class DbTest {
             val db = Db(config)
             val idList = db.select<Address> {
                 where {
-                    Address::street notLike "STREET 1_"
+                    Address::street.notLike("STREET 1_")
                 }
                 orderBy {
                     Address::addressId.asc()
@@ -519,9 +519,9 @@ internal class DbTest {
             val db = Db(config)
             val idList = db.select<Address> {
                 where {
-                    Address::addressId gt 5
+                    Address::addressId.gt(5)
                     not {
-                        Address::addressId ge 10
+                        Address::addressId.ge(10)
                     }
                 }
                 orderBy {
@@ -536,16 +536,16 @@ internal class DbTest {
             val db = Db(config)
             val list = db.select<Address> {
                 where {
-                    Address::addressId ge 1
+                    Address::addressId.ge(1)
                     and {
-                        Address::addressId ge 1
+                        Address::addressId.ge(1)
                     }
                 }
                 orderBy {
                     Address::addressId.desc()
                 }
-                limit { 2 }
-                offset { 5 }
+                limit(2)
+                offset(5)
             }
             assertEquals(
                 listOf(
@@ -560,17 +560,17 @@ internal class DbTest {
             val db = Db(config)
             val list = db.select<Address> {
                 where {
-                    Address::addressId ge 1
+                    Address::addressId.ge(1)
                     or {
-                        Address::addressId ge 1
-                        Address::addressId ge 1
+                        Address::addressId.ge(1)
+                        Address::addressId.ge(1)
                     }
                 }
                 orderBy {
                     Address::addressId.desc()
                 }
-                limit { 2 }
-                offset { 5 }
+                limit(2)
+                offset(5)
             }
             assertEquals(
                 listOf(
@@ -585,7 +585,7 @@ internal class DbTest {
             val db = Db(config)
             val list = db.select<Address> {
                 where {
-                    Address::addressId `in` listOf(9, 10)
+                    Address::addressId.`in`(listOf(9, 10))
                 }
                 orderBy {
                     Address::addressId.desc()
@@ -604,7 +604,7 @@ internal class DbTest {
             val db = Db(config)
             val idList = db.select<Address> {
                 where {
-                    Address::addressId notIn (1..9).toList()
+                    Address::addressId.notIn((1..9).toList())
                 }
                 orderBy {
                     Address::addressId.asc()
@@ -618,7 +618,7 @@ internal class DbTest {
             val db = Db(config)
             val list = db.select<Address> {
                 where {
-                    Address::addressId `in` emptyList()
+                    Address::addressId.`in`(emptyList())
                 }
                 orderBy {
                     Address::addressId.desc()
@@ -632,7 +632,7 @@ internal class DbTest {
             val db = Db(config)
             val list = db.select<Address> {
                 where {
-                    Address::addressId to Address::street `in` listOf(9 to "STREET 9", 10 to "STREET 10")
+                    (Address::addressId to Address::street).`in`(listOf(9 to "STREET 9", 10 to "STREET 10"))
                 }
                 orderBy {
                     Address::addressId.desc()
@@ -651,7 +651,7 @@ internal class DbTest {
             val db = Db(config)
             val idList = db.select<Address> {
                 where {
-                    Address::addressId to Address::street notIn listOf(1 to "STREET 1", 2 to "STREET 2")
+                    (Address::addressId to Address::street).notIn(listOf(1 to "STREET 1", 2 to "STREET 2"))
                 }
                 orderBy {
                     Address::addressId.asc()
@@ -665,7 +665,7 @@ internal class DbTest {
             val db = Db(config)
             val list = db.select<Address> {
                 where {
-                    Address::addressId to Address::street `in` emptyList()
+                    Address::addressId to Address::street.`in`(emptyList())
                 }
                 orderBy {
                     Address::addressId.desc()
@@ -679,9 +679,11 @@ internal class DbTest {
             val db = Db(config)
             val list = db.select<Address> {
                 where {
-                    Triple(Address::addressId, Address::street, Address::version) `in` listOf(
-                        Triple(9, "STREET 9", 1),
-                        Triple(10, "STREET 10", 1)
+                    Triple(Address::addressId, Address::street, Address::version).`in`(
+                        listOf(
+                            Triple(9, "STREET 9", 1),
+                            Triple(10, "STREET 10", 1)
+                        )
                     )
                 }
                 orderBy {
@@ -701,9 +703,11 @@ internal class DbTest {
             val db = Db(config)
             val idList = db.select<Address> {
                 where {
-                    Triple(Address::addressId, Address::street, Address::version) notIn listOf(
-                        Triple(1, "STREET 1", 1),
-                        Triple(2, "STREET 2", 1)
+                    Triple(Address::addressId, Address::street, Address::version).notIn(
+                        listOf(
+                            Triple(1, "STREET 1", 1),
+                            Triple(2, "STREET 2", 1)
+                        )
                     )
                 }
                 orderBy {
@@ -718,7 +722,7 @@ internal class DbTest {
             val db = Db(config)
             val list = db.select<Address> {
                 where {
-                    Triple(Address::addressId, Address::street, Address::version) `in` emptyList()
+                    Triple(Address::addressId, Address::street, Address::version).`in`(emptyList())
                 }
                 orderBy {
                     Address::addressId.desc()
@@ -732,7 +736,7 @@ internal class DbTest {
             val db = Db(config)
             val idList = db.select<Address> {
                 where {
-                    Address::addressId between (5 to 10)
+                    Address::addressId.between(5, 10)
                 }
                 orderBy {
                     Address::addressId.asc()
@@ -746,7 +750,7 @@ internal class DbTest {
             val db = Db(config)
             val idList = db.select<Employee> {
                 where {
-                    Employee::managerId eq null
+                    Employee::managerId.eq(null)
                 }
             }.map { it.employeeId }
             assertEquals(listOf(9), idList)
@@ -757,7 +761,7 @@ internal class DbTest {
             val db = Db(config)
             val idList = db.select<Employee> {
                 where {
-                    Employee::managerId ne null
+                    Employee::managerId.ne(null)
                 }
             }.map { it.employeeId }
             assertTrue(9 !in idList)
@@ -768,13 +772,13 @@ internal class DbTest {
             val db = Db(config)
             val list = db.select<Address, List<Address>>({
                 where {
-                    Address::addressId ge 1
+                    Address::addressId.ge(1)
                 }
                 orderBy {
                     Address::addressId.desc()
                 }
-                limit { 2 }
-                offset { 5 }
+                limit(2)
+                offset(5)
             }) {
                 it.toList()
             }
@@ -799,13 +803,13 @@ internal class DbTest {
                     departmentMap[employee] = department
                 }
                 where {
-                    Address::addressId ge 1
+                    Address::addressId.ge(1)
                 }
                 orderBy {
                     Address::addressId.desc()
                 }
-                limit { 2 }
-                offset { 5 }
+                limit(2)
+                offset(5)
             }
             assertEquals(2, employees.size)
             assertEquals(2, addressMap.size)
@@ -818,13 +822,13 @@ internal class DbTest {
             val db = Db(config)
             val list = db.select<Address> {
                 where {
-                    Address::addressId ge 1
+                    Address::addressId.ge(1)
                 }
                 orderBy {
                     Address::addressId.desc()
                 }
-                limit { 2 }
-                offset { 5 }
+                limit(2)
+                offset(5)
                 forUpdate {
                     nowait()
                 }
@@ -842,7 +846,7 @@ internal class DbTest {
             val db = Db(config)
             val list = db.select<Employee> {
                 where {
-                    EmployeeDetail::salary ge BigDecimal("2000.00")
+                    EmployeeDetail::salary.ge(BigDecimal("2000.00"))
                 }
             }
             assertEquals(6, list.size)
@@ -853,7 +857,7 @@ internal class DbTest {
             val db = Db(config)
             val list = db.select<Worker> {
                 where {
-                    WorkerSalary::salary ge BigDecimal("2000.00")
+                    WorkerSalary::salary.ge(BigDecimal("2000.00"))
                 }
             }
             assertEquals(6, list.size)
@@ -2086,13 +2090,13 @@ internal class DbTest {
             val db = Db(config)
             val (sql) = db.dryRun.select<Address> {
                 where {
-                    Address::addressId ge 1
+                    Address::addressId.ge(1)
                 }
                 orderBy {
                     Address::addressId.desc()
                 }
-                limit { 2 }
-                offset { 5 }
+                limit(2)
+                offset(5)
             }
             println(sql)
         }

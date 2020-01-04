@@ -19,15 +19,15 @@ internal class CriteriaScopeTest {
     fun where() {
         val scope = CriteriaScope<Address>(Address::class)
         scope.where {
-            Address::aaa eq 1
-            Address::bbb ne "B"
+            Address::aaa.eq(1)
+            Address::bbb.ne("B")
             or {
-                Address::ccc gt 2
-                Address::ddd ge "D"
+                Address::ccc.gt(2)
+                Address::ddd.ge("D")
             }
             and {
-                Address::eee lt 3
-                Address::fff le "F"
+                Address::eee.lt(3)
+                Address::fff.le("F")
             }
         }
         val criteria = scope()
@@ -70,7 +70,7 @@ internal class CriteriaScopeTest {
     @Test
     fun limit() {
         val scope = CriteriaScope(Address::class)
-        scope.limit { 10 }
+        scope.limit(10)
         val criteria = scope()
         assertEquals(10, criteria.limit)
     }
@@ -78,7 +78,7 @@ internal class CriteriaScopeTest {
     @Test
     fun offset() {
         val scope = CriteriaScope(Address::class)
-        scope.offset { 100 }
+        scope.offset(100)
         val criteria = scope()
         assertEquals(100, criteria.offset)
     }
@@ -93,13 +93,13 @@ internal class CriteriaScopeTest {
 
         val scope = test {
             where {
-                Address::aaa eq 1
+                Address::aaa.eq(1)
             }
             orderBy {
                 Address::bbb.desc()
             }
-            limit { 5 }
-            offset { 15 }
+            limit(5)
+            offset(15)
         }
 
         val criteria = scope()

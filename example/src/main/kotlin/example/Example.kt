@@ -75,7 +75,7 @@ fun main() {
         // select t0_.address_id, t0_.street, t0_.created_at, t0_.updated_at, t0_.version from address t0_ where t0_.street = 'street B'
         val foundB1 = db.select<Address> {
             where {
-                Address::street eq "street B"
+                Address::street.eq("street B")
             }
         }.first()
 
