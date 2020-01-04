@@ -1,10 +1,10 @@
 package org.komapper.core.metadata
 
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import org.komapper.core.desc.EntityListener
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
 
 interface Metadata<T : Any> {
     val table: TableMeta
@@ -94,7 +94,8 @@ class EntityScope<T : Any> {
     }
 
     fun id(
-        property: KProperty1<T, Int?>, generator: SequenceGenerator,
+        property: KProperty1<T, Int?>,
+        generator: SequenceGenerator,
         @Suppress("UNUSED_PARAMETER") `_`: Int? = null
     ) {
         val idMeta = IdMeta.Sequence(property.name, generator)
@@ -102,7 +103,8 @@ class EntityScope<T : Any> {
     }
 
     fun id(
-        property: KProperty1<T, Long?>, generator: SequenceGenerator,
+        property: KProperty1<T, Long?>,
+        generator: SequenceGenerator,
         @Suppress("UNUSED_PARAMETER") `_`: Long? = null
     ) {
         val idMeta = IdMeta.Sequence(property.name, generator)
