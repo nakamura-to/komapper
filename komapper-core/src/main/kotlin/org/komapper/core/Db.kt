@@ -17,8 +17,8 @@ import kotlin.reflect.KProperty1
 import kotlin.streams.asSequence
 import kotlin.streams.toList
 import org.komapper.core.criteria.CriteriaProcessor
-import org.komapper.core.criteria.SelectScope
 import org.komapper.core.criteria.MultiEntityDesc
+import org.komapper.core.criteria.SelectScope
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.PropDesc
 import org.komapper.core.sql.Sql
