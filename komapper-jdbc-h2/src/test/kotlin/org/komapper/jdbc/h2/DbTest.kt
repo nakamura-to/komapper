@@ -24,6 +24,7 @@ import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.OptimisticLockException
 import org.komapper.core.UniqueConstraintException
+import org.komapper.core.criteria.plus
 import org.komapper.core.criteria.select
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityListener
@@ -481,8 +482,30 @@ internal class DbTest {
         }
 
         @Test
-        fun addCriteria() {
-            val commonCriteria = select<Address> {
+        fun passCriteriaQuery() {
+            val criteriaQuery = select<Address> {
+                where {
+                    Address::addressId.ge(1)
+                }
+                orderBy {
+                    Address::addressId.desc()
+                }
+                limit(2)
+                offset(5)
+            }
+            val db = Db(config)
+            val list = db.select(criteriaQuery)
+            assertEquals(
+                listOf(
+                    Address(10, "STREET 10", 1),
+                    Address(9, "STREET 9", 1)
+                ), list
+            )
+        }
+
+        @Test
+        fun invokeCriteriaQuery() {
+            val criteriaQuery = select<Address> {
                 where {
                     Address::addressId.ge(1)
                 }
@@ -494,8 +517,33 @@ internal class DbTest {
             }
             val db = Db(config)
             val list = db.select<Address> {
-                merge(commonCriteria)
+                criteriaQuery()
             }
+            assertEquals(
+                listOf(
+                    Address(10, "STREET 10", 1),
+                    Address(9, "STREET 9", 1)
+                ), list
+            )
+        }
+
+        @Test
+        fun composeCriteriaQuery() {
+            val query1 = select<Address> {
+                where {
+                    Address::addressId.ge(1)
+                }
+            }
+            val query2 = select<Address> {
+                orderBy {
+                    Address::addressId.desc()
+                }
+                limit(2)
+                offset(5)
+            }
+            val query3 = query1 + query2
+            val db = Db(config)
+            val list = db.select(query3)
             assertEquals(
                 listOf(
                     Address(10, "STREET 10", 1),

@@ -42,13 +42,4 @@ class SelectScope<T : Any>(val _criteria: MutableCriteria<T>) {
     fun forUpdate(block: ForUpdateScope.() -> Unit) {
         ForUpdateScope(_criteria).block()
     }
-
-    fun merge(other: Criteria<*>) {
-        _criteria.joins.addAll(other.joins)
-        _criteria.where.addAll(other.where)
-        _criteria.orderBy.addAll(other.orderBy)
-        _criteria.limit = other.limit
-        _criteria.offset = other.offset
-        _criteria.forUpdate = other.forUpdate
-    }
 }

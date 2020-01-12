@@ -72,10 +72,14 @@ sealed class Criterion {
 
 data class ForUpdate(val nowait: Boolean = false)
 
-inline fun <reified T : Any> select(selectBlock: SelectScope<T>.() -> Unit = { }): Criteria<T> {
-    require(T::class.isData) { "The type parameter T must be a data class." }
-    val criteria = MutableCriteria(T::class).also {
-        SelectScope(it).selectBlock()
+typealias CriteriaQuery<T> = SelectScope<T>.() -> Unit
+
+fun <T : Any> select(criteriaQuery: CriteriaQuery<T>): CriteriaQuery<T> = criteriaQuery
+
+infix operator fun <T : Any> (CriteriaQuery<T>).plus(other: CriteriaQuery<T>): CriteriaQuery<T> {
+    val self = this
+    return {
+        self()
+        other()
     }
-    return criteria.asImmutable()
 }
