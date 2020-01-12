@@ -2,7 +2,6 @@ package org.komapper.jdbc.postgresql
 
 import java.math.BigDecimal
 import java.time.LocalDate
-import org.komapper.core.metadata.EntityMetadata
 
 data class Employee(
     val employeeId: Int,
@@ -15,8 +14,3 @@ data class Employee(
     val addressId: Int,
     val version: Int
 )
-
-object EmployeeMetadata : EntityMetadata<Employee>({
-    id(Employee::employeeId)
-    version(Employee::version)
-})

@@ -53,6 +53,6 @@ open class DefaultDataDescFactory(
                     receiverResolver
                 )
             }
-        return DataDesc(kClass, isMarkedNullable, metadata, constructor, copy, propDescList)
+        return DataDesc(metadata, constructor, copy, propDescList, isMarkedNullable)
     }
 }

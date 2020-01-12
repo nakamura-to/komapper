@@ -1,10 +1,11 @@
 package org.komapper.core.metadata
 
 import java.time.LocalDateTime
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 
-internal class DefaultMetadataResolverTest {
+internal class CollectedMetadataResolverTest {
 
     data class Address(
         val id: Int,
@@ -14,17 +15,16 @@ internal class DefaultMetadataResolverTest {
         val updatedAt: LocalDateTime
     )
 
-    object AddressMetadata : EntityMetadata<Address>({
+    private val addressMeta = entity(Address::class) {
         id(Address::id, SequenceGenerator("address_seq"))
         version(Address::version)
         createdAt(Address::createdAt)
         updatedAt(Address::updatedAt)
-
         table {
             name("ADDRESS")
             column(Address::id, name = "address_id", quote = true)
         }
-    })
+    }
 
     data class Person(
         val id: Int,
@@ -34,29 +34,15 @@ internal class DefaultMetadataResolverTest {
         val updatedAt: LocalDateTime
     )
 
-    class PersonMetadata : EntityMetadata<Person>({
-        id(Person::id, SequenceGenerator("person_seq"))
-        version(Person::version)
-        createdAt(Person::createdAt)
-        updatedAt(Person::updatedAt)
-
-        table {
-            name("PERSON")
-            column(Person::id, name = "person_id", quote = true)
-        }
-    })
-
     @Test
-    fun testObject() {
-        val resolver = DefaultMetadataResolver()
-        assertDoesNotThrow {
-            resolver.resolve(Address::class)
-        }
+    fun testRegistered() {
+        val resolver = CollectedMetadataResolver(addressMeta)
+        assertEquals(addressMeta, resolver.resolve(Address::class))
     }
 
     @Test
-    fun testClass() {
-        val resolver = DefaultMetadataResolver()
+    fun testNotRegistered() {
+        val resolver = CollectedMetadataResolver(addressMeta)
         assertDoesNotThrow {
             resolver.resolve(Person::class)
         }

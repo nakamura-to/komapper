@@ -1,7 +1,5 @@
 package org.komapper.jdbc.postgresql
 
-import org.komapper.core.metadata.EntityMetadata
-
 data class Department(
     val departmentId: Int,
     val departmentNo: Int,
@@ -9,8 +7,3 @@ data class Department(
     val Location: String,
     val version: Int
 )
-
-object DepartmentMetadata : EntityMetadata<Department>({
-    id(Department::departmentId)
-    version(Department::version)
-})

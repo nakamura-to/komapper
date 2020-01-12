@@ -4,7 +4,7 @@ class EntityDesc<T : Any>(
     private val dataDesc: DataDesc<T>,
     val tableName: String
 ) {
-    val kClass = dataDesc.kClass
+    val kClass = dataDesc.metadata.kClass
     val leafPropDescList = dataDesc.getLeafPropDescList()
     val idList = leafPropDescList.filter { it.kind is PropKind.Id }
     val sequenceIdList = idList.filter { it.kind is PropKind.Id.Sequence }

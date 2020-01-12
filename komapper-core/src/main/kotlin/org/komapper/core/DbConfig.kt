@@ -26,7 +26,6 @@ import org.komapper.core.expr.ExprNodeFactory
 import org.komapper.core.jdbc.Dialect
 import org.komapper.core.logging.Logger
 import org.komapper.core.logging.StdoutLogger
-import org.komapper.core.metadata.DefaultMetadataResolver
 import org.komapper.core.metadata.MetadataResolver
 import org.komapper.core.sql.CacheSqlNodeFactory
 import org.komapper.core.sql.DefaultSqlBuilder
@@ -68,9 +67,9 @@ import org.komapper.core.tx.TransactionScope
 abstract class DbConfig() {
     abstract val dataSource: DataSource
     abstract val dialect: Dialect
+    abstract val metadataResolver: MetadataResolver
     open val name: String = System.identityHashCode(object {}).toString()
     open val namingStrategy: NamingStrategy by lazy { CamelToSnake() }
-    open val metadataResolver: MetadataResolver by lazy { DefaultMetadataResolver() }
     open val objectDescFactory: ObjectDescFactory by lazy { DefaultObjectDescFactory() }
     open val propDescFactory: PropDescFactory by lazy {
         DefaultPropDescFactory(

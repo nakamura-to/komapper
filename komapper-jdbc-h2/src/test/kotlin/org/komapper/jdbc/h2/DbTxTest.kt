@@ -4,6 +4,8 @@ import java.sql.Blob
 import java.sql.Clob
 import java.sql.NClob
 import java.sql.SQLXML
+import kotlin.reflect.KClass
+import kotlin.reflect.full.memberProperties
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -17,7 +19,11 @@ import org.junit.jupiter.api.Test
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.jdbc.SimpleDataSource
-import org.komapper.core.metadata.EntityMetadata
+import org.komapper.core.metadata.CollectedMetadataResolver
+import org.komapper.core.metadata.IdMeta
+import org.komapper.core.metadata.Metadata
+import org.komapper.core.metadata.MetadataResolver
+import org.komapper.core.metadata.entity
 import org.komapper.core.tx.TransactionIsolationLevel
 
 @Suppress("UNUSED")
@@ -29,16 +35,18 @@ internal class DbTxTest {
         val version: Int
     )
 
-    object AddressMetadata : EntityMetadata<Address>({
-        id(Address::addressId)
-        version(Address::version)
-    })
+    private val simpleDataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
 
-    val simpleDataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
-
-    val config = object : DbConfig() {
+    private val config = object : DbConfig() {
         override val dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
         override val dialect = H2Dialect()
+        override val metadataResolver = CollectedMetadataResolver(
+            setOf(
+                entity(Address::class) {
+                    id(Address::addressId)
+                    version(Address::version)
+                })
+        )
     }
 
     @BeforeEach
@@ -314,37 +322,27 @@ internal class DbTxTest {
         }
     }
 
-    data class ArrayTest(val id: Int, val value: java.sql.Array)
-    object ArrayTestMetadata : EntityMetadata<ArrayTest>({
-        id(ArrayTest::id)
-    })
+    class DataTypeMetadataResolver : MetadataResolver {
+        override fun <T : Any> resolve(kClass: KClass<T>): Metadata<T> {
+            val id = kClass.memberProperties.first { it.name == "id" }.let { IdMeta.Assign(it.name) }
+            return Metadata(kClass, idList = listOf(id))
+        }
+    }
 
-    data class BlobTest(val id: Int, val value: Blob)
-    object BlobTestMetadata : EntityMetadata<BlobTest>({
-        id(BlobTest::id)
-    })
-
-    data class ClobTest(val id: Int, val value: Clob)
-    object ClobTestMetadata : EntityMetadata<ClobTest>({
-        id(ClobTest::id)
-    })
-
-    data class NClobTest(val id: Int, val value: NClob)
-    object NClobTestMetadata : EntityMetadata<NClobTest>({
-        id(NClobTest::id)
-    })
-
-    data class SqlXmlTest(val id: Int, val value: SQLXML)
-    object SqlXmlTestMetadata : EntityMetadata<SqlXmlTest>({
-        id(SqlXmlTest::id)
-    })
+    val dataTypeConfig = object : DbConfig() {
+        override val dataSource = config.dataSource
+        override val dialect = config.dialect
+        override val metadataResolver = DataTypeMetadataResolver()
+    }
 
     @Nested
     inner class DataType {
 
         @Test
         fun array() {
-            val db = Db(config)
+            data class ArrayTest(val id: Int, val value: java.sql.Array)
+
+            val db = Db(dataTypeConfig)
             db.transaction {
                 val array = db.createArrayOf("INTEGER", listOf(10, 20, 30))
                 val data = ArrayTest(1, array)
@@ -357,7 +355,9 @@ internal class DbTxTest {
 
         @Test
         fun blob() {
-            val db = Db(config)
+            data class BlobTest(val id: Int, val value: Blob)
+
+            val db = Db(dataTypeConfig)
             db.transaction {
                 val blob = db.createBlob()
                 val bytes = byteArrayOf(10, 20, 30)
@@ -372,7 +372,9 @@ internal class DbTxTest {
 
         @Test
         fun clob() {
-            val db = Db(config)
+            data class ClobTest(val id: Int, val value: Clob)
+
+            val db = Db(dataTypeConfig)
             db.transaction {
                 val clob = db.createClob()
                 clob.setString(1, "ABC")
@@ -386,7 +388,9 @@ internal class DbTxTest {
 
         @Test
         fun nclob() {
-            val db = Db(config)
+            data class NClobTest(val id: Int, val value: NClob)
+
+            val db = Db(dataTypeConfig)
             db.transaction {
                 val nclob = db.createNClob()
                 nclob.setString(1, "ABC")
@@ -400,7 +404,9 @@ internal class DbTxTest {
 
         @Test
         fun sqlXml() {
-            val db = Db(config)
+            data class SqlXmlTest(val id: Int, val value: SQLXML)
+
+            val db = Db(dataTypeConfig)
             db.transaction {
                 val sqlXml = db.createSQLXML()
                 sqlXml.string = """<xml a="v">Text</xml>"""

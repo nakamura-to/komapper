@@ -8,12 +8,18 @@ import org.junit.jupiter.api.Test
 import org.komapper.core.DeleteOption
 import org.komapper.core.InsertOption
 import org.komapper.core.UpdateOption
-import org.komapper.core.metadata.DefaultMetadataResolver
-import org.komapper.core.metadata.EntityMetadata
+import org.komapper.core.metadata.CollectedMetadataResolver
+import org.komapper.core.metadata.entity
 
 internal class DefaultEntitySqlBuilderTest {
 
-    private val metadataResolver = DefaultMetadataResolver()
+    private val metadataResolver = CollectedMetadataResolver(
+        entity(Employee::class) {
+            id(Employee::employeeId)
+            embedded(Employee::detail)
+            version(Employee::version)
+        }
+    )
 
     private val namingStrategy = CamelToSnake()
 
@@ -48,12 +54,6 @@ internal class DefaultEntitySqlBuilderTest {
         ),
         val version: Int = 1
     )
-
-    object EmployeeMetadata : EntityMetadata<Employee>({
-        id(Employee::employeeId)
-        embedded(Employee::detail)
-        version(Employee::version)
-    })
 
     @Nested
     inner class Insert {

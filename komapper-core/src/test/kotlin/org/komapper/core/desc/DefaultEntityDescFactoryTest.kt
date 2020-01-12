@@ -2,17 +2,39 @@ package org.komapper.core.desc
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.komapper.core.metadata.DefaultMetadataResolver
-import org.komapper.core.metadata.EntityMetadata
+import org.komapper.core.metadata.CollectedMetadataResolver
+import org.komapper.core.metadata.entity
 
 internal class DefaultEntityDescFactoryTest {
 
-    private val metadataResolver = DefaultMetadataResolver()
+    data class Person(val nested: Person)
+    data class EmployeeInfo(val manager: Employee)
+    data class Employee(val info: EmployeeInfo)
+    data class AddressInfo(val id: Int)
+    data class Address(val info: AddressInfo)
+
+    private val metadata = setOf(
+        entity(Person::class) {
+            embedded(Person::nested)
+        },
+        entity(EmployeeInfo::class) {
+            embedded(EmployeeInfo::manager)
+        },
+        entity(Employee::class) {
+            embedded(Employee::info)
+        },
+        entity(AddressInfo::class) {
+            id(AddressInfo::id)
+        },
+        entity(Address::class) {
+            id(Address::info)
+        }
+    )
 
     private val namingStrategy = CamelToSnake()
 
     private val dataDescFactory = DefaultDataDescFactory(
-        metadataResolver,
+        CollectedMetadataResolver(metadata),
         DefaultPropDescFactory(
             { it },
             namingStrategy
@@ -24,31 +46,6 @@ internal class DefaultEntityDescFactoryTest {
         { it },
         namingStrategy
     )
-
-    data class Person(val nested: Person)
-    object PersonMetadata : EntityMetadata<Person>({
-        embedded(Person::nested)
-    })
-
-    data class EmployeeInfo(val manager: Employee)
-    object EmployeeInfoMetadata : EntityMetadata<EmployeeInfo>({
-        embedded(EmployeeInfo::manager)
-    })
-
-    data class Employee(val info: EmployeeInfo)
-    object EmployeeMetadata : EntityMetadata<Employee>({
-        embedded(Employee::info)
-    })
-
-    data class AddressInfo(val id: Int)
-    object AddressInfoMetadata : EntityMetadata<AddressInfo>({
-        id(AddressInfo::id)
-    })
-
-    data class Address(val info: AddressInfo)
-    object AddressMetadata : EntityMetadata<Address>({
-        id(Address::info)
-    })
 
     @Test
     fun get_directCircularReference() {

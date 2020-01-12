@@ -1,16 +1,14 @@
 package org.komapper.core.desc
 
-import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import org.komapper.core.metadata.Metadata
 
 data class DataDesc<T : Any>(
-    val kClass: KClass<T>,
-    private val isMarkedNullable: Boolean,
     val metadata: Metadata<T>,
     private val constructor: KFunction<T>,
     private val copy: KFunction<*>,
-    private val propDescList: List<PropDesc>
+    private val propDescList: List<PropDesc>,
+    private val isMarkedNullable: Boolean
 ) {
     fun new(leaves: Map<PropDesc, Any?>): T {
         val args = propDescList.map { it.constructorParam to it.new(leaves) }.toMap()

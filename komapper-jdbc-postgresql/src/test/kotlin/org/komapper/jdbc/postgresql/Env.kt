@@ -10,6 +10,9 @@ import org.junit.jupiter.api.extension.ParameterResolver
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.jdbc.SimpleDataSource
+import org.komapper.core.metadata.CollectedMetadataResolver
+import org.komapper.core.metadata.SequenceGenerator
+import org.komapper.core.metadata.entity
 
 class Env : BeforeAllCallback,
     AfterAllCallback,
@@ -23,6 +26,28 @@ class Env : BeforeAllCallback,
         object : DbConfig() {
             override val dataSource = SimpleDataSource(url = "jdbc:postgresql://127.0.0.1:$port/komapper", user = "postgres")
             override val dialect = PostgreSqlDialect()
+            override val metadataResolver = CollectedMetadataResolver(setOf(
+                entity(Address::class) {
+                    id(Address::addressId)
+                    version(Address::version)
+                },
+                entity(Department::class) {
+                    id(Department::departmentId)
+                    version(Department::version)
+                },
+                entity(Employee::class) {
+                    id(Employee::employeeId)
+                    version(Employee::version)
+                },
+                entity(SequenceStrategy::class) {
+                    id(SequenceStrategy::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", 100))
+                    table {
+                        name("sequence_strategy", true)
+                        column(SequenceStrategy::id, "id", true)
+                        column(SequenceStrategy::value, "value", true)
+                    }
+                }
+            ))
         }
     )
 

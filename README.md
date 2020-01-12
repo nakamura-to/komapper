@@ -38,8 +38,9 @@ import java.time.LocalDateTime
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.jdbc.SimpleDataSource
-import org.komapper.core.metadata.EntityMetadata
+import org.komapper.core.metadata.CollectedMetadataResolver
 import org.komapper.core.metadata.SequenceGenerator
+import org.komapper.core.metadata.entity
 import org.komapper.jdbc.h2.H2Dialect
 
 // entity
@@ -52,15 +53,16 @@ data class Address(
 )
 
 // entity metadata
-object AddressMetadata : EntityMetadata<Address>({
-    id(Address::id, SequenceGenerator("ADDRESS_SEQ", 100))
-    createdAt(Address::createdAt)
-    updatedAt(Address::updatedAt)
-    version(Address::version)
-    table {
-        column(Address::id, "address_id")
+val addressMetadata =
+    entity(Address::class) {
+        id(Address::id, SequenceGenerator("ADDRESS_SEQ", 100))
+        createdAt(Address::createdAt)
+        updatedAt(Address::updatedAt)
+        version(Address::version)
+        table {
+            column(Address::id, "address_id")
+        }
     }
-})
 
 fun main() {
     val db = Db(
@@ -69,6 +71,8 @@ fun main() {
             override val dataSource = SimpleDataSource("jdbc:h2:mem:example;DB_CLOSE_DELAY=-1")
             // dialect for H2
             override val dialect = H2Dialect()
+            // register entity metadata
+            override val metadataResolver = CollectedMetadataResolver(addressMetadata)
         }
     )
 
@@ -88,6 +92,7 @@ fun main() {
         )
     }
 
+    // execute simple CRUD operations
     db.transaction {
         // insert into address (address_id, street, created_at, updated_at, version) values (1, 'street A', '2019-09-07T17:24:25.729', null, 0)
         val addressA = db.insert(Address(street = "street A"))
@@ -109,7 +114,7 @@ fun main() {
         // select t0_.address_id, t0_.street, t0_.created_at, t0_.updated_at, t0_.version from address t0_ where t0_.street = 'street B'
         val foundB1 = db.select<Address> {
             where {
-                Address::street eq "street B"
+                Address::street.eq("street B")
             }
         }.first()
 

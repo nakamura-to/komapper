@@ -9,6 +9,7 @@ import java.time.LocalTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import kotlin.reflect.KClass
+import kotlin.reflect.full.memberProperties
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -31,14 +32,18 @@ import org.komapper.core.desc.GlobalEntityListener
 import org.komapper.core.jdbc.SimpleDataSource
 import org.komapper.core.logging.Logger
 import org.komapper.core.logging.StdoutLogger
-import org.komapper.core.metadata.EntityMetadata
+import org.komapper.core.metadata.CollectedMetadataResolver
+import org.komapper.core.metadata.IdMeta
 import org.komapper.core.metadata.Metadata
 import org.komapper.core.metadata.MetadataResolver
 import org.komapper.core.metadata.SequenceGenerator
+import org.komapper.core.metadata.entity
 import org.komapper.core.sql.Sql
 
 @Suppress("UNUSED")
 internal class DbTest {
+
+    private val metadata = mutableSetOf<Metadata<*>>()
 
     data class Address(
         val addressId: Int,
@@ -46,27 +51,22 @@ internal class DbTest {
         val version: Int
     )
 
-    object AddressMetadata : EntityMetadata<Address>({
-        id(Address::addressId)
-        version(Address::version)
-    })
+    init {
+        entity(Address::class) {
+            id(Address::addressId)
+            version(Address::version)
+        }.let(metadata::add)
+    }
 
     class AddressListenerConfig(config: DbConfig, listener: EntityListener<Address>) : DbConfig() {
-        private val metadata = object : EntityMetadata<Address>({
+        private val metadata = entity(Address::class) {
             id(Address::addressId)
             version(Address::version)
             listener(listener)
-        }) {}
+        }
         override val dataSource = config.dataSource
         override val dialect = config.dialect
-        override val metadataResolver by lazy {
-            object : MetadataResolver {
-                override fun <T : Any> resolve(kClass: KClass<T>): Metadata<T> {
-                    @Suppress("UNCHECKED_CAST")
-                    return metadata as Metadata<T>
-                }
-            }
-        }
+        override val metadataResolver = CollectedMetadataResolver(metadata)
     }
 
     data class CompositeKeyAddress(
@@ -76,54 +76,62 @@ internal class DbTest {
         val version: Int
     )
 
-    object CompositeKeyAddressMetadata : EntityMetadata<CompositeKeyAddress>({
-        id(CompositeKeyAddress::addressId1)
-        id(CompositeKeyAddress::addressId2)
-        version(CompositeKeyAddress::version)
-        table {
-            name("COMP_KEY_ADDRESS")
-        }
-    })
+    init {
+        entity(CompositeKeyAddress::class) {
+            id(CompositeKeyAddress::addressId1)
+            id(CompositeKeyAddress::addressId2)
+            version(CompositeKeyAddress::version)
+            table {
+                name("COMP_KEY_ADDRESS")
+            }
+        }.let(metadata::add)
+    }
 
     data class SequenceStrategy(
         val id: Int,
         val value: String
     )
 
-    object SequenceStrategyMetadata : EntityMetadata<SequenceStrategy>({
-        id(SequenceStrategy::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", 100))
-        table {
-            name("SEQUENCE_STRATEGY")
-        }
-    })
+    init {
+        entity(SequenceStrategy::class) {
+            id(SequenceStrategy::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", 100))
+            table {
+                name("SEQUENCE_STRATEGY")
+            }
+        }.let(metadata::add)
+    }
 
     data class MultiSequenceStrategy(
         val id: Int,
         val value: Long
     )
 
-    object MultiSequenceStrategyMetadata : EntityMetadata<MultiSequenceStrategy>({
-        id(MultiSequenceStrategy::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", 100))
-        id(MultiSequenceStrategy::value, SequenceGenerator("MY_SEQUENCE_STRATEGY_ID", 100))
+    init {
+        entity(MultiSequenceStrategy::class) {
+            id(MultiSequenceStrategy::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", 100))
+            id(MultiSequenceStrategy::value, SequenceGenerator("MY_SEQUENCE_STRATEGY_ID", 100))
 
-        table {
-            name("SEQUENCE_STRATEGY")
-        }
-    })
+            table {
+                name("SEQUENCE_STRATEGY")
+            }
+        }.let(metadata::add)
+    }
 
     data class Quotes(
         val id: Int,
         val value: String
     )
 
-    object QuotesMetadata : EntityMetadata<Quotes>({
-        id(Quotes::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", quote = true))
-        table {
-            name(name = "SEQUENCE_STRATEGY", quote = true)
-            column(Quotes::id, "ID", quote = true)
-            column(Quotes::value, "VALUE", quote = true)
-        }
-    })
+    init {
+        entity(Quotes::class) {
+            id(Quotes::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", quote = true))
+            table {
+                name(name = "SEQUENCE_STRATEGY", quote = true)
+                column(Quotes::id, "ID", quote = true)
+                column(Quotes::value, "VALUE", quote = true)
+            }
+        }.let(metadata::add)
+    }
 
     data class Person(
         val personId: Int,
@@ -132,11 +140,13 @@ internal class DbTest {
         val updatedAt: LocalDateTime = LocalDateTime.MIN
     )
 
-    object PersonMetadata : EntityMetadata<Person>({
-        id(Person::personId)
-        createdAt(Person::createdAt)
-        updatedAt(Person::updatedAt)
-    })
+    init {
+        entity(Person::class) {
+            id(Person::personId)
+            createdAt(Person::createdAt)
+            updatedAt(Person::updatedAt)
+        }.let(metadata::add)
+    }
 
     enum class Direction {
         NORTH, SOUTH, WEST, EAST
@@ -158,11 +168,13 @@ internal class DbTest {
         val version: Int
     )
 
-    object EmployeeMetadata : EntityMetadata<Employee>({
-        id(Employee::employeeId)
-        embedded(Employee::detail)
-        version(Employee::version)
-    })
+    init {
+        entity(Employee::class) {
+            id(Employee::employeeId)
+            embedded(Employee::detail)
+            version(Employee::version)
+        }.let(metadata::add)
+    }
 
     data class WorkerSalary(val salary: BigDecimal)
 
@@ -171,9 +183,11 @@ internal class DbTest {
         val salary: WorkerSalary
     )
 
-    object WorkerDetailMetadata : EntityMetadata<WorkerDetail>({
-        embedded(WorkerDetail::salary)
-    })
+    init {
+        entity(WorkerDetail::class) {
+            embedded(WorkerDetail::salary)
+        }.let(metadata::add)
+    }
 
     data class Worker(
         val employeeId: Int,
@@ -186,14 +200,16 @@ internal class DbTest {
         val version: Int
     )
 
-    object WorkerMetadata : EntityMetadata<Worker>({
-        id(Worker::employeeId)
-        embedded(Worker::detail)
-        version(Worker::version)
-        table {
-            name("employee")
-        }
-    })
+    init {
+        entity(Worker::class) {
+            id(Worker::employeeId)
+            embedded(Worker::detail)
+            version(Worker::version)
+            table {
+                name("employee")
+            }
+        }.let(metadata::add)
+    }
 
     data class Common(
         val personId: Int = 0,
@@ -202,24 +218,28 @@ internal class DbTest {
         val version: Int = 0
     )
 
-    class CommonMetadata : EntityMetadata<Common>({
-        id(Common::personId, SequenceGenerator("PERSON_ID_SEQUENCE", 100))
-        createdAt(Common::createdAt)
-        updatedAt(Common::updatedAt)
-        version(Common::version)
-    })
+    init {
+        entity(Common::class) {
+            id(Common::personId, SequenceGenerator("PERSON_ID_SEQUENCE", 100))
+            createdAt(Common::createdAt)
+            updatedAt(Common::updatedAt)
+            version(Common::version)
+        }.let(metadata::add)
+    }
 
     data class Human(
         val name: String,
         val common: Common
     )
 
-    object HumanMetadata : EntityMetadata<Human>({
-        embedded(Human::common)
-        table {
-            name("person")
-        }
-    })
+    init {
+        entity(Human::class) {
+            embedded(Human::common)
+            table {
+                name("person")
+            }
+        }.let(metadata::add)
+    }
 
     data class Department(
         val departmentId: Int,
@@ -229,14 +249,17 @@ internal class DbTest {
         val version: Int
     )
 
-    object DepartmentMetadata : EntityMetadata<Department>({
-        id(Department::departmentId)
-        version(Department::version)
-    })
+    init {
+        entity(Department::class) {
+            id(Department::departmentId)
+            version(Department::version)
+        }.let(metadata::add)
+    }
 
     private val config = object : DbConfig() {
         override val dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
         override val dialect = H2Dialect()
+        override val metadataResolver = CollectedMetadataResolver(metadata)
         override val batchSize = 2
     }
 
@@ -1105,6 +1128,7 @@ internal class DbTest {
                 object : DbConfig() {
                     override val dataSource = config.dataSource
                     override val dialect = config.dialect
+                    override val metadataResolver = config.metadataResolver
                     override val listener: GlobalEntityListener = object : GlobalEntityListener {
                         override fun <T : Any> preDelete(entity: T, desc: EntityDesc<T>): T {
                             return when (entity) {
@@ -1248,6 +1272,7 @@ internal class DbTest {
             val db = Db(object : DbConfig() {
                 override val dataSource = config.dataSource
                 override val dialect = config.dialect
+                override val metadataResolver = config.metadataResolver
                 override val listener = object : GlobalEntityListener {
                     override fun <T : Any> preInsert(entity: T, desc: EntityDesc<T>): T {
                         return when (entity) {
@@ -1420,6 +1445,7 @@ internal class DbTest {
             val db = Db(object : DbConfig() {
                 override val dataSource = config.dataSource
                 override val dialect = config.dialect
+                override val metadataResolver = config.metadataResolver
                 override val listener = object : GlobalEntityListener {
                     override fun <T : Any> preUpdate(entity: T, desc: EntityDesc<T>): T {
                         return when (entity) {
@@ -1640,6 +1666,7 @@ internal class DbTest {
             val db = Db(object : DbConfig() {
                 override val dataSource = config.dataSource
                 override val dialect = config.dialect
+                override val metadataResolver = config.metadataResolver
                 override val listener = object : GlobalEntityListener {
                     override fun <T : Any> preDelete(entity: T, desc: EntityDesc<T>): T {
                         return when (entity) {
@@ -1760,6 +1787,7 @@ internal class DbTest {
             val db = Db(object : DbConfig() {
                 override val dataSource = config.dataSource
                 override val dialect = config.dialect
+                override val metadataResolver = config.metadataResolver
                 override val listener = object : GlobalEntityListener {
                     override fun <T : Any> preInsert(entity: T, desc: EntityDesc<T>): T {
                         return when (entity) {
@@ -1882,6 +1910,7 @@ internal class DbTest {
             val db = Db(object : DbConfig() {
                 override val dataSource = config.dataSource
                 override val dialect = config.dialect
+                override val metadataResolver = config.metadataResolver
                 override val listener = object : GlobalEntityListener {
                     override fun <T : Any> preUpdate(entity: T, desc: EntityDesc<T>): T {
                         return when (entity) {
@@ -2048,10 +2077,11 @@ internal class DbTest {
         @Test
         fun test() {
             val db = Db(config)
-            val count = db.executeUpdate("update address set street = /*street*/'' where address_id = /*id*/0", object {
-                val id = 15
-                val street = "NY street"
-            })
+            val count =
+                db.executeUpdate("update address set street = /*street*/'' where address_id = /*id*/0", object {
+                    val id = 15
+                    val street = "NY street"
+                })
             assertEquals(1, count)
             val address = db.query<Address>("select * from address where address_id = 15").firstOrNull()
             assertEquals(Address(15, "NY street", 1), address)
@@ -2217,100 +2247,28 @@ internal class DbTest {
         }
     }
 
-    data class AnyPerson(val name: String) : Serializable
-    data class AnyTest(val id: Int, val value: Any)
-    object AnyTestMetadata : EntityMetadata<AnyTest>({
-        id(AnyTest::id)
-    })
+    class DataTypeMetadataResolver : MetadataResolver {
+        override fun <T : Any> resolve(kClass: KClass<T>): Metadata<T> {
+            val id = kClass.memberProperties.first { it.name == "id" }.let { IdMeta.Assign(it.name) }
+            return Metadata(kClass, idList = listOf(id))
+        }
+    }
 
-    @Suppress("ArrayInDataClass")
-    data class ByteArrayTest(val id: Int, val value: ByteArray)
-
-    object ByteArrayTestMetadata : EntityMetadata<ByteArrayTest>({
-        id(ByteArrayTest::id)
-    })
-
-    data class BigDecimalTest(val id: Int, val value: BigDecimal)
-    object BigDecimalTestMetadata : EntityMetadata<BigDecimalTest>({
-        id(BigDecimalTest::id)
-    })
-
-    data class BigIntegerTest(val id: Int, val value: BigInteger)
-    object BigIntegerTestMetadata : EntityMetadata<BigIntegerTest>({
-        id(BigIntegerTest::id)
-    })
-
-    data class BooleanTest(val id: Int, val value: Boolean)
-    object BooleanTestMetadata : EntityMetadata<BooleanTest>({
-        id(BooleanTest::id)
-    })
-
-    data class ByteTest(val id: Int, val value: Byte)
-    object ByteTestMetadata : EntityMetadata<ByteTest>({
-        id(ByteTest::id)
-    })
-
-    data class DoubleTest(val id: Int, val value: Double)
-    object DoubleTestMetadata : EntityMetadata<DoubleTest>({
-        id(DoubleTest::id)
-    })
-
-    data class EnumTest(val id: Int, val value: Direction)
-    object EnumTestMetadata : EntityMetadata<EnumTest>({
-        id(EnumTest::id)
-    })
-
-    data class FloatTest(val id: Int, val value: Float)
-    object FloatTestMetadata : EntityMetadata<FloatTest>({
-        id(FloatTest::id)
-    })
-
-    data class IntTest(val id: Int, val value: Int)
-    object IntTestMetadata : EntityMetadata<IntTest>({
-        id(IntTest::id)
-    })
-
-    data class LocalDateTest(val id: Int, val value: LocalDate)
-    object LocalDateTestMetadata : EntityMetadata<LocalDateTest>({
-        id(LocalDateTest::id)
-    })
-
-    data class LocalDateTimeTest(val id: Int, val value: LocalDateTime)
-    object LocalDateTimeTestMetadata : EntityMetadata<LocalDateTimeTest>({
-        id(LocalDateTimeTest::id)
-    })
-
-    data class LocalTimeTest(val id: Int, val value: LocalTime)
-    object LocalTimeTestMetadata : EntityMetadata<LocalTimeTest>({
-        id(LocalTimeTest::id)
-    })
-
-    data class LongTest(val id: Int, val value: Long)
-    object LongTestMetadata : EntityMetadata<LongTest>({
-        id(LongTest::id)
-    })
-
-    data class OffsetDateTimeTest(val id: Int, val value: OffsetDateTime)
-    object OffsetDateTimeTestMetadata : EntityMetadata<OffsetDateTimeTest>({
-        id(OffsetDateTimeTest::id)
-    })
-
-    data class ShortTest(val id: Int, val value: Short)
-    object ShortTestMetadata : EntityMetadata<ShortTest>({
-        id(ShortTest::id)
-    })
-
-    data class StringTest(val id: Int, val value: String)
-    object StringTestMetadata : EntityMetadata<StringTest>({
-        id(StringTest::id)
-    })
+    val dataTypeConfig = object : DbConfig() {
+        override val dataSource = config.dataSource
+        override val dialect = config.dialect
+        override val metadataResolver = DataTypeMetadataResolver()
+    }
 
     @Nested
     inner class DataTypeTest {
 
         @Test
         fun any() {
-            val db = Db(config)
+            data class AnyPerson(val name: String) : Serializable
+            data class AnyTest(val id: Int, val value: Any)
+
+            val db = Db(dataTypeConfig)
             val data = AnyTest(
                 1,
                 AnyPerson("ABC")
@@ -2322,7 +2280,9 @@ internal class DbTest {
 
         @Test
         fun bigDecimal() {
-            val db = Db(config)
+            data class BigDecimalTest(val id: Int, val value: BigDecimal)
+
+            val db = Db(dataTypeConfig)
             val data = BigDecimalTest(1, BigDecimal.TEN)
             db.insert(data)
             val data2 = db.findById<BigDecimalTest>(1)
@@ -2331,7 +2291,9 @@ internal class DbTest {
 
         @Test
         fun bigInteger() {
-            val db = Db(config)
+            data class BigIntegerTest(val id: Int, val value: BigInteger)
+
+            val db = Db(dataTypeConfig)
             val data = BigIntegerTest(1, BigInteger.TEN)
             db.insert(data)
             val data2 = db.findById<BigIntegerTest>(1)
@@ -2340,7 +2302,9 @@ internal class DbTest {
 
         @Test
         fun boolean() {
-            val db = Db(config)
+            data class BooleanTest(val id: Int, val value: Boolean)
+
+            val db = Db(dataTypeConfig)
             val data = BooleanTest(1, true)
             db.insert(data)
             val data2 = db.findById<BooleanTest>(1)
@@ -2349,7 +2313,9 @@ internal class DbTest {
 
         @Test
         fun byte() {
-            val db = Db(config)
+            data class ByteTest(val id: Int, val value: Byte)
+
+            val db = Db(dataTypeConfig)
             val data = ByteTest(1, 10)
             db.insert(data)
             val data2 = db.findById<ByteTest>(1)
@@ -2358,7 +2324,10 @@ internal class DbTest {
 
         @Test
         fun byteArray() {
-            val db = Db(config)
+            @Suppress("ArrayInDataClass")
+            data class ByteArrayTest(val id: Int, val value: ByteArray)
+
+            val db = Db(dataTypeConfig)
             val data = ByteArrayTest(1, byteArrayOf(10, 20, 30))
             db.insert(data)
             val data2 = db.findById<ByteArrayTest>(1)
@@ -2368,7 +2337,9 @@ internal class DbTest {
 
         @Test
         fun double() {
-            val db = Db(config)
+            data class DoubleTest(val id: Int, val value: Double)
+
+            val db = Db(dataTypeConfig)
             val data = DoubleTest(1, 10.0)
             db.insert(data)
             val data2 = db.findById<DoubleTest>(1)
@@ -2377,7 +2348,9 @@ internal class DbTest {
 
         @Test
         fun enum() {
-            val db = Db(config)
+            data class EnumTest(val id: Int, val value: Direction)
+
+            val db = Db(dataTypeConfig)
             val data = EnumTest(
                 1,
                 Direction.EAST
@@ -2389,7 +2362,9 @@ internal class DbTest {
 
         @Test
         fun float() {
-            val db = Db(config)
+            data class FloatTest(val id: Int, val value: Float)
+
+            val db = Db(dataTypeConfig)
             val data = FloatTest(1, 10.0f)
             db.insert(data)
             val data2 = db.findById<FloatTest>(1)
@@ -2398,7 +2373,9 @@ internal class DbTest {
 
         @Test
         fun int() {
-            val db = Db(config)
+            data class IntTest(val id: Int, val value: Int)
+
+            val db = Db(dataTypeConfig)
             val data = IntTest(1, 10)
             db.insert(data)
             val data2 = db.findById<IntTest>(1)
@@ -2407,7 +2384,9 @@ internal class DbTest {
 
         @Test
         fun localDateTime() {
-            val db = Db(config)
+            data class LocalDateTimeTest(val id: Int, val value: LocalDateTime)
+
+            val db = Db(dataTypeConfig)
             val data = LocalDateTimeTest(
                 1,
                 LocalDateTime.of(2019, 6, 1, 12, 11, 10)
@@ -2419,7 +2398,9 @@ internal class DbTest {
 
         @Test
         fun localDate() {
-            val db = Db(config)
+            data class LocalDateTest(val id: Int, val value: LocalDate)
+
+            val db = Db(dataTypeConfig)
             val data = LocalDateTest(1, LocalDate.of(2019, 6, 1))
             db.insert(data)
             val data2 = db.findById<LocalDateTest>(1)
@@ -2428,7 +2409,9 @@ internal class DbTest {
 
         @Test
         fun localTime() {
-            val db = Db(config)
+            data class LocalTimeTest(val id: Int, val value: LocalTime)
+
+            val db = Db(dataTypeConfig)
             val data = LocalTimeTest(1, LocalTime.of(12, 11, 10))
             db.insert(data)
             val data2 = db.findById<LocalTimeTest>(1)
@@ -2437,7 +2420,9 @@ internal class DbTest {
 
         @Test
         fun long() {
-            val db = Db(config)
+            data class LongTest(val id: Int, val value: Long)
+
+            val db = Db(dataTypeConfig)
             val data = LongTest(1, 10L)
             db.insert(data)
             val data2 = db.findById<LongTest>(1)
@@ -2446,7 +2431,9 @@ internal class DbTest {
 
         @Test
         fun offsetDateTime() {
-            val db = Db(config)
+            data class OffsetDateTimeTest(val id: Int, val value: OffsetDateTime)
+
+            val db = Db(dataTypeConfig)
             val dateTime = LocalDateTime.of(2019, 6, 1, 12, 11, 10)
             val offset = ZoneOffset.ofHours(9)
             val value = OffsetDateTime.of(dateTime, offset)
@@ -2458,7 +2445,9 @@ internal class DbTest {
 
         @Test
         fun short() {
-            val db = Db(config)
+            data class ShortTest(val id: Int, val value: Short)
+
+            val db = Db(dataTypeConfig)
             val data = ShortTest(1, 10)
             db.insert(data)
             val data2 = db.findById<ShortTest>(1)
@@ -2467,7 +2456,9 @@ internal class DbTest {
 
         @Test
         fun string() {
-            val db = Db(config)
+            data class StringTest(val id: Int, val value: String)
+
+            val db = Db(dataTypeConfig)
             val data = StringTest(1, "ABC")
             db.insert(data)
             val data2 = db.findById<StringTest>(1)
@@ -2491,6 +2482,7 @@ internal class DbTest {
             val myConfig = object : DbConfig() {
                 override val dataSource = config.dataSource
                 override val dialect = config.dialect
+                override val metadataResolver = config.metadataResolver
                 override val logger: Logger = logger
             }
 
