@@ -4,52 +4,44 @@ import kotlin.reflect.KProperty1
 
 @CriteriaMarker
 @Suppress("FunctionName")
-class OnScope {
+class OnScope<T : Any, S : Any>(private val criteria: MutableList<Criterion>) {
 
-    internal val criterionList = ArrayList<Criterion>()
-
-    infix fun KProperty1<*, *>.eq(value: KProperty1<*, *>) {
-        criterionList.add(Criterion.Eq(this, value))
+    fun KProperty1<T, *>.eq(value: KProperty1<S, *>) {
+        criteria.add(Criterion.Eq(this, value))
     }
 
-    infix fun KProperty1<*, *>.ne(value: KProperty1<*, *>) {
-        criterionList.add(Criterion.Ne(this, value))
+    fun KProperty1<T, *>.ne(value: KProperty1<S, *>) {
+        criteria.add(Criterion.Ne(this, value))
     }
 
-    infix fun KProperty1<*, *>.gt(value: KProperty1<*, *>) {
-        criterionList.add(Criterion.Gt(this, value))
+    fun KProperty1<T, *>.gt(value: KProperty1<S, *>) {
+        criteria.add(Criterion.Gt(this, value))
     }
 
-    infix fun KProperty1<*, *>.ge(value: KProperty1<*, *>) {
-        criterionList.add(Criterion.Ge(this, value))
+    fun KProperty1<T, *>.ge(value: KProperty1<S, *>) {
+        criteria.add(Criterion.Ge(this, value))
     }
 
-    infix fun KProperty1<*, *>.lt(value: KProperty1<*, *>) {
-        criterionList.add(Criterion.Lt(this, value))
+    fun KProperty1<T, *>.lt(value: KProperty1<S, *>) {
+        criteria.add(Criterion.Lt(this, value))
     }
 
-    infix fun KProperty1<*, *>.le(value: KProperty1<*, *>) {
-        criterionList.add(Criterion.Le(this, value))
+    fun KProperty1<T, *>.le(value: KProperty1<S, *>) {
+        criteria.add(Criterion.Le(this, value))
     }
 
-    fun not(block: OnScope.() -> Unit) {
-        val scope = OnScope().apply(block)
-        if (scope.criterionList.isNotEmpty()) {
-            criterionList.add(Criterion.Not(scope.criterionList))
+    fun not(block: OnScope<T, S>.() -> Unit) = runBlock(block, Criterion::Not)
+
+    fun and(block: OnScope<T, S>.() -> Unit) = runBlock(block, Criterion::And)
+
+    fun or(block: OnScope<T, S>.() -> Unit) = runBlock(block, Criterion::Or)
+
+    private fun runBlock(block: OnScope<T, S>.() -> Unit, context: (List<Criterion>) -> Criterion) {
+        val subCriteria = mutableListOf<Criterion>().also {
+            OnScope<T, S>(it).block()
         }
-    }
-
-    fun and(block: OnScope.() -> Unit) {
-        val scope = OnScope().apply(block)
-        if (scope.criterionList.isNotEmpty()) {
-            criterionList.add(Criterion.And(scope.criterionList))
-        }
-    }
-
-    fun or(block: OnScope.() -> Unit) {
-        val scope = OnScope().apply(block)
-        if (scope.criterionList.isNotEmpty()) {
-            criterionList.add(Criterion.Or(scope.criterionList))
+        if (subCriteria.isNotEmpty()) {
+            criteria.add(context(subCriteria))
         }
     }
 }

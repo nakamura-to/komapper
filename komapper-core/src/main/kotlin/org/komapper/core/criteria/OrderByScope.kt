@@ -3,9 +3,7 @@ package org.komapper.core.criteria
 import kotlin.reflect.KProperty1
 
 @CriteriaMarker
-class OrderByScope {
-
-    internal val items = ArrayList<Pair<KProperty1<*, *>, String>>()
+class OrderByScope(private val items: MutableList<Pair<KProperty1<*, *>, String>>) {
 
     fun <V> KProperty1<*, V>.desc() {
         items.add(this to "desc")

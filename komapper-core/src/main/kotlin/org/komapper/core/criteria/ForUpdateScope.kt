@@ -1,11 +1,9 @@
 package org.komapper.core.criteria
 
 @CriteriaMarker
-class ForUpdateScope {
-
-    internal var nowait: Boolean = false
+class ForUpdateScope(private val criteria: MutableCriteria<*>) {
 
     fun nowait() {
-        nowait = true
+        criteria.forUpdate = ForUpdate(true)
     }
 }

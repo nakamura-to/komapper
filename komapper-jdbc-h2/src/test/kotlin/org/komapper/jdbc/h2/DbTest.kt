@@ -24,8 +24,7 @@ import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.OptimisticLockException
 import org.komapper.core.UniqueConstraintException
-import org.komapper.core.criteria.OrderByScope
-import org.komapper.core.criteria.WhereScope
+import org.komapper.core.criteria.select
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityListener
 import org.komapper.core.desc.GlobalEntityListener
@@ -482,17 +481,20 @@ internal class DbTest {
         }
 
         @Test
-        fun criteriaScopeProperties() {
-            val db = Db(config)
-            val list = db.select<Address> {
-                where = WhereScope().apply {
+        fun addCriteria() {
+            val commonCriteria = select<Address> {
+                where {
                     Address::addressId.ge(1)
                 }
-                orderBy = OrderByScope().apply {
+                orderBy {
                     Address::addressId.desc()
                 }
-                limit = 2
-                offset = 5
+                limit(2)
+                offset(5)
+            }
+            val db = Db(config)
+            val list = db.select<Address> {
+                merge(commonCriteria)
             }
             assertEquals(
                 listOf(
@@ -819,10 +821,10 @@ internal class DbTest {
             val departmentMap: MutableMap<Employee, Department> = mutableMapOf()
             val db = Db(config)
             val employees = db.select<Employee> {
-                leftJoin<Address>({ Employee::addressId eq Address::addressId }) { employee, address ->
+                leftJoin<Address>({ Employee::addressId.eq(Address::addressId) }) { employee, address ->
                     addressMap[employee] = address
                 }
-                innerJoin<Department>({ Employee::departmentId eq Department::departmentId }) { employee, department ->
+                innerJoin<Department>({ Employee::departmentId.eq(Department::departmentId) }) { employee, department ->
                     departmentMap[employee] = department
                 }
                 where {

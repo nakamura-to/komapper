@@ -14,13 +14,13 @@ import org.komapper.core.value.Value
 class CriteriaProcessor(
     dialect: Dialect,
     private val entityDescFactory: EntityDescFactory,
-    private val criteria: Criteria
+    private val criteria: Criteria<*>
 ) : MultiEntityDesc {
 
     private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
 
     private val entityDescList: List<EntityDesc<*>> =
-        listOf(entityDescFactory.get(criteria.type)) + criteria.joins.map {
+        listOf(entityDescFactory.get(criteria.kClass)) + criteria.joins.map {
             entityDescFactory.get(it.type)
         }
 
@@ -42,13 +42,13 @@ class CriteriaProcessor(
             if (joins.isNotEmpty()) {
                 processJoinList(joins)
             }
-            if (where.criterionList.isNotEmpty()) {
+            if (where.isNotEmpty()) {
                 buf.append(" where ")
-                visitCriterion(where.criterionList)
+                visitCriterion(where)
             }
-            if (orderBy.items.isNotEmpty()) {
+            if (orderBy.isNotEmpty()) {
                 buf.append(" order by ")
-                orderBy.items.forEach { (prop, sort) ->
+                orderBy.forEach { (prop, sort) ->
                     buf.append(resolveColumnName(prop)).append(" $sort, ")
                 }
                 buf.cutBack(2)
@@ -83,7 +83,7 @@ class CriteriaProcessor(
             val tableIndex = i + 1
             val meta = entityDescList[tableIndex]
             buf.append("${meta.tableName} ${tableAliases[tableIndex]} on (")
-            visitCriterion(join.onScope.criterionList)
+            visitCriterion(join.on)
             buf.append(")")
         }
     }
@@ -105,9 +105,9 @@ class CriteriaProcessor(
                 is Criterion.NotIn2 -> processInOp("not in", criterion.props, criterion.values)
                 is Criterion.In3 -> processInOp("in", criterion.props, criterion.values)
                 is Criterion.NotIn3 -> processInOp("not in", criterion.props, criterion.values)
-                is Criterion.And -> visitLogicalBinaryOp("and", index, criterion.criterionList)
-                is Criterion.Or -> visitLogicalBinaryOp("or", index, criterion.criterionList)
-                is Criterion.Not -> visitNotOp(criterion.criterionList)
+                is Criterion.And -> visitLogicalBinaryOp("and", index, criterion.criteria)
+                is Criterion.Or -> visitLogicalBinaryOp("or", index, criterion.criteria)
+                is Criterion.Not -> visitNotOp(criterion.criteria)
                 is Criterion.Between -> processBetweenOp(criterion.prop, criterion.range)
             }
             buf.append(" and ")

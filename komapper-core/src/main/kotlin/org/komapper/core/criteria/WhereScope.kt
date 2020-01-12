@@ -14,9 +14,7 @@ import kotlin.reflect.KProperty1
 
 @CriteriaMarker
 @Suppress("FunctionName")
-class WhereScope {
-
-    internal val criterionList = ArrayList<Criterion>()
+class WhereScope(private val criteria: MutableList<Criterion>) {
 
     fun <V : Any> KProperty1<*, V>.eq(value: V?, @Suppress("UNUSED_PARAMETER") kClass: KClass<V>?) = _eq(this, value)
     fun KProperty1<*, java.sql.Array?>.eq(value: java.sql.Array?) = _eq(this, value)
@@ -40,7 +38,7 @@ class WhereScope {
     fun KProperty1<*, String?>.eq(value: String?) = _eq(this, value)
     fun KProperty1<*, SQLXML?>.eq(value: SQLXML?) = _eq(this, value)
     private fun _eq(prop: KProperty1<*, *>, value: Any?) {
-        criterionList.add(Criterion.Eq(prop, value))
+        criteria.add(Criterion.Eq(prop, value))
     }
 
     fun <V : Any> KProperty1<*, V>.ne(value: V?, @Suppress("UNUSED_PARAMETER") kClass: KClass<V>?) = _ne(this, value)
@@ -65,7 +63,7 @@ class WhereScope {
     fun KProperty1<*, String?>.ne(value: String?) = _ne(this, value)
     fun KProperty1<*, SQLXML?>.ne(value: SQLXML?) = _ne(this, value)
     private fun _ne(prop: KProperty1<*, *>, value: Any?) {
-        criterionList.add(Criterion.Ne(prop, value))
+        criteria.add(Criterion.Ne(prop, value))
     }
 
     fun <V : Any> KProperty1<*, V?>.gt(value: V?, @Suppress("UNUSED_PARAMETER") kClass: KClass<V>?) = _gt(this, value)
@@ -90,7 +88,7 @@ class WhereScope {
     fun KProperty1<*, String?>.gt(value: String?) = _gt(this, value)
     fun KProperty1<*, SQLXML?>.gt(value: SQLXML?) = _gt(this, value)
     private fun _gt(prop: KProperty1<*, *>, value: Any?) {
-        criterionList.add(Criterion.Gt(prop, value))
+        criteria.add(Criterion.Gt(prop, value))
     }
 
     fun <V : Any> KProperty1<*, V?>.ge(value: V?, @Suppress("UNUSED_PARAMETER") kClass: KClass<V>?) = _ge(this, value)
@@ -115,7 +113,7 @@ class WhereScope {
     fun KProperty1<*, String?>.ge(value: String?) = _ge(this, value)
     fun KProperty1<*, SQLXML?>.ge(value: SQLXML?) = _ge(this, value)
     private fun _ge(prop: KProperty1<*, *>, value: Any?) {
-        criterionList.add(Criterion.Ge(prop, value))
+        criteria.add(Criterion.Ge(prop, value))
     }
 
     fun <V : Any> KProperty1<*, V?>.lt(value: V?, @Suppress("UNUSED_PARAMETER") kClass: KClass<V>?) = _lt(this, value)
@@ -140,7 +138,7 @@ class WhereScope {
     fun KProperty1<*, String?>.lt(value: String?) = _lt(this, value)
     fun KProperty1<*, SQLXML?>.lt(value: SQLXML?) = _lt(this, value)
     private fun _lt(prop: KProperty1<*, *>, value: Any?) {
-        criterionList.add(Criterion.Lt(prop, value))
+        criteria.add(Criterion.Lt(prop, value))
     }
 
     fun <V : Any> KProperty1<*, V?>.le(value: V?, @Suppress("UNUSED_PARAMETER") kClass: KClass<V>?) = _le(this, value)
@@ -165,15 +163,15 @@ class WhereScope {
     fun KProperty1<*, String?>.le(value: String?) = _le(this, value)
     fun KProperty1<*, SQLXML?>.le(value: SQLXML?) = _le(this, value)
     private fun _le(prop: KProperty1<*, *>, value: Any?) {
-        criterionList.add(Criterion.Le(prop, value))
+        criteria.add(Criterion.Le(prop, value))
     }
 
     fun KProperty1<*, String?>.like(value: String?) {
-        criterionList.add(Criterion.Like(this, value))
+        criteria.add(Criterion.Like(this, value))
     }
 
     fun KProperty1<*, String?>.notLike(value: String?) {
-        criterionList.add(Criterion.NotLike(this, value))
+        criteria.add(Criterion.NotLike(this, value))
     }
 
     fun <V : Any> KProperty1<*, V>.`in`(value: List<V>, @Suppress("UNUSED_PARAMETER")kClass: KClass<V>) = _in(this, value)
@@ -235,7 +233,7 @@ class WhereScope {
         _in(this, value)
 
     private fun _in(prop: KProperty1<*, *>, value: List<Any?>) {
-        criterionList.add(Criterion.In(prop, value))
+        criteria.add(Criterion.In(prop, value))
     }
 
     fun <V : Any> KProperty1<*, V>.notIn(value: List<V>, @Suppress("UNUSED_PARAMETER")kClass: KClass<V>) = _notIn(this, value)
@@ -297,50 +295,41 @@ class WhereScope {
         _notIn(this, value)
 
     private fun _notIn(prop: KProperty1<*, *>, value: List<Any?>) {
-        criterionList.add(Criterion.NotIn(prop, value))
+        criteria.add(Criterion.NotIn(prop, value))
     }
 
     fun <A, B> Pair<KProperty1<*, A>, KProperty1<*, B>>.`in`(value: List<Pair<A, B>>) {
-        criterionList.add(Criterion.In2(this, value))
+        criteria.add(Criterion.In2(this, value))
     }
 
     fun <A, B> Pair<KProperty1<*, A>, KProperty1<*, B>>.notIn(value: List<Pair<A, B>>) {
-        criterionList.add(Criterion.NotIn2(this, value))
+        criteria.add(Criterion.NotIn2(this, value))
     }
 
     fun <A, B, C> Triple<KProperty1<*, A>, KProperty1<*, B>, KProperty1<*, C>>.`in`(value: List<Triple<A, B, C>>) {
-        criterionList.add(Criterion.In3(this, value))
+        criteria.add(Criterion.In3(this, value))
     }
 
     fun <A, B, C> Triple<KProperty1<*, A>, KProperty1<*, B>, KProperty1<*, C>>.notIn(value: List<Triple<A, B, C>>) {
-        criterionList.add(Criterion.NotIn3(this, value))
+        criteria.add(Criterion.NotIn3(this, value))
     }
 
     fun <V> KProperty1<*, V>.between(begin: V, end: V) {
-        criterionList.add(Criterion.Between(this, begin to end))
+        criteria.add(Criterion.Between(this, begin to end))
     }
 
-    fun not(block: WhereScope.() -> Unit) {
-        val scope = WhereScope()
-        scope.block()
-        if (scope.criterionList.isNotEmpty()) {
-            criterionList.add(Criterion.Not(scope.criterionList))
+    fun not(block: WhereScope.() -> Unit) = runBlock(block, Criterion::Not)
+
+    fun and(block: WhereScope.() -> Unit) = runBlock(block, Criterion::And)
+
+    fun or(block: WhereScope.() -> Unit) = runBlock(block, Criterion::Or)
+
+    private fun runBlock(block: WhereScope.() -> Unit, context: (List<Criterion>) -> Criterion) {
+        val subCriteria = mutableListOf<Criterion>().also {
+            WhereScope(it).block()
         }
-    }
-
-    fun and(block: WhereScope.() -> Unit) {
-        val scope = WhereScope()
-        scope.block()
-        if (scope.criterionList.isNotEmpty()) {
-            criterionList.add(Criterion.And(scope.criterionList))
-        }
-    }
-
-    fun or(block: WhereScope.() -> Unit) {
-        val scope = WhereScope()
-        scope.block()
-        if (scope.criterionList.isNotEmpty()) {
-            criterionList.add(Criterion.Or(scope.criterionList))
+        if (subCriteria.isNotEmpty()) {
+            criteria.add(context(subCriteria))
         }
     }
 }

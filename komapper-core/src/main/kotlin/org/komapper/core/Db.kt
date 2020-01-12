@@ -17,7 +17,7 @@ import kotlin.reflect.KProperty1
 import kotlin.streams.asSequence
 import kotlin.streams.toList
 import org.komapper.core.criteria.CriteriaProcessor
-import org.komapper.core.criteria.CriteriaScope
+import org.komapper.core.criteria.SelectScope
 import org.komapper.core.criteria.MultiEntityDesc
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.PropDesc
@@ -64,30 +64,30 @@ class Db(val config: DbConfig) {
      * Selects entities by criteria.
      *
      * @param T the entity type
-     * @param criteriaBlock the criteria
+     * @param selectBlock the criteria DSL
      * @return the selected entities
      */
     inline fun <reified T : Any> select(
-        criteriaBlock: CriteriaScope<T>.() -> Unit = { }
+        selectBlock: SelectScope<T>.() -> Unit = { }
     ): List<T> {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        return select(criteriaBlock, Sequence<T>::toList)
+        return select(selectBlock, Sequence<T>::toList)
     }
 
     /**
      * Selects entities by criteria and process them as sequence.
      *
      * @param T the entity type
-     * @param criteriaBlock the criteria
+     * @param selectBlock the criteria DSL
      * @param sequenceBlock the processor
      * @return the processed result
      */
     inline fun <reified T : Any, R> select(
-        criteriaBlock: CriteriaScope<T>.() -> Unit = { },
+        selectBlock: SelectScope<T>.() -> Unit = { },
         sequenceBlock: (Sequence<T>) -> R
     ): R {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        val (sql, desc) = dryRun.select(criteriaBlock)
+        val (sql, desc) = dryRun.select(selectBlock)
         return `access$streamMultiEntity`(sql, desc).use { stream ->
             stream.asSequence().map { entities ->
                 val entity = entities.first()
@@ -842,15 +842,15 @@ class Db(val config: DbConfig) {
          * Returns the result of a dry run for [Db.select].
          *
          * @param T the entity type
-         * @param criteriaBlock the criteria
+         * @param selectBlock the criteria DSL
          * @return the SQL and the metadata
          */
         inline fun <reified T : Any> select(
-            criteriaBlock: CriteriaScope<T>.() -> Unit = { }
+            selectBlock: SelectScope<T>.() -> Unit = { }
         ): Pair<Sql, MultiEntityDesc> {
             require(T::class.isData) { "The type parameter T must be a data class." }
-            val scope = CriteriaScope(T::class).also { it.criteriaBlock() }
-            val processor = CriteriaProcessor(config.dialect, config.entityDescFactory, scope())
+            val criteria = org.komapper.core.criteria.select(selectBlock)
+            val processor = CriteriaProcessor(config.dialect, config.entityDescFactory, criteria)
             val sql = processor.buildSelect()
             return sql to processor
         }
