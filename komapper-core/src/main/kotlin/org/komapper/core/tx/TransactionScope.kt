@@ -1,5 +1,8 @@
 package org.komapper.core.tx
 
+import org.komapper.core.dsl.Scope
+
+@Scope
 class TransactionScope(
     private val transactionManager: TransactionManager,
     private val defaultIsolationLevel: TransactionIsolationLevel? = null

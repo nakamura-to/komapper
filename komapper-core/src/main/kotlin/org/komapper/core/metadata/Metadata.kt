@@ -5,6 +5,7 @@ import java.time.OffsetDateTime
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import org.komapper.core.desc.EntityListener
+import org.komapper.core.dsl.Scope
 
 data class Metadata<T : Any>(
     val kClass: KClass<T>,
@@ -69,10 +70,7 @@ data class SequenceGenerator(
     val quote: Boolean = false
 )
 
-@DslMarker
-annotation class MetadataMarker
-
-@MetadataMarker
+@Scope
 class EntityScope<T : Any>(private val metadata: MutableMetadata<T>) {
     private val tableScope = TableScope(metadata)
 
@@ -153,7 +151,7 @@ class EntityScope<T : Any>(private val metadata: MutableMetadata<T>) {
     fun table(block: TableScope<T>.() -> Unit) = tableScope.block()
 }
 
-@MetadataMarker
+@Scope
 class TableScope<T : Any>(private val metadata: MutableMetadata<T>) {
     fun name(name: String, quote: Boolean = false) {
         metadata.table = TableMeta(name, quote)

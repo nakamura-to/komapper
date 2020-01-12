@@ -11,8 +11,9 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
+import org.komapper.core.dsl.Scope
 
-@CriteriaMarker
+@Scope
 @Suppress("FunctionName")
 class WhereScope(private val criteria: MutableList<Criterion>) {
 

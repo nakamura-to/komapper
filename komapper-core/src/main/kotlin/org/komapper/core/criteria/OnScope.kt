@@ -1,8 +1,9 @@
 package org.komapper.core.criteria
 
 import kotlin.reflect.KProperty1
+import org.komapper.core.dsl.Scope
 
-@CriteriaMarker
+@Scope
 @Suppress("FunctionName")
 class OnScope<T : Any, S : Any>(private val criteria: MutableList<Criterion>) {
 

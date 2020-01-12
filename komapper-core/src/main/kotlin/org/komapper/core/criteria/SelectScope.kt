@@ -1,6 +1,8 @@
 package org.komapper.core.criteria
 
-@CriteriaMarker
+import org.komapper.core.dsl.Scope
+
+@Scope
 class SelectScope<T : Any>(val _criteria: MutableCriteria<T>) {
     private val where = WhereScope(_criteria.where)
     private val orderBy = OrderByScope(_criteria.orderBy)

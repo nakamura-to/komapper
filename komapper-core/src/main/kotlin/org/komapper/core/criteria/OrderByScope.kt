@@ -1,8 +1,9 @@
 package org.komapper.core.criteria
 
 import kotlin.reflect.KProperty1
+import org.komapper.core.dsl.Scope
 
-@CriteriaMarker
+@Scope
 class OrderByScope(private val items: MutableList<Pair<KProperty1<*, *>, String>>) {
 
     fun <V> KProperty1<*, V>.desc() {
