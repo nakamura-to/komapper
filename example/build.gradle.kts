@@ -11,7 +11,6 @@ repositories {
 
 dependencies {
     implementation(project(":komapper-jdbc-h2"))
-    runtime("com.h2database:h2:1.4.199")
 }
 
 tasks.withType<Test> {

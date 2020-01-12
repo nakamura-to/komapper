@@ -25,7 +25,6 @@ repositories {
 
 dependencies {
     implementation("org.komapper:komapper-jdbc-h2:0.1.6")
-    runtime("com.h2database:h2:1.4.199")
 }
 ```
 
