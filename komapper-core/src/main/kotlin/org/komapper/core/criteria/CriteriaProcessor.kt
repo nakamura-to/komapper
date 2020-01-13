@@ -6,6 +6,7 @@ import kotlin.reflect.jvm.jvmErasure
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityDescFactory
 import org.komapper.core.desc.PropDesc
+import org.komapper.core.dsl.EmptyScope
 import org.komapper.core.jdbc.Dialect
 import org.komapper.core.sql.Sql
 import org.komapper.core.sql.SqlBuffer
@@ -74,7 +75,7 @@ class CriteriaProcessor(
             )
     }
 
-    private fun processJoinList(joinList: List<Join>) {
+    private fun processJoinList(joinList: List<Join<*, *>>) {
         for ((i, join) in joinList.withIndex()) {
             when (join.kind) {
                 JoinKind.INNER -> buf.append(" inner join ")
@@ -229,7 +230,8 @@ class CriteriaProcessor(
 
     override fun associate(entity: Any, joinedEntities: List<Any>) {
         joinedEntities.zip(criteria.joins).forEach { (joinedEntity, join) ->
-            join.block(entity, joinedEntity)
+            val block = join.block
+            EmptyScope.block(entity, joinedEntity)
         }
     }
 }

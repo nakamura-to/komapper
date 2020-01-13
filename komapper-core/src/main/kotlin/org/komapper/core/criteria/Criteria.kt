@@ -2,10 +2,11 @@ package org.komapper.core.criteria
 
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
+import org.komapper.core.dsl.EmptyScope
 
 data class Criteria<T : Any>(
     val kClass: KClass<T>,
-    val joins: List<Join>,
+    val joins: List<Join<Any, Any>>,
     val where: List<Criterion>,
     val orderBy: List<Pair<KProperty1<*, *>, String>>,
     val limit: Int?,
@@ -15,7 +16,7 @@ data class Criteria<T : Any>(
 
 data class MutableCriteria<T : Any>(
     val kClass: KClass<T>,
-    val joins: MutableList<Join> = mutableListOf(),
+    val joins: MutableList<Join<Any, Any>> = mutableListOf(),
     val where: MutableList<Criterion> = mutableListOf(),
     val orderBy: MutableList<Pair<KProperty1<*, *>, String>> = mutableListOf(),
     var limit: Int? = null,
@@ -27,16 +28,20 @@ data class MutableCriteria<T : Any>(
     }
 }
 
-data class Join(
+data class Join<T : Any, S : Any>(
     val kind: JoinKind,
-    val type: KClass<*>,
+    val type: KClass<S>,
     val on: List<Criterion>,
-    val block: (Any, Any) -> Unit
+    var block: EmptyScope.(T, S) -> Unit = { _, _ -> }
 )
 
 enum class JoinKind {
     INNER,
     LEFT
+}
+
+class Association<T : Any, S : Any> {
+    var block: EmptyScope.(T, S) -> Unit = { _, _ -> }
 }
 
 sealed class Criterion {
