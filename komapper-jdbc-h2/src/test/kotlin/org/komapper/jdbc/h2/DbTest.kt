@@ -869,8 +869,7 @@ internal class DbTest {
             val departmentMap: MutableMap<Employee, Department> = mutableMapOf()
             val db = Db(config)
             val employees = db.select<Employee> {
-                leftJoin<Address>
-                {
+                leftJoin<Address> {
                     Employee::addressId.eq(Address::addressId)
                     associate { employee, address -> addressMap[employee] = address }
                 }

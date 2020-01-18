@@ -13,9 +13,21 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import org.komapper.core.dsl.Scope
 
+typealias WhereCriteria = WhereScope.() -> Unit
+
+fun where(criteria: WhereCriteria): WhereCriteria = criteria
+
+infix operator fun (WhereCriteria).plus(other: WhereCriteria): WhereCriteria {
+    val self = this
+    return {
+        self()
+        other()
+    }
+}
+
 @Scope
 @Suppress("FunctionName")
-class WhereScope(private val criteria: MutableList<Criterion>) {
+class WhereScope(private val add: (Criterion) -> Unit) {
 
     fun <V : Any> KProperty1<*, V>.eq(value: V?, @Suppress("UNUSED_PARAMETER") kClass: KClass<V>?) = _eq(this, value)
     fun KProperty1<*, java.sql.Array?>.eq(value: java.sql.Array?) = _eq(this, value)
@@ -39,7 +51,7 @@ class WhereScope(private val criteria: MutableList<Criterion>) {
     fun KProperty1<*, String?>.eq(value: String?) = _eq(this, value)
     fun KProperty1<*, SQLXML?>.eq(value: SQLXML?) = _eq(this, value)
     private fun _eq(prop: KProperty1<*, *>, value: Any?) {
-        criteria.add(Criterion.Eq(prop, value))
+        add(Criterion.Eq(prop, value))
     }
 
     fun <V : Any> KProperty1<*, V>.ne(value: V?, @Suppress("UNUSED_PARAMETER") kClass: KClass<V>?) = _ne(this, value)
@@ -64,7 +76,7 @@ class WhereScope(private val criteria: MutableList<Criterion>) {
     fun KProperty1<*, String?>.ne(value: String?) = _ne(this, value)
     fun KProperty1<*, SQLXML?>.ne(value: SQLXML?) = _ne(this, value)
     private fun _ne(prop: KProperty1<*, *>, value: Any?) {
-        criteria.add(Criterion.Ne(prop, value))
+        add(Criterion.Ne(prop, value))
     }
 
     fun <V : Any> KProperty1<*, V?>.gt(value: V?, @Suppress("UNUSED_PARAMETER") kClass: KClass<V>?) = _gt(this, value)
@@ -89,7 +101,7 @@ class WhereScope(private val criteria: MutableList<Criterion>) {
     fun KProperty1<*, String?>.gt(value: String?) = _gt(this, value)
     fun KProperty1<*, SQLXML?>.gt(value: SQLXML?) = _gt(this, value)
     private fun _gt(prop: KProperty1<*, *>, value: Any?) {
-        criteria.add(Criterion.Gt(prop, value))
+        add(Criterion.Gt(prop, value))
     }
 
     fun <V : Any> KProperty1<*, V?>.ge(value: V?, @Suppress("UNUSED_PARAMETER") kClass: KClass<V>?) = _ge(this, value)
@@ -114,7 +126,7 @@ class WhereScope(private val criteria: MutableList<Criterion>) {
     fun KProperty1<*, String?>.ge(value: String?) = _ge(this, value)
     fun KProperty1<*, SQLXML?>.ge(value: SQLXML?) = _ge(this, value)
     private fun _ge(prop: KProperty1<*, *>, value: Any?) {
-        criteria.add(Criterion.Ge(prop, value))
+        add(Criterion.Ge(prop, value))
     }
 
     fun <V : Any> KProperty1<*, V?>.lt(value: V?, @Suppress("UNUSED_PARAMETER") kClass: KClass<V>?) = _lt(this, value)
@@ -139,7 +151,7 @@ class WhereScope(private val criteria: MutableList<Criterion>) {
     fun KProperty1<*, String?>.lt(value: String?) = _lt(this, value)
     fun KProperty1<*, SQLXML?>.lt(value: SQLXML?) = _lt(this, value)
     private fun _lt(prop: KProperty1<*, *>, value: Any?) {
-        criteria.add(Criterion.Lt(prop, value))
+        add(Criterion.Lt(prop, value))
     }
 
     fun <V : Any> KProperty1<*, V?>.le(value: V?, @Suppress("UNUSED_PARAMETER") kClass: KClass<V>?) = _le(this, value)
@@ -164,18 +176,20 @@ class WhereScope(private val criteria: MutableList<Criterion>) {
     fun KProperty1<*, String?>.le(value: String?) = _le(this, value)
     fun KProperty1<*, SQLXML?>.le(value: SQLXML?) = _le(this, value)
     private fun _le(prop: KProperty1<*, *>, value: Any?) {
-        criteria.add(Criterion.Le(prop, value))
+        add(Criterion.Le(prop, value))
     }
 
     fun KProperty1<*, String?>.like(value: String?) {
-        criteria.add(Criterion.Like(this, value))
+        add(Criterion.Like(this, value))
     }
 
     fun KProperty1<*, String?>.notLike(value: String?) {
-        criteria.add(Criterion.NotLike(this, value))
+        add(Criterion.NotLike(this, value))
     }
 
-    fun <V : Any> KProperty1<*, V>.`in`(value: List<V>, @Suppress("UNUSED_PARAMETER")kClass: KClass<V>) = _in(this, value)
+    fun <V : Any> KProperty1<*, V>.`in`(value: List<V>, @Suppress("UNUSED_PARAMETER") kClass: KClass<V>) =
+        _in(this, value)
+
     fun KProperty1<*, java.sql.Array?>.`in`(value: List<java.sql.Array?>, @Suppress("UNUSED_PARAMETER") `_`: java.sql.Array? = null) =
         _in(this, value)
 
@@ -234,10 +248,12 @@ class WhereScope(private val criteria: MutableList<Criterion>) {
         _in(this, value)
 
     private fun _in(prop: KProperty1<*, *>, value: List<Any?>) {
-        criteria.add(Criterion.In(prop, value))
+        add(Criterion.In(prop, value))
     }
 
-    fun <V : Any> KProperty1<*, V>.notIn(value: List<V>, @Suppress("UNUSED_PARAMETER")kClass: KClass<V>) = _notIn(this, value)
+    fun <V : Any> KProperty1<*, V>.notIn(value: List<V>, @Suppress("UNUSED_PARAMETER") kClass: KClass<V>) =
+        _notIn(this, value)
+
     fun KProperty1<*, java.sql.Array?>.notIn(value: List<java.sql.Array?>, @Suppress("UNUSED_PARAMETER") `_`: java.sql.Array? = null) =
         _notIn(this, value)
 
@@ -296,41 +312,40 @@ class WhereScope(private val criteria: MutableList<Criterion>) {
         _notIn(this, value)
 
     private fun _notIn(prop: KProperty1<*, *>, value: List<Any?>) {
-        criteria.add(Criterion.NotIn(prop, value))
+        add(Criterion.NotIn(prop, value))
     }
 
     fun <A, B> Pair<KProperty1<*, A>, KProperty1<*, B>>.`in`(value: List<Pair<A, B>>) {
-        criteria.add(Criterion.In2(this, value))
+        add(Criterion.In2(this, value))
     }
 
     fun <A, B> Pair<KProperty1<*, A>, KProperty1<*, B>>.notIn(value: List<Pair<A, B>>) {
-        criteria.add(Criterion.NotIn2(this, value))
+        add(Criterion.NotIn2(this, value))
     }
 
     fun <A, B, C> Triple<KProperty1<*, A>, KProperty1<*, B>, KProperty1<*, C>>.`in`(value: List<Triple<A, B, C>>) {
-        criteria.add(Criterion.In3(this, value))
+        add(Criterion.In3(this, value))
     }
 
     fun <A, B, C> Triple<KProperty1<*, A>, KProperty1<*, B>, KProperty1<*, C>>.notIn(value: List<Triple<A, B, C>>) {
-        criteria.add(Criterion.NotIn3(this, value))
+        add(Criterion.NotIn3(this, value))
     }
 
     fun <V> KProperty1<*, V>.between(begin: V, end: V) {
-        criteria.add(Criterion.Between(this, begin to end))
+        add(Criterion.Between(this, begin to end))
     }
 
-    fun not(block: WhereScope.() -> Unit) = runBlock(block, Criterion::Not)
+    fun not(criteria: WhereCriteria) = runBlock(criteria, Criterion::Not)
 
-    fun and(block: WhereScope.() -> Unit) = runBlock(block, Criterion::And)
+    fun and(criteria: WhereCriteria) = runBlock(criteria, Criterion::And)
 
-    fun or(block: WhereScope.() -> Unit) = runBlock(block, Criterion::Or)
+    fun or(criteria: WhereCriteria) = runBlock(criteria, Criterion::Or)
 
-    private fun runBlock(block: WhereScope.() -> Unit, context: (List<Criterion>) -> Criterion) {
-        val subCriteria = mutableListOf<Criterion>().also {
-            WhereScope(it).block()
-        }
-        if (subCriteria.isNotEmpty()) {
-            criteria.add(context(subCriteria))
+    private fun runBlock(criteria: WhereCriteria, context: (List<Criterion>) -> Criterion) {
+        val criteriaList = mutableListOf<Criterion>()
+        WhereScope { criteriaList.add(it) }.criteria()
+        if (criteriaList.isNotEmpty()) {
+            add(context(criteriaList))
         }
     }
 }

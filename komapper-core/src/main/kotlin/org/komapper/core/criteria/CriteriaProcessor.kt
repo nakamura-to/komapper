@@ -58,7 +58,7 @@ class CriteriaProcessor(
             offset?.let { buf.append(" offset $offset") }
             forUpdate?.let {
                 buf.append(" for update")
-                if (forUpdate.nowait) {
+                if (it.nowait) {
                     buf.append(" nowait")
                 }
             }
@@ -230,7 +230,7 @@ class CriteriaProcessor(
 
     override fun associate(entity: Any, joinedEntities: List<Any>) {
         joinedEntities.zip(criteria.joins).forEach { (joinedEntity, join) ->
-            val block = join.block
+            val block = join.association
             EmptyScope.block(entity, joinedEntity)
         }
     }

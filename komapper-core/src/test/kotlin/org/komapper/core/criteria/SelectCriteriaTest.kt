@@ -3,7 +3,7 @@ package org.komapper.core.criteria
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-internal class SelectScopeTest {
+internal class SelectCriteriaTest {
 
     private data class Address(
         val aaa: Int,
@@ -17,8 +17,8 @@ internal class SelectScopeTest {
 
     @Test
     fun where() {
-        val mutableCriteria = MutableCriteria(Address::class)
-        val scope = SelectScope<Address>(mutableCriteria)
+        val criteria = Criteria(Address::class)
+        val scope = SelectScope(criteria)
         scope.where {
             Address::aaa.eq(1)
             Address::bbb.ne("B")
@@ -31,7 +31,6 @@ internal class SelectScopeTest {
                 Address::fff.le("F")
             }
         }
-        val criteria = mutableCriteria.asImmutable()
         assertEquals(4, criteria.where.size)
         assertEquals(criteria.where[0], Criterion.Eq(Address::aaa, 1))
         assertEquals(criteria.where[1], Criterion.Ne(Address::bbb, "B"))
@@ -55,13 +54,12 @@ internal class SelectScopeTest {
 
     @Test
     fun orderBy() {
-        val mutableCriteria = MutableCriteria(Address::class)
-        val scope = SelectScope(mutableCriteria)
+        val criteria = Criteria(Address::class)
+        val scope = SelectScope(criteria)
         scope.orderBy {
             Address::aaa.desc()
             Address::bbb.asc()
         }
-        val criteria = mutableCriteria.asImmutable()
         assertEquals(2, criteria.orderBy.size)
         assertEquals(criteria.orderBy[0], Address::aaa to "desc")
         assertEquals(criteria.orderBy[1], Address::bbb to "asc")
@@ -69,29 +67,27 @@ internal class SelectScopeTest {
 
     @Test
     fun limit() {
-        val mutableCriteria = MutableCriteria(Address::class)
-        val scope = SelectScope(mutableCriteria)
+        val criteria = Criteria(Address::class)
+        val scope = SelectScope(criteria)
         scope.limit(10)
-        val criteria = mutableCriteria.asImmutable()
         assertEquals(10, criteria.limit)
     }
 
     @Test
     fun offset() {
-        val mutableCriteria = MutableCriteria(Address::class)
-        val scope = SelectScope(mutableCriteria)
+        val criteria = Criteria(Address::class)
+        val scope = SelectScope(criteria)
         scope.offset(100)
-        val criteria = mutableCriteria.asImmutable()
         assertEquals(100, criteria.offset)
     }
 
     @Test
     fun where_orderBy_limit_offset() {
         fun test(block: SelectScope<Address>.() -> Unit): Criteria<*> {
-            val mutableCriteria = MutableCriteria(Address::class)
-            val scope = SelectScope(mutableCriteria)
+            val criteria = Criteria(Address::class)
+            val scope = SelectScope(criteria)
             scope.block()
-            return mutableCriteria.asImmutable()
+            return criteria
         }
 
         val criteria = test {
