@@ -18,10 +18,10 @@ internal class DryRunTest(private val db: Db) {
     fun select() {
         val (sql) = db.dryRun.select<Address> {
             where {
-                Address::addressId.ge(1)
+                ge(Address::addressId, 1)
             }
             orderBy {
-                Address::addressId.desc()
+                desc(Address::addressId)
             }
             limit(2)
             offset(5)

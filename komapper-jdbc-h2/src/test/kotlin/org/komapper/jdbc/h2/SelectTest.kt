@@ -15,10 +15,10 @@ internal class SelectTest(private val db: Db) {
     fun test() {
         val list = db.select<Address> {
             where {
-                Address::addressId.ge(1)
+                ge(Address::addressId, 1)
             }
             orderBy {
-                Address::addressId.desc()
+                desc(Address::addressId)
             }
             limit(2)
             offset(5)
@@ -36,10 +36,10 @@ internal class SelectTest(private val db: Db) {
         val criteriaQuery =
             select<Address> {
                 where {
-                    Address::addressId.ge(1)
+                    ge(Address::addressId, 1)
                 }
                 orderBy {
-                    Address::addressId.desc()
+                    desc(Address::addressId)
                 }
                 limit(2)
                 offset(5)
@@ -58,10 +58,10 @@ internal class SelectTest(private val db: Db) {
         val criteriaQuery =
             select<Address> {
                 where {
-                    Address::addressId.ge(1)
+                    ge(Address::addressId, 1)
                 }
                 orderBy {
-                    Address::addressId.desc()
+                    desc(Address::addressId)
                 }
                 limit(2)
                 offset(5)
@@ -82,13 +82,13 @@ internal class SelectTest(private val db: Db) {
         val query1 =
             select<Address> {
                 where {
-                    Address::addressId.ge(1)
+                    ge(Address::addressId, 1)
                 }
             }
         val query2 =
             select<Address> {
                 orderBy {
-                    Address::addressId.desc()
+                    desc(Address::addressId)
                 }
                 limit(2)
                 offset(5)
@@ -107,10 +107,10 @@ internal class SelectTest(private val db: Db) {
     fun like() {
         val idList = db.select<Address> {
             where {
-                Address::street.like("STREET 1_")
+                like(Address::street, "STREET 1_")
             }
             orderBy {
-                Address::addressId.asc()
+                asc(Address::addressId)
             }
         }.map { it.addressId }
         Assertions.assertEquals((10..15).toList(), idList)
@@ -120,10 +120,10 @@ internal class SelectTest(private val db: Db) {
     fun notLike() {
         val idList = db.select<Address> {
             where {
-                Address::street.notLike("STREET 1_")
+                notLike(Address::street, "STREET 1_")
             }
             orderBy {
-                Address::addressId.asc()
+                asc(Address::addressId)
             }
         }.map { it.addressId }
         Assertions.assertEquals((1..9).toList(), idList)
@@ -139,13 +139,13 @@ internal class SelectTest(private val db: Db) {
     fun not() {
         val idList = db.select<Address> {
             where {
-                Address::addressId.gt(5)
+                gt(Address::addressId, 5)
                 not {
-                    Address::addressId.ge(10)
+                    ge(Address::addressId, 10)
                 }
             }
             orderBy {
-                Address::addressId.asc()
+                asc(Address::addressId)
             }
         }.map { it.addressId }
         Assertions.assertEquals((6..9).toList(), idList)
@@ -156,13 +156,13 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Address> {
             where {
-                Address::addressId.ge(1)
+                ge(Address::addressId, 1)
                 and {
-                    Address::addressId.ge(1)
+                    ge(Address::addressId, 1)
                 }
             }
             orderBy {
-                Address::addressId.desc()
+                desc(Address::addressId)
             }
             limit(2)
             offset(5)
@@ -180,14 +180,14 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Address> {
             where {
-                Address::addressId.ge(1)
+                ge(Address::addressId, 1)
                 or {
-                    Address::addressId.ge(1)
-                    Address::addressId.ge(1)
+                    ge(Address::addressId, 1)
+                    ge(Address::addressId, 1)
                 }
             }
             orderBy {
-                Address::addressId.desc()
+                desc(Address::addressId)
             }
             limit(2)
             offset(5)
@@ -205,10 +205,10 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Address> {
             where {
-                Address::addressId.`in`(listOf(9, 10))
+                `in`(Address::addressId, listOf(9, 10))
             }
             orderBy {
-                Address::addressId.desc()
+                desc(Address::addressId)
             }
         }
         Assertions.assertEquals(
@@ -224,10 +224,10 @@ internal class SelectTest(private val db: Db) {
 
         val idList = db.select<Address> {
             where {
-                Address::addressId.notIn((1..9).toList())
+                notIn(Address::addressId, (1..9).toList())
             }
             orderBy {
-                Address::addressId.asc()
+                asc(Address::addressId)
             }
         }.map { it.addressId }
         Assertions.assertEquals((10..15).toList(), idList)
@@ -238,10 +238,10 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Address> {
             where {
-                Address::addressId.`in`(emptyList())
+                `in`(Address::addressId, emptyList())
             }
             orderBy {
-                Address::addressId.desc()
+                desc(Address::addressId)
             }
         }
         Assertions.assertTrue(list.isEmpty())
@@ -252,10 +252,10 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Address> {
             where {
-                (Address::addressId to Address::street).`in`(listOf(9 to "STREET 9", 10 to "STREET 10"))
+                `in`(Address::addressId to Address::street, listOf(9 to "STREET 9", 10 to "STREET 10"))
             }
             orderBy {
-                Address::addressId.desc()
+                desc(Address::addressId)
             }
         }
         Assertions.assertEquals(
@@ -271,10 +271,10 @@ internal class SelectTest(private val db: Db) {
 
         val idList = db.select<Address> {
             where {
-                (Address::addressId to Address::street).notIn(listOf(1 to "STREET 1", 2 to "STREET 2"))
+                notIn((Address::addressId to Address::street), listOf(1 to "STREET 1", 2 to "STREET 2"))
             }
             orderBy {
-                Address::addressId.asc()
+                asc(Address::addressId)
             }
         }.map { it.addressId }
         Assertions.assertEquals((3..15).toList(), idList)
@@ -285,10 +285,10 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Address> {
             where {
-                Address::addressId to Address::street.`in`(emptyList())
+                `in`(Address::addressId to Address::street, emptyList())
             }
             orderBy {
-                Address::addressId.desc()
+                desc(Address::addressId)
             }
         }
         Assertions.assertTrue(list.isEmpty())
@@ -299,7 +299,8 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Address> {
             where {
-                Triple(Address::addressId, Address::street, Address::version).`in`(
+                `in`(
+                    Triple(Address::addressId, Address::street, Address::version),
                     listOf(
                         Triple(9, "STREET 9", 1),
                         Triple(10, "STREET 10", 1)
@@ -307,7 +308,7 @@ internal class SelectTest(private val db: Db) {
                 )
             }
             orderBy {
-                Address::addressId.desc()
+                desc(Address::addressId)
             }
         }
         Assertions.assertEquals(
@@ -323,7 +324,8 @@ internal class SelectTest(private val db: Db) {
 
         val idList = db.select<Address> {
             where {
-                Triple(Address::addressId, Address::street, Address::version).notIn(
+                notIn(
+                    Triple(Address::addressId, Address::street, Address::version),
                     listOf(
                         Triple(1, "STREET 1", 1),
                         Triple(2, "STREET 2", 1)
@@ -331,7 +333,7 @@ internal class SelectTest(private val db: Db) {
                 )
             }
             orderBy {
-                Address::addressId.asc()
+                asc(Address::addressId)
             }
         }.map { it.addressId }
         Assertions.assertEquals((3..15).toList(), idList)
@@ -342,10 +344,10 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Address> {
             where {
-                Triple(Address::addressId, Address::street, Address::version).`in`(emptyList())
+                `in`(Triple(Address::addressId, Address::street, Address::version), emptyList())
             }
             orderBy {
-                Address::addressId.desc()
+                desc(Address::addressId)
             }
         }
         Assertions.assertTrue(list.isEmpty())
@@ -356,10 +358,10 @@ internal class SelectTest(private val db: Db) {
 
         val idList = db.select<Address> {
             where {
-                Address::addressId.between(5, 10)
+                between(Address::addressId, 5, 10)
             }
             orderBy {
-                Address::addressId.asc()
+                asc(Address::addressId)
             }
         }.map { it.addressId }
         Assertions.assertEquals((5..10).toList(), idList)
@@ -370,7 +372,7 @@ internal class SelectTest(private val db: Db) {
 
         val idList = db.select<Employee> {
             where {
-                Employee::managerId.eq(null)
+                eq(Employee::managerId, null)
             }
         }.map { it.employeeId }
         Assertions.assertEquals(listOf(9), idList)
@@ -381,7 +383,7 @@ internal class SelectTest(private val db: Db) {
 
         val idList = db.select<Employee> {
             where {
-                Employee::managerId.ne(null)
+                ne(Employee::managerId, null)
             }
         }.map { it.employeeId }
         Assertions.assertTrue(9 !in idList)
@@ -392,10 +394,10 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Address, List<Address>>({
             where {
-                Address::addressId.ge(1)
+                ge(Address::addressId, 1)
             }
             orderBy {
-                Address::addressId.desc()
+                desc(Address::addressId)
             }
             limit(2)
             offset(5)
@@ -417,18 +419,18 @@ internal class SelectTest(private val db: Db) {
 
         val employees = db.select<Employee> {
             leftJoin<Address> {
-                Employee::addressId.eq(Address::addressId)
+                eq(Employee::addressId, Address::addressId)
                 associate { employee, address -> addressMap[employee] = address }
             }
             innerJoin<Department> {
-                Employee::departmentId.eq(Department::departmentId)
+                eq(Employee::departmentId, Department::departmentId)
                 associate { employee, department -> departmentMap[employee] = department }
             }
             where {
-                Address::addressId.ge(1)
+                ge(Address::addressId, 1)
             }
             orderBy {
-                Address::addressId.desc()
+                desc(Address::addressId)
             }
             limit(2)
             offset(5)
@@ -444,10 +446,10 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Address> {
             where {
-                Address::addressId.ge(1)
+                ge(Address::addressId, 1)
             }
             orderBy {
-                Address::addressId.desc()
+                desc(Address::addressId)
             }
             limit(2)
             offset(5)
@@ -468,7 +470,8 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Employee> {
             where {
-                EmployeeDetail::salary.ge(
+                ge(
+                    EmployeeDetail::salary,
                     BigDecimal(
                         "2000.00"
                     )
@@ -483,7 +486,8 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Worker> {
             where {
-                WorkerSalary::salary.ge(
+                ge(
+                    WorkerSalary::salary,
                     BigDecimal(
                         "2000.00"
                     )

@@ -75,7 +75,7 @@ class CriteriaProcessor(
             )
     }
 
-    private fun processJoinList(joinList: List<Join<*, *>>) {
+    private fun processJoinList(joinList: List<JoinCriteria<*, *>>) {
         for ((i, join) in joinList.withIndex()) {
             when (join.kind) {
                 JoinKind.INNER -> buf.append(" inner join ")

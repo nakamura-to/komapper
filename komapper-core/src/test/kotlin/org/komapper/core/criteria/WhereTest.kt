@@ -3,7 +3,7 @@ package org.komapper.core.criteria
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-internal class WhereCriteriaTest {
+internal class WhereTest {
 
     private data class Address(
         val id: Int,
@@ -12,25 +12,25 @@ internal class WhereCriteriaTest {
 
     @Test
     fun test() {
-        val criteria = where {
-            Address::id.eq(1)
+        val w = where {
+            eq(Address::id, 1)
         }
         val criterionList = mutableListOf<Criterion>()
-        WhereScope { criterionList.add(it) }.criteria()
+        WhereScope { criterionList.add(it) }.w()
         assertEquals(listOf(Criterion.Eq(Address::id, 1)), criterionList)
     }
 
     @Test
     fun plus() {
-        val criteria1 = where {
-            Address::id.eq(1)
+        val w1 = where {
+            eq(Address::id, 1)
         }
-        val criteria2 = where {
-            Address::street.ne("a")
+        val w2 = where {
+            ne(Address::street, "a")
         }
-        val criteria3 = criteria1 + criteria2
+        val w3 = w1 + w2
         val criterionList = mutableListOf<Criterion>()
-        WhereScope { criterionList.add(it) }.criteria3()
+        WhereScope { criterionList.add(it) }.w3()
         assertEquals(
             listOf(
                 Criterion.Eq(Address::id, 1),

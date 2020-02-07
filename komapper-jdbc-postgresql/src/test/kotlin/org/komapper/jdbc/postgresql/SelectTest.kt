@@ -13,10 +13,10 @@ class SelectTest {
     fun test(db: Db) {
         val list = db.select<Employee> {
             where {
-                Employee::salary.ge(BigDecimal(1000))
+                ge(Employee::salary, BigDecimal(1000))
             }
             orderBy {
-                Employee::employeeId.asc()
+                asc(Employee::employeeId)
             }
             limit(3)
             offset(5)
@@ -31,22 +31,22 @@ class SelectTest {
         val departmentMap: MutableMap<Employee, Department> = mutableMapOf()
         val employees = db.select<Employee> {
             leftJoin<Address> {
-                Employee::addressId.eq(Address::addressId)
+                eq(Employee::addressId, Address::addressId)
                 associate { employee, address ->
                     addressMap[employee] = address
                 }
             }
             innerJoin<Department> {
-                Employee::departmentId.eq(Department::departmentId)
+                eq(Employee::departmentId, Department::departmentId)
                 associate { employee, department ->
                     departmentMap[employee] = department
                 }
             }
             where {
-                Address::addressId.ge(1)
+                ge(Address::addressId, 1)
             }
             orderBy {
-                Address::addressId.desc()
+                desc(Address::addressId)
             }
             limit(2)
             offset(5)
@@ -61,10 +61,10 @@ class SelectTest {
     fun in2(db: Db) {
         val list = db.select<Employee> {
             where {
-                (Employee::managerId to Employee::departmentId).`in`(listOf(6 to 3))
+                `in`(Employee::managerId to Employee::departmentId, listOf(6 to 3))
             }
             orderBy {
-                Employee::employeeId.asc()
+                asc(Employee::employeeId)
             }
         }
         assertEquals(5, list.size)

@@ -6,12 +6,12 @@ import org.komapper.core.dsl.EmptyScope
 
 data class Criteria<T : Any>(
     val kClass: KClass<T>,
-    val joins: MutableList<Join<Any, Any>> = mutableListOf(),
+    val joins: MutableList<JoinCriteria<Any, Any>> = mutableListOf(),
     val where: MutableList<Criterion> = mutableListOf(),
     val orderBy: MutableList<Pair<KProperty1<*, *>, String>> = mutableListOf(),
     var limit: Int? = null,
     var offset: Int? = null,
-    var forUpdate: ForUpdate? = null
+    var forUpdate: ForUpdateCriteria? = null
 )
 
 sealed class Criterion {
@@ -45,7 +45,7 @@ sealed class Criterion {
     data class Or(val criteria: List<Criterion>) : Criterion()
 }
 
-data class Join<T : Any, S : Any>(
+data class JoinCriteria<T : Any, S : Any>(
     val kind: JoinKind,
     val type: KClass<S>,
     val on: MutableList<Criterion> = mutableListOf(),
@@ -57,4 +57,4 @@ enum class JoinKind {
     LEFT
 }
 
-data class ForUpdate(var nowait: Boolean = false)
+data class ForUpdateCriteria(var nowait: Boolean = false)
