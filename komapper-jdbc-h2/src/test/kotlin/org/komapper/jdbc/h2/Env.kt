@@ -227,6 +227,12 @@ private val departmentMeta = entity(Department::class) {
     metadata.add(it)
 }
 
+data class NoId(val value1: Int, val value2: Int)
+private val noIdMeta = entity(NoId::class) {
+}.also {
+    metadata.add(it)
+}
+
 internal class Env :
     BeforeTestExecutionCallback,
     AfterTestExecutionCallback,

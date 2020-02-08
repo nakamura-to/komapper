@@ -37,6 +37,9 @@ class CriteriaProcessor(
 
     fun buildSelect(): Sql {
         buf.append("select ")
+        if (criteria.distinct) {
+            buf.append("distinct ")
+        }
         qualifiedColumnMap.forEach { (_, columnName) -> buf.append("$columnName, ") }
         buf.cutBack(2).append(" from ${entityDescList[0].tableName} ${tableAliases[0]}")
         with(criteria) {

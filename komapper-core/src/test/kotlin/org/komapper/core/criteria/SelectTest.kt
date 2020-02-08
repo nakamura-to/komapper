@@ -1,6 +1,7 @@
 package org.komapper.core.criteria
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 internal class SelectTest {
@@ -14,6 +15,17 @@ internal class SelectTest {
         val fff: String,
         val ggg: Int
     )
+
+    @Test
+    fun distinct() {
+        val criteria = Criteria(Address::class)
+        val scope = SelectScope(criteria)
+        val select = select<Address> {
+            distinct()
+        }
+        scope.select()
+        assertTrue(criteria.distinct)
+    }
 
     @Test
     fun where() {

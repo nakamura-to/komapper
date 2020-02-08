@@ -21,6 +21,10 @@ class SelectScope<T : Any>(@Suppress("MemberVisibilityCanBePrivate") val _criter
     private val orderByScope = OrderByScope { _criteria.orderBy.add(it) }
     private val forUpdateScope = ForUpdateScope { _criteria.forUpdate = it }
 
+    fun distinct(value: Boolean = true) {
+        _criteria.distinct = value
+    }
+
     inline fun <reified S : Any> innerJoin(noinline block: Join<T, S>) {
         require(S::class.isData) { "The type parameter S must be a data class." }
         _join(S::class, JoinKind.INNER, block)

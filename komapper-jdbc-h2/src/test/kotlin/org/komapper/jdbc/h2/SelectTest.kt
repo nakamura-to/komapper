@@ -104,6 +104,18 @@ internal class SelectTest(private val db: Db) {
     }
 
     @Test
+    fun distinct() {
+        val list = db.select<NoId> {
+            distinct()
+        }
+        Assertions.assertEquals(
+            listOf(
+                NoId(1, 1)
+            ), list
+        )
+    }
+
+    @Test
     fun like() {
         val idList = db.select<Address> {
             where {

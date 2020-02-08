@@ -6,6 +6,7 @@ import org.komapper.core.dsl.EmptyScope
 
 data class Criteria<T : Any>(
     val kClass: KClass<T>,
+    var distinct: Boolean = false,
     val joins: MutableList<JoinCriteria<Any, Any>> = mutableListOf(),
     val where: MutableList<Criterion> = mutableListOf(),
     val orderBy: MutableList<Pair<KProperty1<*, *>, String>> = mutableListOf(),
