@@ -17,31 +17,35 @@ internal class JoinTest {
 
     @Test
     fun test() {
-        val j = join<Employee, Address> {
-            eq(Employee::addressId, Address::id)
+        val e = Alias(0)
+        val j = join<Employee, Address> { a ->
+            eq(e[Employee::addressId], a[Address::id])
         }
         val criterionList = mutableListOf<Criterion>()
-        val scope = JoinScope<Employee, Address>({ criterionList.add(it) }, {})
-        j(scope)
-        assertEquals(listOf(Criterion.Eq(Employee::addressId, Address::id)), criterionList)
+        val scope = JoinScope<Employee, Address>(e, { criterionList.add(it) }, {})
+        val a = Alias(1)
+        j(scope, a)
+        assertEquals(listOf(Criterion.Eq(e[Employee::addressId], a[Address::id])), criterionList)
     }
 
     @Test
     fun plus() {
-        val j1 = join<Employee, Address> {
-            eq(Employee::id, Address::id)
+        val e = Alias(0)
+        val j1 = join<Employee, Address> { a ->
+            eq(e[Employee::id], a[Address::id])
         }
-        val j2 = join<Employee, Address>() {
-            ne(Employee::id, Address::id)
+        val j2 = join<Employee, Address> { a ->
+            ne(e[Employee::id], a[Address::id])
         }
         val j3 = j1 + j2
         val criterionList = mutableListOf<Criterion>()
-        val scope = JoinScope<Employee, Address>({ criterionList.add(it) }, {})
-        scope.j3()
+        val scope = JoinScope<Employee, Address>(e, { criterionList.add(it) }, {})
+        val a = Alias(1)
+        scope.j3(a)
         assertEquals(
             listOf(
-                Criterion.Eq(Employee::id, Address::id),
-                Criterion.Ne(Employee::id, Address::id)
+                Criterion.Eq(e[Employee::id], a[Address::id]),
+                Criterion.Ne(e[Employee::id], a[Address::id])
             ),
             criterionList
         )

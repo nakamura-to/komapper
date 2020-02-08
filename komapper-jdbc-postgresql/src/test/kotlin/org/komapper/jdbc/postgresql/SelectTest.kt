@@ -29,24 +29,24 @@ class SelectTest {
     fun join(db: Db) {
         val addressMap: MutableMap<Employee, Address> = mutableMapOf()
         val departmentMap: MutableMap<Employee, Department> = mutableMapOf()
-        val employees = db.select<Employee> {
-            leftJoin<Address> {
-                eq(Employee::addressId, Address::addressId)
+        val employees = db.select<Employee> { e ->
+            leftJoin<Address> { a ->
+                eq(e[Employee::addressId], a[Address::addressId])
                 associate { employee, address ->
                     addressMap[employee] = address
                 }
             }
-            innerJoin<Department> {
-                eq(Employee::departmentId, Department::departmentId)
+            innerJoin<Department> { d ->
+                eq(e[Employee::departmentId], d[Department::departmentId])
                 associate { employee, department ->
                     departmentMap[employee] = department
                 }
             }
             where {
-                ge(Address::addressId, 1)
+                ge(Employee::addressId, 1)
             }
             orderBy {
-                desc(Address::addressId)
+                desc(Employee::addressId)
             }
             limit(2)
             offset(5)
@@ -61,7 +61,7 @@ class SelectTest {
     fun in2(db: Db) {
         val list = db.select<Employee> {
             where {
-                `in`(Employee::managerId to Employee::departmentId, listOf(6 to 3))
+                in2(Employee::managerId, Employee::departmentId, listOf(6 to 3))
             }
             orderBy {
                 asc(Employee::employeeId)

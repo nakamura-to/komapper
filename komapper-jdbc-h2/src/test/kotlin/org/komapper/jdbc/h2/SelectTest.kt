@@ -66,8 +66,8 @@ internal class SelectTest(private val db: Db) {
                 limit(2)
                 offset(5)
             }
-        val list = db.select<Address> {
-            criteriaQuery()
+        val list = db.select<Address> { alias ->
+            criteriaQuery(alias)
         }
         Assertions.assertEquals(
             listOf(
@@ -264,7 +264,7 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Address> {
             where {
-                `in`(Address::addressId to Address::street, listOf(9 to "STREET 9", 10 to "STREET 10"))
+                in2(Address::addressId, Address::street, listOf(9 to "STREET 9", 10 to "STREET 10"))
             }
             orderBy {
                 desc(Address::addressId)
@@ -283,7 +283,7 @@ internal class SelectTest(private val db: Db) {
 
         val idList = db.select<Address> {
             where {
-                notIn((Address::addressId to Address::street), listOf(1 to "STREET 1", 2 to "STREET 2"))
+                notIn2(Address::addressId, Address::street, listOf(1 to "STREET 1", 2 to "STREET 2"))
             }
             orderBy {
                 asc(Address::addressId)
@@ -297,7 +297,7 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Address> {
             where {
-                `in`(Address::addressId to Address::street, emptyList())
+                in2(Address::addressId, Address::street, emptyList())
             }
             orderBy {
                 desc(Address::addressId)
@@ -311,8 +311,10 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Address> {
             where {
-                `in`(
-                    Triple(Address::addressId, Address::street, Address::version),
+                in3(
+                    Address::addressId,
+                    Address::street,
+                    Address::version,
                     listOf(
                         Triple(9, "STREET 9", 1),
                         Triple(10, "STREET 10", 1)
@@ -336,8 +338,8 @@ internal class SelectTest(private val db: Db) {
 
         val idList = db.select<Address> {
             where {
-                notIn(
-                    Triple(Address::addressId, Address::street, Address::version),
+                notIn3(
+                    Address::addressId, Address::street, Address::version,
                     listOf(
                         Triple(1, "STREET 1", 1),
                         Triple(2, "STREET 2", 1)
@@ -356,7 +358,7 @@ internal class SelectTest(private val db: Db) {
 
         val list = db.select<Address> {
             where {
-                `in`(Triple(Address::addressId, Address::street, Address::version), emptyList())
+                in3(Address::addressId, Address::street, Address::version, emptyList())
             }
             orderBy {
                 desc(Address::addressId)
@@ -382,9 +384,9 @@ internal class SelectTest(private val db: Db) {
     @Test
     fun isNull() {
 
-        val idList = db.select<Employee> {
+        val idList = db.select<Employee> { e ->
             where {
-                eq(Employee::managerId, null)
+                eq(e[Employee::managerId], null)
             }
         }.map { it.employeeId }
         Assertions.assertEquals(listOf(9), idList)
@@ -429,20 +431,20 @@ internal class SelectTest(private val db: Db) {
         val addressMap: MutableMap<Employee, Address> = mutableMapOf()
         val departmentMap: MutableMap<Employee, Department> = mutableMapOf()
 
-        val employees = db.select<Employee> {
-            leftJoin<Address> {
-                eq(Employee::addressId, Address::addressId)
+        val employees = db.select<Employee> { e ->
+            val a = leftJoin<Address> { a ->
+                eq(e[Employee::addressId], a[Address::addressId])
                 associate { employee, address -> addressMap[employee] = address }
             }
-            innerJoin<Department> {
-                eq(Employee::departmentId, Department::departmentId)
+            innerJoin<Department> { d ->
+                eq(e[Employee::departmentId], d[Department::departmentId])
                 associate { employee, department -> departmentMap[employee] = department }
             }
             where {
-                ge(Address::addressId, 1)
+                ge(a[Address::addressId], 1)
             }
             orderBy {
-                desc(Address::addressId)
+                desc(a[Address::addressId])
             }
             limit(2)
             offset(5)

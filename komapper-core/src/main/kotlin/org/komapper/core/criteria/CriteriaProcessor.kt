@@ -1,7 +1,6 @@
 package org.komapper.core.criteria
 
 import kotlin.reflect.KProperty1
-import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.jvmErasure
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityDescFactory
@@ -20,28 +19,31 @@ class CriteriaProcessor(
 
     private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
 
-    private val entityDescList: List<EntityDesc<*>> =
-        listOf(entityDescFactory.get(criteria.kClass)) + criteria.joins.map {
-            entityDescFactory.get(it.type)
-        }
+    private val entityDescMap: Map<Alias, EntityDesc<*>> =
+        listOf(criteria.alias to entityDescFactory.get(criteria.kClass)).plus(
+            criteria.joins.map {
+                it.alias to entityDescFactory.get(it.type)
+            }
+        ).toMap()
 
-    private val tableAliases: List<String> = entityDescList.mapIndexed { index, _ -> "t${index}_" }
+    private val qualifiedColumnNameMap: Map<AliasProperty<*, *>, String> =
+        entityDescMap.entries.flatMap { (alias, entityDesc) ->
+            entityDesc.leafPropDescList.map { propDesc ->
+                AliasProperty(alias, propDesc.prop) to "${alias.name}.${propDesc.columnName}"
+            }
+        }.toMap()
 
-    private val qualifiedColumnMap: Map<KProperty1<*, *>, String> = entityDescList.mapIndexed { index, entityMeta ->
-        tableAliases[index] to entityMeta
-    }.flatMap { (alias, entityMeta) ->
-        entityMeta.leafPropDescList.map { it.prop to "$alias.${it.columnName}" }
-    }.toMap()
-
-    override val leafPropDescList: List<PropDesc> = entityDescList.flatMap { it.leafPropDescList }
+    override val leafPropDescList: List<PropDesc> =
+        entityDescMap.values.flatMap { it.leafPropDescList }
 
     fun buildSelect(): Sql {
         buf.append("select ")
         if (criteria.distinct) {
             buf.append("distinct ")
         }
-        qualifiedColumnMap.forEach { (_, columnName) -> buf.append("$columnName, ") }
-        buf.cutBack(2).append(" from ${entityDescList[0].tableName} ${tableAliases[0]}")
+        qualifiedColumnNameMap.values.forEach { buf.append("$it, ") }
+        val entityDesc = entityDescMap[criteria.alias] ?: error("The entityDesc not found.")
+        buf.cutBack(2).append(" from ${entityDesc.tableName} ${criteria.alias.name}")
         with(criteria) {
             if (joins.isNotEmpty()) {
                 processJoinList(joins)
@@ -52,8 +54,8 @@ class CriteriaProcessor(
             }
             if (orderBy.isNotEmpty()) {
                 buf.append(" order by ")
-                orderBy.forEach { (prop, sort) ->
-                    buf.append(resolveColumnName(prop)).append(" $sort, ")
+                orderBy.forEach { item ->
+                    buf.append(resolveColumnName(item.prop)).append(" ${item.sort}, ")
                 }
                 buf.cutBack(2)
             }
@@ -70,49 +72,46 @@ class CriteriaProcessor(
         return buf.toSql()
     }
 
-    private fun resolveColumnName(prop: KProperty1<*, *>): String {
-        return qualifiedColumnMap[prop]
-            ?: error(
-                "The property \"${prop.name}\" is not found " +
-                        "in the class \"${prop.javaField?.declaringClass?.name}\"."
-            )
+    // TODO
+    private fun resolveColumnName(prop: AliasProperty<*, *>): String {
+        return qualifiedColumnNameMap[prop]
+            ?: error("The column name is not found for the property \"${prop.name}\".")
     }
 
-    private fun processJoinList(joinList: List<JoinCriteria<*, *>>) {
-        for ((i, join) in joinList.withIndex()) {
-            when (join.kind) {
+    private fun processJoinList(joinCriteriaList: List<JoinCriteria<*, *>>) {
+        for (joinCriteria in joinCriteriaList) {
+            when (joinCriteria.kind) {
                 JoinKind.INNER -> buf.append(" inner join ")
                 JoinKind.LEFT -> buf.append(" left join ")
             }
-            val tableIndex = i + 1
-            val meta = entityDescList[tableIndex]
-            buf.append("${meta.tableName} ${tableAliases[tableIndex]} on (")
-            visitCriterion(join.on)
+            val entityDesc = entityDescMap[joinCriteria.alias] ?: error("EntityDesc not found.")
+            buf.append("${entityDesc.tableName} ${joinCriteria.alias.name} on (")
+            visitCriterion(joinCriteria.on)
             buf.append(")")
         }
     }
 
     private fun visitCriterion(criterionList: List<Criterion>) {
-        criterionList.forEachIndexed { index, criterion ->
-            when (criterion) {
-                is Criterion.Eq -> processBinaryOp("=", criterion.prop, criterion.value)
-                is Criterion.Ne -> processBinaryOp("<>", criterion.prop, criterion.value)
-                is Criterion.Gt -> processBinaryOp(">", criterion.prop, criterion.value)
-                is Criterion.Ge -> processBinaryOp(">=", criterion.prop, criterion.value)
-                is Criterion.Lt -> processBinaryOp("<", criterion.prop, criterion.value)
-                is Criterion.Le -> processBinaryOp("<=", criterion.prop, criterion.value)
-                is Criterion.Like -> processBinaryOp("like", criterion.prop, criterion.value)
-                is Criterion.NotLike -> processBinaryOp("not like", criterion.prop, criterion.value)
-                is Criterion.In -> processInOp("in", criterion.prop, criterion.values)
-                is Criterion.NotIn -> processInOp("not in", criterion.prop, criterion.values)
-                is Criterion.In2 -> processInOp("in", criterion.props, criterion.values)
-                is Criterion.NotIn2 -> processInOp("not in", criterion.props, criterion.values)
-                is Criterion.In3 -> processInOp("in", criterion.props, criterion.values)
-                is Criterion.NotIn3 -> processInOp("not in", criterion.props, criterion.values)
-                is Criterion.And -> visitLogicalBinaryOp("and", index, criterion.criteria)
-                is Criterion.Or -> visitLogicalBinaryOp("or", index, criterion.criteria)
-                is Criterion.Not -> visitNotOp(criterion.criteria)
-                is Criterion.Between -> processBetweenOp(criterion.prop, criterion.range)
+        criterionList.forEachIndexed { index, c ->
+            when (c) {
+                is Criterion.Eq -> processBinaryOp("=", c.prop, c.value)
+                is Criterion.Ne -> processBinaryOp("<>", c.prop, c.value)
+                is Criterion.Gt -> processBinaryOp(">", c.prop, c.value)
+                is Criterion.Ge -> processBinaryOp(">=", c.prop, c.value)
+                is Criterion.Lt -> processBinaryOp("<", c.prop, c.value)
+                is Criterion.Le -> processBinaryOp("<=", c.prop, c.value)
+                is Criterion.Like -> processBinaryOp("like", c.prop, c.value)
+                is Criterion.NotLike -> processBinaryOp("not like", c.prop, c.value)
+                is Criterion.In -> processInOp("in", c.prop, c.values)
+                is Criterion.NotIn -> processInOp("not in", c.prop, c.values)
+                is Criterion.In2 -> processIn2Op("in", c.prop1, c.prop2, c.values)
+                is Criterion.NotIn2 -> processIn2Op("not in", c.prop1, c.prop2, c.values)
+                is Criterion.In3 -> processIn3Op("in", c.prop1, c.prop2, c.prop3, c.values)
+                is Criterion.NotIn3 -> processIn3Op("not in", c.prop1, c.prop2, c.prop3, c.values)
+                is Criterion.And -> visitLogicalBinaryOp("and", index, c.criteria)
+                is Criterion.Or -> visitLogicalBinaryOp("or", index, c.criteria)
+                is Criterion.Not -> visitNotOp(c.criteria)
+                is Criterion.Between -> processBetweenOp(c.prop, c.range)
             }
             buf.append(" and ")
         }
@@ -134,7 +133,7 @@ class CriteriaProcessor(
         buf.append(")")
     }
 
-    private fun processBinaryOp(op: String, prop: KProperty1<*, *>, obj: Any?) {
+    private fun processBinaryOp(op: String, prop: AliasProperty<*, *>, obj: Any?) {
         buf.append(resolveColumnName(prop))
         when {
             op == "=" && obj == null -> buf.append(" is null")
@@ -142,7 +141,9 @@ class CriteriaProcessor(
             else -> {
                 when (obj) {
                     is KProperty1<*, *> -> {
-                        buf.append(" $op ").append(resolveColumnName(obj))
+                        val aliasProperty = if (obj is AliasProperty<*, *>) obj else criteria.alias[obj]
+                        val columnName = resolveColumnName(aliasProperty)
+                        buf.append(" $op ").append(columnName)
                     }
                     else -> {
                         val value = Value(obj, prop.returnType)
@@ -153,14 +154,14 @@ class CriteriaProcessor(
         }
     }
 
-    private fun processInOp(op: String, prop: KProperty1<*, *>, values: Iterable<*>) {
+    private fun processInOp(op: String, prop: AliasProperty<*, *>, values: Iterable<*>) {
         buf.append(resolveColumnName(prop))
         buf.append(" $op (")
-        val type = prop.returnType.jvmErasure
+        val kClass = prop.returnType.jvmErasure
         var counter = 0
         for (v in values) {
             if (++counter > 1) buf.append(", ")
-            buf.bind(Value(v, type))
+            buf.bind(Value(v, kClass))
         }
         if (counter == 0) {
             buf.append("null")
@@ -168,19 +169,23 @@ class CriteriaProcessor(
         buf.append(")")
     }
 
-    private fun processInOp(op: String, props: Pair<KProperty1<*, *>, KProperty1<*, *>>, values: Iterable<Pair<*, *>>) {
-        val (first, second) = props
-        buf.append("(${resolveColumnName(first)}, ${resolveColumnName(second)})")
+    private fun processIn2Op(
+        op: String,
+        prop1: AliasProperty<*, *>,
+        prop2: AliasProperty<*, *>,
+        values: Iterable<Pair<*, *>>
+    ) {
+        buf.append("(${resolveColumnName(prop1)}, ${resolveColumnName(prop2)})")
         buf.append(" $op (")
-        val firstType = first.returnType.jvmErasure
-        val secondType = second.returnType.jvmErasure
+        val kClass1 = prop1.returnType.jvmErasure
+        val kClass2 = prop2.returnType.jvmErasure
         var counter = 0
         for ((f, s) in values) {
             if (++counter > 1) buf.append(", ")
             buf.append("(")
-            buf.bind(Value(f, firstType))
+            buf.bind(Value(f, kClass1))
             buf.append(", ")
-            buf.bind(Value(s, secondType))
+            buf.bind(Value(s, kClass2))
             buf.append(")")
         }
         if (counter == 0) {
@@ -189,26 +194,27 @@ class CriteriaProcessor(
         buf.append(")")
     }
 
-    private fun processInOp(
+    private fun processIn3Op(
         op: String,
-        props: Triple<KProperty1<*, *>, KProperty1<*, *>, KProperty1<*, *>>,
+        prop1: AliasProperty<*, *>,
+        prop2: AliasProperty<*, *>,
+        prop3: AliasProperty<*, *>,
         values: Iterable<Triple<*, *, *>>
     ) {
-        val (first, second, third) = props
-        buf.append("(${resolveColumnName(first)}, ${resolveColumnName(second)}, ${resolveColumnName(third)})")
+        buf.append("(${resolveColumnName(prop1)}, ${resolveColumnName(prop2)}, ${resolveColumnName(prop3)})")
         buf.append(" $op (")
-        val firstType = first.returnType.jvmErasure
-        val secondType = second.returnType.jvmErasure
-        val thirdType = third.returnType.jvmErasure
+        val kClass1 = prop1.returnType.jvmErasure
+        val kClass2 = prop2.returnType.jvmErasure
+        val kClass3 = prop3.returnType.jvmErasure
         var counter = 0
         for ((f, s, t) in values) {
             if (++counter > 1) buf.append(", ")
             buf.append("(")
-            buf.bind(Value(f, firstType))
+            buf.bind(Value(f, kClass1))
             buf.append(", ")
-            buf.bind(Value(s, secondType))
+            buf.bind(Value(s, kClass2))
             buf.append(", ")
-            buf.bind(Value(t, thirdType))
+            buf.bind(Value(t, kClass3))
             buf.append(")")
         }
         if (counter == 0) {
@@ -217,7 +223,7 @@ class CriteriaProcessor(
         buf.append(")")
     }
 
-    private fun processBetweenOp(prop: KProperty1<*, *>, range: Pair<*, *>) {
+    private fun processBetweenOp(prop: AliasProperty<*, *>, range: Pair<*, *>) {
         buf.append(resolveColumnName(prop))
             .append(" between ")
             .bind(Value(range.first, prop.returnType))
@@ -226,8 +232,8 @@ class CriteriaProcessor(
     }
 
     override fun new(leafValues: Map<PropDesc, Any?>): List<Any> {
-        return entityDescList.map { entityMeta ->
-            entityMeta.new(leafValues)
+        return entityDescMap.entries.map { (_, entityDesc) ->
+            entityDesc.new(leafValues)
         }
     }
 

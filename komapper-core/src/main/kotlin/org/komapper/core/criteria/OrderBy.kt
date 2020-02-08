@@ -16,13 +16,11 @@ infix operator fun (OrderBy).plus(other: OrderBy): OrderBy {
 }
 
 @Scope
-class OrderByScope(val _add: (Pair<KProperty1<*, *>, String>) -> Unit) {
+class OrderByScope(val _alias: Alias, val _add: (OrderByItem) -> Unit) {
 
-    fun desc(kProperty1: KProperty1<*, *>) {
-        _add(kProperty1 to "desc")
-    }
+    fun desc(prop: KProperty1<*, *>) = _add(OrderByItem(AliasProperty(_alias, prop), "desc"))
+    fun desc(prop: AliasProperty<*, *>) = _add(OrderByItem(prop, "desc"))
 
-    fun asc(kProperty1: KProperty1<*, *>) {
-        _add(kProperty1 to "asc")
-    }
+    fun asc(prop: KProperty1<*, *>) = _add(OrderByItem(AliasProperty(_alias, prop), "asc"))
+    fun asc(prop: AliasProperty<*, *>) = _add(OrderByItem(prop, "asc"))
 }

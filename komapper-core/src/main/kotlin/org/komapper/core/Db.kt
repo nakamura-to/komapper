@@ -852,7 +852,7 @@ class Db(val config: DbConfig) {
         ): Pair<Sql, MultiEntityDesc> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val criteria = Criteria(T::class).also {
-                SelectScope(it).criteriaQuery()
+                SelectScope(it).criteriaQuery(it.alias)
             }
             val processor = CriteriaProcessor(config.dialect, config.entityDescFactory, criteria)
             val sql = processor.buildSelect()
