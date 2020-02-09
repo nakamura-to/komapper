@@ -9,7 +9,7 @@ internal class DefaultSqlRewriterTest {
 
     @Test
     fun rewriteForPagination() {
-        val sql = """
+        val t = template<Pair<String, Int>>("""
             select
                 name, age
             from
@@ -23,14 +23,14 @@ internal class DefaultSqlRewriterTest {
             order by
                 name, /*# embedded */
             for update
-        """.trimIndent()
-        val rewrittenSql = rewriter.rewriteForPagination(sql, 5, 10)
-        assertEquals("$sql limit 5 offset 10", rewrittenSql.toString())
+        """.trimIndent())
+        val rewrittenTemplate = rewriter.rewriteForPagination(t, 5, 10)
+        assertEquals("${t.sql} limit 5 offset 10", rewrittenTemplate.sql.toString())
     }
 
     @Test
     fun rewriteForCount() {
-        val sql = """
+        val t = template<Pair<String, Int>>("""
             select
                 name, age
             from
@@ -44,8 +44,8 @@ internal class DefaultSqlRewriterTest {
             order by
                 name, /*# embedded */
             for update
-        """.trimIndent()
-        val rewrittenSql = rewriter.rewriteForCount(sql)
-        assertEquals("select count(*) from ($sql) t_", rewrittenSql.toString())
+        """.trimIndent())
+        val rewrittenTemplate = rewriter.rewriteForCount(t)
+        assertEquals("select count(*) from (${t.sql}) t_", rewrittenTemplate.sql.toString())
     }
 }

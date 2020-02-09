@@ -12,6 +12,7 @@ import org.komapper.core.UniqueConstraintException
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityListener
 import org.komapper.core.desc.GlobalEntityListener
+import org.komapper.core.sql.template
 
 @ExtendWith(Env::class)
 internal class BatchUpdateTest(private val db: Db) {
@@ -46,8 +47,8 @@ internal class BatchUpdateTest(private val db: Db) {
             }
         })
 
-        val sql = "select * from address where address_id in (1,2,3)"
-        val addressList = db.query<Address>(sql)
+        val t = template<Address>("select * from address where address_id in (1,2,3)")
+        val addressList = db.query(t)
         val list = db.batchUpdate(addressList)
         Assertions.assertEquals(
             listOf(
@@ -56,7 +57,7 @@ internal class BatchUpdateTest(private val db: Db) {
                 Address(3, "*STREET 3*", 2)
             ), list
         )
-        val list2 = db.query<Address>(sql)
+        val list2 = db.query(t)
         Assertions.assertEquals(
             listOf(
                 Address(1, "*STREET 1", 2),
@@ -89,8 +90,8 @@ internal class BatchUpdateTest(private val db: Db) {
                 })
         )
 
-        val sql = "select * from address where address_id in (1,2,3)"
-        val addressList = db.query<Address>(sql)
+        val sql = template<Address>("select * from address where address_id in (1,2,3)")
+        val addressList = db.query(sql)
         val list = db.batchUpdate(addressList)
         Assertions.assertEquals(
             listOf(
@@ -117,10 +118,10 @@ internal class BatchUpdateTest(private val db: Db) {
             Person(3, "C")
         )
         db.batchInsert(personList)
-        db.query<Person>("select /*%expand*/* from person").let {
+        db.query<Person>(template("select /*%expand*/* from person")).let {
             db.batchUpdate(it)
         }
-        val list = db.query<Person>("select /*%expand*/* from person")
+        val list = db.query<Person>(template("select /*%expand*/* from person"))
         Assertions.assertTrue(list.all { it.updatedAt > LocalDateTime.MIN })
     }
 

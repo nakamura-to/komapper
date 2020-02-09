@@ -3,10 +3,12 @@ package example
 import java.time.LocalDateTime
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
+import org.komapper.core.criteria.select
 import org.komapper.core.jdbc.SimpleDataSource
 import org.komapper.core.metadata.CollectedMetadataResolver
 import org.komapper.core.metadata.SequenceGenerator
 import org.komapper.core.metadata.entity
+import org.komapper.core.sql.template
 import org.komapper.jdbc.h2.H2Dialect
 
 // entity
@@ -31,6 +33,7 @@ val addressMetadata =
     }
 
 fun main() {
+    // create Db instance
     val db = Db(
         object : DbConfig() {
             // dataSource for H2
@@ -58,48 +61,44 @@ fun main() {
         )
     }
 
-    // execute simple CRUD operations
+    // execute simple CRUD operations as a transaction
     db.transaction {
-        // insert into address (address_id, street, created_at, updated_at, version) values (1, 'street A', '2019-09-07T17:24:25.729', null, 0)
+        // CREATE
         val addressA = db.insert(Address(street = "street A"))
-
-        // Address(id=1, street=street A, createdAt=2019-09-07T17:24:25.729, updatedAt=null, version=0)
         println(addressA)
 
-        // select address_id, street, created_at, updated_at, version from address where address_id = 1
+        // READ: select by identifier
         val foundA = db.findById<Address>(1)
-
         assert(addressA == foundA)
 
-        // update address set street = 'street B', created_at = '2019-09-07T17:24:25.729', updated_at = '2019-09-07T17:24:25.816', version = 1 where address_id = 1 and version = 0
+        // UPDATE
         val addressB = db.update(addressA.copy(street = "street B"))
-
-        // Address(id=1, street=street B, createdAt=2019-09-07T17:24:25.729, updatedAt=2019-09-07T17:24:25.816, version=1)
         println(addressB)
 
-        // select t0_.address_id, t0_.street, t0_.created_at, t0_.updated_at, t0_.version from address t0_ where t0_.street = 'street B'
-        val foundB1 = db.select<Address> {
+        // READ: select by criteria query
+        val criteriaQuery = select<Address> {
             where {
                 eq(Address::street, "street B")
             }
-        }.first()
+        }
+        val foundB1 = db.select(criteriaQuery).first()
+        assert(addressB == foundB1)
 
-        // select address_id, street, created_at, updated_at, version from Address where street = 'street B'
-        val foundB2 = db.query<Address>(
+        // READ: select by template query
+        val templateQuery = template<Address>(
             "select /*%expand*/* from Address where street = /*street*/'test'",
             object {
                 val street = "street B"
             }
-        ).first()
+        )
+        val foundB2 = db.query(templateQuery).first()
+        assert(addressB == foundB2)
 
-        assert(addressB == foundB1 && foundB1 == foundB2)
-
-        // delete from address where address_id = 1 and version = 1
+        // DELETE
         db.delete(addressB)
 
-        // select t0_.address_id, t0_.street, t0_.created_at, t0_.updated_at, t0_.version from address t0_
+        // READ: select by criteria query
         val addressList = db.select<Address>()
-
         assert(addressList.isEmpty())
     }
 }

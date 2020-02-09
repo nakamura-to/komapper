@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.komapper.core.Db
+import org.komapper.core.sql.template
 
 @ExtendWith(Env::class)
 internal class DryRunTest(private val db: Db) {
@@ -31,37 +32,41 @@ internal class DryRunTest(private val db: Db) {
 
     @Test
     fun query() {
-        val (sql) = db.dryRun.query<Address>("select * from address")
+        val (sql) = db.dryRun.query<Address>(template("select * from address"))
         println(sql)
     }
 
     @Test
     fun paginate() {
-        val (sql) = db.dryRun.paginate<Address>("select * from address", limit = 3, offset = 5)
+        val (sql) = db.dryRun.paginate<Address>(template("select * from address"), limit = 3, offset = 5)
         println(sql)
     }
 
     @Test
     fun queryOneColumn() {
-        val sql = db.dryRun.queryOneColumn("select street from address")
+        val t = template<String>("select street from address")
+        val sql = db.dryRun.queryOneColumn(t)
         println(sql)
     }
 
     @Test
     fun queryTwoColumns() {
-        val sql = db.dryRun.queryTwoColumns("select address_id, street from address")
+        val t = template<Pair<Int, String>>("select address_id, street from address")
+        val sql = db.dryRun.queryTwoColumns(t)
         println(sql)
     }
 
     @Test
     fun queryThreeColumns() {
-        val sql = db.dryRun.queryThreeColumns("select address_id, street, version from address")
+        val t = template<Triple<Int, String, Int>>("select address_id, street, version from address")
+        val sql = db.dryRun.queryThreeColumns(t)
         println(sql)
     }
 
     @Test
     fun delete() {
-        val address = db.query<Address>("select * from address where address_id = 15").first()
+        val t = template<Address>("select * from address where address_id = 15")
+        val address = db.query(t).first()
         val (sql) = db.dryRun.delete(address)
         println(sql)
     }
@@ -78,7 +83,8 @@ internal class DryRunTest(private val db: Db) {
 
     @Test
     fun update() {
-        val address = db.query<Address>("select * from address where address_id = 15").first()
+        val t = template<Address>("select * from address where address_id = 15")
+        val address = db.query(t).first()
         val newAddress = address.copy(street = "NY street")
         val (sql) = db.dryRun.update(newAddress)
         println(sql)

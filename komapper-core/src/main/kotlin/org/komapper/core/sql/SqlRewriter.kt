@@ -1,29 +1,29 @@
 package org.komapper.core.sql
 
 interface SqlRewriter {
-    fun rewriteForPagination(template: CharSequence, limit: Int?, offset: Int?): CharSequence
-    fun rewriteForCount(template: CharSequence): CharSequence
+    fun <T : Any?> rewriteForPagination(template: Template<T>, limit: Int?, offset: Int?): Template<T>
+    fun rewriteForCount(template: Template<*>): Template<Int>
 }
 
 open class DefaultSqlRewriter : SqlRewriter {
 
-    override fun rewriteForPagination(template: CharSequence, limit: Int?, offset: Int?): CharSequence {
-        val buf = StringBuilder(template.length + 32)
-        buf.append(template)
+    override fun <T : Any?> rewriteForPagination(template: Template<T>, limit: Int?, offset: Int?): Template<T> {
+        val buf = StringBuilder(template.sql.length + 32)
+        buf.append(template.sql)
         if (limit != null) {
             buf.append(" limit ").append(limit)
         }
         if (offset != null) {
             buf.append(" offset ").append(offset)
         }
-        return buf
+        return template.copy(sql = buf)
     }
 
-    override fun rewriteForCount(template: CharSequence): CharSequence {
-        val buf = StringBuilder(template.length + 32)
-        buf.append(template)
+    override fun rewriteForCount(template: Template<*>): Template<Int> {
+        val buf = StringBuilder(template.sql.length + 32)
+        buf.append(template.sql)
         buf.insert(0, "select count(*) from (")
         buf.append(") t_")
-        return buf
+        return template(buf, template.args)
     }
 }

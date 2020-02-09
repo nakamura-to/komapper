@@ -10,6 +10,7 @@ import org.komapper.core.OptimisticLockException
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityListener
 import org.komapper.core.desc.GlobalEntityListener
+import org.komapper.core.sql.template
 
 @ExtendWith(Env::class)
 internal class BatchDeleteTest(private val db: Db) {
@@ -22,17 +23,13 @@ internal class BatchDeleteTest(private val db: Db) {
             Address(18, "STREET 18", 0)
         )
         db.batchInsert(addressList)
-        val sql = "select * from address where address_id in (16, 17, 18)"
+        val sql = template<Address>("select * from address where address_id in (16, 17, 18)")
         Assertions.assertEquals(
             addressList,
-            db.query<Address>(sql)
+            db.query(sql)
         )
         db.batchDelete(addressList)
-        Assertions.assertTrue(
-            db.query<Address>(
-                sql
-            ).isEmpty()
-        )
+        Assertions.assertTrue(db.query<Address>(sql).isEmpty())
     }
 
     @Test
@@ -71,10 +68,10 @@ internal class BatchDeleteTest(private val db: Db) {
             Address(18, "STREET 18", 0)
         )
         db.batchInsert(addressList)
-        val sql = "select * from address where address_id in (16, 17, 18)"
+        val sql = template<Address>("select * from address where address_id in (16, 17, 18)")
         Assertions.assertEquals(
             addressList,
-            db.query<Address>(sql)
+            db.query(sql)
         )
         val list = db.batchDelete(addressList)
         Assertions.assertEquals(
@@ -120,10 +117,10 @@ internal class BatchDeleteTest(private val db: Db) {
             Address(18, "STREET 18", 0)
         )
         db.batchInsert(addressList)
-        val sql = "select * from address where address_id in (16, 17, 18)"
+        val sql = template<Address>("select * from address where address_id in (16, 17, 18)")
         Assertions.assertEquals(
             addressList,
-            db.query<Address>(sql)
+            db.query(sql)
         )
         val list = db.batchDelete(addressList)
         Assertions.assertEquals(

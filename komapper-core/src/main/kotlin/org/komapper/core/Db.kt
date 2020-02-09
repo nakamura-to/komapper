@@ -24,6 +24,8 @@ import org.komapper.core.criteria.SelectScope
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.PropDesc
 import org.komapper.core.sql.Sql
+import org.komapper.core.sql.Template
+import org.komapper.core.sql.template
 import org.komapper.core.tx.TransactionScope
 import org.komapper.core.value.Value
 
@@ -105,15 +107,13 @@ class Db(val config: DbConfig) {
      *
      * @param T the entity type
      * @param template the SQL template
-     * @param condition the parameter object for the SQL template
      * @return the queried entities
      */
     inline fun <reified T : Any> query(
-        template: CharSequence,
-        condition: Any? = null
+        template: Template<T>
     ): List<T> {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        return query(template, condition, Sequence<T>::toList)
+        return query(template, Sequence<T>::toList)
     }
 
     /**
@@ -121,17 +121,15 @@ class Db(val config: DbConfig) {
      *
      * @param T the entity type
      * @param template the SQL template
-     * @param condition the parameter object for the SQL template
      * @param block the processor
      * @return the processed result
      */
     inline fun <reified T : Any, R> query(
-        template: CharSequence,
-        condition: Any? = null,
+        template: Template<T>,
         block: (Sequence<T>) -> R
     ): R {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        val (sql, desc) = dryRun.query<T>(template, condition)
+        val (sql, desc) = dryRun.query(template)
         return `access$streamEntity`(sql, desc).use { stream ->
             block(stream.asSequence())
         }
@@ -142,29 +140,25 @@ class Db(val config: DbConfig) {
      *
      * @param T the column type
      * @param template the SQL template
-     * @param condition the parameter object for the SQL template
      * @return the queried column values
      */
     inline fun <reified T : Any?> queryOneColumn(
-        template: CharSequence,
-        condition: Any? = null
-    ): List<T> = queryOneColumn(template, condition, Sequence<T>::toList)
+        template: Template<T>
+    ): List<T> = queryOneColumn(template, Sequence<T>::toList)
 
     /**
      * Queries one column by the SQL template and process them as sequence.
      *
      * @param T the column type
      * @param template the SQL template
-     * @param condition the parameter object for the SQL template
      * @param block the processor
      * @return the processed result
      */
     inline fun <reified T : Any?, R> queryOneColumn(
-        template: CharSequence,
-        condition: Any? = null,
+        template: Template<T>,
         block: (Sequence<T>) -> R
     ): R {
-        val sql = dryRun.queryOneColumn(template, condition)
+        val sql = dryRun.queryOneColumn(template)
         return `access$streamOneColumn`<T>(sql, T::class).use { stream ->
             block(stream.asSequence())
         }
@@ -176,13 +170,11 @@ class Db(val config: DbConfig) {
      * @param A the first column type
      * @param B the second column type
      * @param template the SQL template
-     * @param condition the parameter object for the SQL template
      * @return the queried column values
      */
     inline fun <reified A : Any?, reified B : Any?> queryTwoColumns(
-        template: CharSequence,
-        condition: Any? = null
-    ): List<Pair<A, B>> = queryTwoColumns(template, condition, Sequence<Pair<A, B>>::toList)
+        template: Template<Pair<A, B>>
+    ): List<Pair<A, B>> = queryTwoColumns(template, Sequence<Pair<A, B>>::toList)
 
     /**
      * Queries two column by the SQL template and process them as sequence.
@@ -190,16 +182,14 @@ class Db(val config: DbConfig) {
      * @param A the first column type
      * @param B the second column type
      * @param template the SQL template
-     * @param condition the parameter object for the SQL template
      * @param block the processor
      * @return the processed result
      */
     inline fun <reified A : Any?, reified B : Any?, R> queryTwoColumns(
-        template: CharSequence,
-        condition: Any? = null,
+        template: Template<Pair<A, B>>,
         block: (Sequence<Pair<A, B>>) -> R
     ): R {
-        val sql = dryRun.queryTwoColumns(template, condition)
+        val sql = dryRun.queryTwoColumns(template)
         return `access$streamTwoColumns`<A, B>(sql, A::class, B::class).use { stream ->
             block(stream.asSequence())
         }
@@ -212,13 +202,11 @@ class Db(val config: DbConfig) {
      * @param B the second column type
      * @param C the third column type
      * @param template the SQL template
-     * @param condition the parameter object for the SQL template
      * @return the queried column values
      */
     inline fun <reified A : Any?, reified B : Any?, reified C : Any?> queryThreeColumns(
-        template: CharSequence,
-        condition: Any? = null
-    ): List<Triple<A, B, C>> = queryThreeColumns(template, condition, Sequence<Triple<A, B, C>>::toList)
+        template: Template<Triple<A, B, C>>
+    ): List<Triple<A, B, C>> = queryThreeColumns(template, Sequence<Triple<A, B, C>>::toList)
 
     /**
      * Queries three column by the SQL template and process them as sequence.
@@ -227,16 +215,14 @@ class Db(val config: DbConfig) {
      * @param B the second column type
      * @param C the third column type
      * @param template the SQL template
-     * @param condition the parameter object for the SQL template
      * @param block the processor
      * @return the processed result
      */
     inline fun <reified A : Any?, reified B : Any?, reified C : Any?, R> queryThreeColumns(
-        template: CharSequence,
-        condition: Any? = null,
+        template: Template<Triple<A, B, C>>,
         block: (Sequence<Triple<A, B, C>>) -> R
     ): R {
-        val sql = dryRun.queryThreeColumns(template, condition)
+        val sql = dryRun.queryThreeColumns(template)
         return `access$streamThreeColumns`<A, B, C>(sql, A::class, B::class, C::class).use { stream ->
             block(stream.asSequence())
         }
@@ -247,22 +233,20 @@ class Db(val config: DbConfig) {
      *
      * @param T the entity type
      * @param template the SQL template
-     * @param condition the parameter object for the SQL template
      * @param limit the limit
      * @param offset the offset
      * @return the queried entities and the count of all entities
      */
     inline fun <reified T : Any> paginate(
-        template: CharSequence,
-        condition: Any? = null,
+        template: Template<T>,
         limit: Int?,
         offset: Int?
     ): Pair<List<T>, Int> {
         require(T::class.isData) { "The type parameter T must be a data class." }
         val paginationTemplate = config.sqlRewriter.rewriteForPagination(template, limit, offset)
         val countTemplate = config.sqlRewriter.rewriteForCount(template)
-        val list = query<T>(paginationTemplate, condition)
-        val count = queryOneColumn<Int>(countTemplate, condition).first()
+        val list = query(paginationTemplate)
+        val count = queryOneColumn(countTemplate).first()
         return list to count
     }
 
@@ -396,7 +380,8 @@ class Db(val config: DbConfig) {
     inline fun <reified T : Any> insert(entity: T, option: InsertOption = InsertOption()): T {
         require(T::class.isData) { "The type parameter T must be a data class." }
         val (sql, desc, newEntity) = dryRun.insert(entity, option) { sequenceName ->
-            queryOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
+            val t = template<Long>(config.dialect.getSequenceSql(sequenceName))
+            queryOneColumn(t).first()
         }
         return `access$executeUpdate`(sql, false) { count ->
             check(count == 1)
@@ -483,7 +468,8 @@ class Db(val config: DbConfig) {
             insertOption = insertOption,
             updateOption = updateOption,
             callNextValue = { sequenceName ->
-                queryOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
+                val t = template<Long>(config.dialect.getSequenceSql(sequenceName))
+                queryOneColumn(t).first()
             }
         )
         return `access$executeUpdate`(sql, !updateOption.ignoreVersion && desc.version != null) {
@@ -531,7 +517,8 @@ class Db(val config: DbConfig) {
         require(T::class.isData) { "The type parameter T must be a data class." }
         if (entities.isEmpty()) return entities
         val (sqls, desc, newEntities) = dryRun.batchInsert(entities, option) { sequenceName ->
-            queryOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
+            val t = template<Long>(config.dialect.getSequenceSql(sequenceName))
+            queryOneColumn(t).first()
         }
         return `access$executeBatch`(sqls, false) { counts ->
             check(counts.all { it == 1 })
@@ -626,7 +613,8 @@ class Db(val config: DbConfig) {
             insertOption = insertOption,
             updateOption = updateOption,
             callNextValue = { sequenceName ->
-                queryOneColumn<Long>(config.dialect.getSequenceSql(sequenceName)).first()
+                val t = template<Long>(config.dialect.getSequenceSql(sequenceName))
+                queryOneColumn(t).first()
             }
         )
         return `access$executeBatch`(sqls, !updateOption.ignoreVersion && desc.version != null) {
@@ -682,12 +670,11 @@ class Db(val config: DbConfig) {
      * Executes the given SQL statement, which may be an INSERT, UPDATE, or DELETE statement.
      *
      * @param template the SQL template
-     * @param condition the parameter object for the SQL template
      * @return the row count for SQL Data Manipulation Language (DML) statements
      */
-    fun executeUpdate(template: CharSequence, condition: Any? = null): Int {
-        val ctx = config.objectDescFactory.toMap(condition)
-        val sql = config.sqlBuilder.build(template, ctx)
+    fun executeUpdate(template: Template<Int>): Int {
+        val ctx = config.objectDescFactory.toMap(template.args)
+        val sql = config.sqlBuilder.build(template.sql, ctx)
         return executeUpdate(sql, false) { it }
     }
 
@@ -864,17 +851,15 @@ class Db(val config: DbConfig) {
          *
          * @param T the entity type
          * @param template the SQL template
-         * @param condition the parameter object for the SQL template
          * @return the SQL and the metadata
          */
         inline fun <reified T : Any> query(
-            template: CharSequence,
-            condition: Any? = null
+            template: Template<T>
         ): Pair<Sql, EntityDesc<T>> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
-            val ctx = config.objectDescFactory.toMap(condition)
-            val sql = config.sqlBuilder.build(template, ctx, desc.expander)
+            val ctx = config.objectDescFactory.toMap(template.args)
+            val sql = config.sqlBuilder.build(template.sql, ctx, desc.expander)
             return sql to desc
         }
 
@@ -882,45 +867,39 @@ class Db(val config: DbConfig) {
          * Returns the result of a dry run for [Db.queryOneColumn].
          *
          * @param template the SQL template
-         * @param condition the parameter object for the SQL template
          * @return the SQL
          */
-        fun queryOneColumn(
-            template: CharSequence,
-            condition: Any? = null
+        fun <T : Any?> queryOneColumn(
+            template: Template<T>
         ): Sql {
-            val ctx = config.objectDescFactory.toMap(condition)
-            return config.sqlBuilder.build(template, ctx)
+            val ctx = config.objectDescFactory.toMap(template.args)
+            return config.sqlBuilder.build(template.sql, ctx)
         }
 
         /**
          * Returns the result of a dry run for [Db.queryTwoColumns].
          *
          * @param template the SQL template
-         * @param condition the parameter object for the SQL template
          * @return the SQL
          */
-        fun queryTwoColumns(
-            template: CharSequence,
-            condition: Any? = null
+        fun <A, B> queryTwoColumns(
+            template: Template<Pair<A, B>>
         ): Sql {
-            val ctx = config.objectDescFactory.toMap(condition)
-            return config.sqlBuilder.build(template, ctx)
+            val ctx = config.objectDescFactory.toMap(template.args)
+            return config.sqlBuilder.build(template.sql, ctx)
         }
 
         /**
          * Returns the result of a dry run for [Db.queryThreeColumns].
          *
          * @param template the SQL template
-         * @param condition the parameter object for the SQL template
          * @return the SQL
          */
-        fun queryThreeColumns(
-            template: CharSequence,
-            condition: Any? = null
+        fun <A, B, C> queryThreeColumns(
+            template: Template<Triple<A, B, C>>
         ): Sql {
-            val ctx = config.objectDescFactory.toMap(condition)
-            return config.sqlBuilder.build(template, ctx)
+            val ctx = config.objectDescFactory.toMap(template.args)
+            return config.sqlBuilder.build(template.sql, ctx)
         }
 
         /**
@@ -928,22 +907,20 @@ class Db(val config: DbConfig) {
          *
          * @param T the entity type
          * @param template the SQL template
-         * @param condition the parameter object for the SQL template
          * @param limit the limit
          * @param offset the offset
          * @return the pagination SQL, the metadata and the count SQL
          */
         inline fun <reified T : Any> paginate(
-            template: CharSequence,
-            condition: Any? = null,
+            template: Template<T>,
             limit: Int?,
             offset: Int?
         ): Triple<Sql, EntityDesc<T>, Sql> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val paginationTemplate = config.sqlRewriter.rewriteForPagination(template, limit, offset)
             val countTemplate = config.sqlRewriter.rewriteForCount(template)
-            val (sql, desc) = query<T>(paginationTemplate, condition)
-            val countSql = queryOneColumn(countTemplate, condition)
+            val (sql, desc) = query(paginationTemplate)
+            val countSql = queryOneColumn(countTemplate)
             return Triple(sql, desc, countSql)
         }
 

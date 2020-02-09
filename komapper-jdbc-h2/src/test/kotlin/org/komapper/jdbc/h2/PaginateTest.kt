@@ -4,13 +4,15 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.komapper.core.Db
+import org.komapper.core.sql.template
 
 @ExtendWith(Env::class)
 class PaginateTest(private val db: Db) {
 
     @Test
     fun test() {
-        val (list, count) = db.paginate<Address>("select * from address", limit = 3, offset = 5)
+        val t = template<Address>("select * from address")
+        val (list, count) = db.paginate<Address>(t, limit = 3, offset = 5)
         Assertions.assertEquals(3, list.size)
         Assertions.assertEquals(
             Address(

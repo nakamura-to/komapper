@@ -12,6 +12,7 @@ import org.komapper.core.UniqueConstraintException
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityListener
 import org.komapper.core.desc.GlobalEntityListener
+import org.komapper.core.sql.template
 
 @ExtendWith(Env::class)
 internal class InsertTest(private val db: Db) {
@@ -19,7 +20,8 @@ internal class InsertTest(private val db: Db) {
     fun test() {
         val address = Address(16, "STREET 16", 0)
         db.insert(address)
-        val address2 = db.query<Address>("select * from address where address_id = 16").firstOrNull()
+        val t = template<Address>("select * from address where address_id = 16")
+        val address2 = db.query(t).firstOrNull()
         Assertions.assertEquals(address, address2)
     }
 
@@ -62,7 +64,8 @@ internal class InsertTest(private val db: Db) {
                 0
             ), address2
         )
-        val address3 = db.query<Address>("select * from address where address_id = 16").firstOrNull()
+        val t = template<Address>("select * from address where address_id = 16")
+        val address3 = db.query(t).firstOrNull()
         Assertions.assertEquals(
             Address(
                 16,
@@ -104,7 +107,8 @@ internal class InsertTest(private val db: Db) {
                 0
             ), address2
         )
-        val address3 = db.query<Address>("select * from address where address_id = 16").firstOrNull()
+        val t = template<Address>("select * from address where address_id = 16")
+        val address3 = db.query(t).firstOrNull()
         Assertions.assertEquals(
             Address(
                 16,

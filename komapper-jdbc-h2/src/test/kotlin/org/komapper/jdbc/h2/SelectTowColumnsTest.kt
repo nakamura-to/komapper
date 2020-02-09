@@ -4,13 +4,15 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.komapper.core.Db
+import org.komapper.core.sql.template
 
 @ExtendWith(Env::class)
 internal class SelectTowColumnsTest(private val db: Db) {
 
     @Test
     fun test() {
-        val list = db.queryTwoColumns<Int, String>("select address_id, street from address")
+        val t = template<Pair<Int, String>>("select address_id, street from address")
+        val list = db.queryTwoColumns(t)
         Assertions.assertEquals(15, list.size)
         Assertions.assertEquals(1, list[0].first)
         Assertions.assertEquals("STREET 1", list[0].second)
@@ -18,9 +20,8 @@ internal class SelectTowColumnsTest(private val db: Db) {
 
     @Test
     fun sequence() {
-        val list = db.queryTwoColumns<Int, String?, List<Pair<Int, String?>>>(
-            "select address_id, street from address"
-        ) { it.toList() }
+        val t = template<Pair<Int, String?>>("select address_id, street from address")
+        val list = db.queryTwoColumns(t) { it.toList() }
         Assertions.assertEquals(15, list.size)
         Assertions.assertEquals(1, list[0].first)
         Assertions.assertEquals("STREET 1", list[0].second)

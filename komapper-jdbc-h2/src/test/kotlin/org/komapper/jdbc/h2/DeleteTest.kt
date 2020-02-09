@@ -12,16 +12,17 @@ import org.komapper.core.OptimisticLockException
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityListener
 import org.komapper.core.desc.GlobalEntityListener
+import org.komapper.core.sql.template
 
 @ExtendWith(Env::class)
 internal class DeleteTest(private val db: Db) {
 
     @Test
     fun test() {
-        val sql = "select * from address where address_id = 15"
-        val address = db.query<Address>(sql).first()
+        val sql = template<Address>("select * from address where address_id = 15")
+        val address = db.query(sql).first()
         db.delete(address)
-        val address2 = db.query<Address>(sql).firstOrNull()
+        val address2 = db.query(sql).firstOrNull()
         Assertions.assertNull(address2)
     }
 
@@ -58,8 +59,8 @@ internal class DeleteTest(private val db: Db) {
             }
         )
 
-        val sql = "select * from address where address_id = 15"
-        val address = db.query<Address>(sql).first()
+        val sql = template<Address>("select * from address where address_id = 15")
+        val address = db.query(sql).first()
         val address2 = db.delete(address)
         Assertions.assertEquals(
             Address(
@@ -68,7 +69,7 @@ internal class DeleteTest(private val db: Db) {
                 1
             ), address2
         )
-        val address3 = db.query<Address>(sql).firstOrNull()
+        val address3 = db.query(sql).firstOrNull()
         Assertions.assertNull(address3)
     }
 
@@ -95,8 +96,8 @@ internal class DeleteTest(private val db: Db) {
                 })
         )
 
-        val sql = "select * from address where address_id = 15"
-        val address = db.query<Address>(sql).first()
+        val sql = template<Address>("select * from address where address_id = 15")
+        val address = db.query(sql).first()
         val address2 = db.delete(address)
         Assertions.assertEquals(
             Address(
@@ -105,14 +106,14 @@ internal class DeleteTest(private val db: Db) {
                 1
             ), address2
         )
-        val address3 = db.query<Address>(sql).firstOrNull()
+        val address3 = db.query(sql).firstOrNull()
         Assertions.assertNull(address3)
     }
 
     @Test
     fun optimisticLockException() {
-        val sql = "select * from address where address_id = 15"
-        val address = db.query<Address>(sql).first()
+        val sql = template<Address>("select * from address where address_id = 15")
+        val address = db.query(sql).first()
         db.delete(address)
         assertThrows<OptimisticLockException> {
             db.delete(

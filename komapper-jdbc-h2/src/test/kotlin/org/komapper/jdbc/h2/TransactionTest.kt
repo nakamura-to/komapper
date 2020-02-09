@@ -24,6 +24,7 @@ import org.komapper.core.metadata.IdMeta
 import org.komapper.core.metadata.Metadata
 import org.komapper.core.metadata.MetadataResolver
 import org.komapper.core.metadata.entity
+import org.komapper.core.sql.template
 import org.komapper.core.tx.TransactionIsolationLevel
 
 internal class TransactionTest {
@@ -94,7 +95,7 @@ internal class TransactionTest {
     @Test
     fun select() {
         val list = db.transaction.required {
-            db.query<Address>("select * from address")
+            db.query<Address>(template("select * from address"))
         }
         assertEquals(15, list.size)
         assertEquals(Address(1, "STREET 1", 1), list[0])
@@ -102,121 +103,121 @@ internal class TransactionTest {
 
     @Test
     fun commit() {
-        val sql = "select * from address where address_id = 15"
+        val sql = template<Address>("select * from address where address_id = 15")
         db.transaction.required {
-            val address = db.query<Address>(sql).first()
+            val address = db.query(sql).first()
             db.delete(address)
         }
         db.transaction.required {
-            val address = db.query<Address>(sql).firstOrNull()
+            val address = db.query(sql).firstOrNull()
             assertNull(address)
         }
     }
 
     @Test
     fun rollback() {
-        val sql = "select * from address where address_id = 15"
+        val sql = template<Address>("select * from address where address_id = 15")
         try {
             db.transaction.required {
-                val address = db.query<Address>(sql).first()
+                val address = db.query(sql).first()
                 db.delete(address)
                 throw Exception()
             }
         } catch (ignored: Exception) {
         }
         db.transaction.required {
-            val address = db.query<Address>(sql).first()
+            val address = db.query(sql).first()
             assertNotNull(address)
         }
     }
 
     @Test
     fun setRollbackOnly() {
-        val sql = "select * from address where address_id = 15"
+        val sql = template<Address>("select * from address where address_id = 15")
         db.transaction.required {
-            val address = db.query<Address>(sql).first()
+            val address = db.query(sql).first()
             db.delete(address)
             assertFalse(isRollbackOnly())
             setRollbackOnly()
             assertTrue(isRollbackOnly())
         }
         db.transaction.required {
-            val address = db.query<Address>(sql).first()
+            val address = db.query(sql).first()
             assertNotNull(address)
         }
     }
 
     @Test
     fun isolationLevel() {
-        val sql = "select * from address where address_id = 15"
+        val t = template<Address>("select * from address where address_id = 15")
         db.transaction.required(TransactionIsolationLevel.SERIALIZABLE) {
-            val address = db.query<Address>(sql).first()
+            val address = db.query(t).first()
             db.delete(address)
         }
         db.transaction.required {
-            val address = db.query<Address>(sql).firstOrNull()
+            val address = db.query(t).firstOrNull()
             assertNull(address)
         }
     }
 
     @Test
     fun required_required() {
-        val sql = "select * from address where address_id = 15"
+        val t = template<Address>("select * from address where address_id = 15")
         db.transaction.required {
-            val address = db.query<Address>(sql).first()
+            val address = db.query(t).first()
             db.delete(address)
             required {
-                val address2 = db.query<Address>(sql).firstOrNull()
+                val address2 = db.query<Address>(t).firstOrNull()
                 assertNull(address2)
             }
         }
         db.transaction.required {
-            val address = db.query<Address>(sql).firstOrNull()
+            val address = db.query(t).firstOrNull()
             assertNull(address)
         }
     }
 
     @Test
     fun requiresNew() {
-        val sql = "select * from address where address_id = 15"
+        val t = template<Address>("select * from address where address_id = 15")
         db.transaction.requiresNew {
-            val address = db.query<Address>(sql).first()
+            val address = db.query<Address>(t).first()
             db.delete(address)
-            val address2 = db.query<Address>(sql).firstOrNull()
+            val address2 = db.query<Address>(t).firstOrNull()
             assertNull(address2)
         }
         db.transaction.required {
-            val address = db.query<Address>(sql).firstOrNull()
+            val address = db.query<Address>(t).firstOrNull()
             assertNull(address)
         }
     }
 
     @Test
     fun required_requiresNew() {
-        val sql = "select * from address where address_id = 15"
+        val t = template<Address>("select * from address where address_id = 15")
         db.transaction.required {
-            val address = db.query<Address>(sql).first()
+            val address = db.query<Address>(t).first()
             db.delete(address)
             requiresNew {
-                val address2 = db.query<Address>(sql).firstOrNull()
+                val address2 = db.query<Address>(t).firstOrNull()
                 assertNotNull(address2)
             }
         }
         db.transaction.required {
-            val address = db.query<Address>(sql).firstOrNull()
+            val address = db.query<Address>(t).firstOrNull()
             assertNull(address)
         }
     }
 
     @Test
     fun invoke() {
-        val sql = "select * from address where address_id = 15"
+        val sql = template<Address>("select * from address where address_id = 15")
         db.transaction {
-            val address = db.query<Address>(sql).first()
+            val address = db.query(sql).first()
             db.delete(address)
         }
         db.transaction {
-            val address = db.query<Address>(sql).firstOrNull()
+            val address = db.query(sql).firstOrNull()
             assertNull(address)
         }
     }

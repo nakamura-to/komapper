@@ -4,13 +4,15 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.komapper.core.Db
+import org.komapper.core.sql.template
 
 @ExtendWith(Env::class)
 class SelectThreeColumnsTest(private val db: Db) {
 
     @Test
     fun test() {
-        val list = db.queryThreeColumns<Int, String, Int>("select address_id, street, version from address")
+        val t = template<Triple<Int, String, Int>>("select address_id, street, version from address")
+        val list = db.queryThreeColumns(t)
         Assertions.assertEquals(15, list.size)
         Assertions.assertEquals(15, list[14].first)
         Assertions.assertEquals("STREET 15", list[14].second)
@@ -19,9 +21,8 @@ class SelectThreeColumnsTest(private val db: Db) {
 
     @Test
     fun sequence() {
-        val list = db.queryThreeColumns<Int, String?, Int, List<Triple<Int, String?, Int>>>(
-            "select address_id, street, version from address"
-        ) { it.toList() }
+        val t = template<Triple<Int, String?, Int>>("select address_id, street, version from address")
+        val list = db.queryThreeColumns(t) { it.toList() }
         Assertions.assertEquals(15, list.size)
         Assertions.assertEquals(15, list[14].first)
         Assertions.assertEquals("STREET 15", list[14].second)

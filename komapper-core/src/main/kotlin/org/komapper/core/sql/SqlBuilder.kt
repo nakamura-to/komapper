@@ -7,7 +7,7 @@ import org.komapper.core.value.Value
 
 interface SqlBuilder {
     fun build(
-        template: CharSequence,
+        sql: CharSequence,
         ctx: Map<String, Value> = emptyMap(),
         expander: (String) -> List<String> = { emptyList() }
     ): Sql
@@ -23,8 +23,8 @@ open class DefaultSqlBuilder(
         """^(select|from|where|group by|having|order by|for update|option)\s""", RegexOption.IGNORE_CASE
     )
 
-    override fun build(template: CharSequence, ctx: Map<String, Value>, expander: (String) -> List<String>): Sql {
-        val node = sqlNodeFactory.get(template)
+    override fun build(sql: CharSequence, ctx: Map<String, Value>, expander: (String) -> List<String>): Sql {
+        val node = sqlNodeFactory.get(sql)
         val state = visit(State(ctx, expander), node)
         return state.toSql()
     }
