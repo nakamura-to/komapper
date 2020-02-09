@@ -12,7 +12,7 @@ internal class SelectOneColumnTest(private val db: Db) {
     @Test
     fun test() {
         val t = template<String>("select street from address")
-        val list = db.queryOneColumn(t)
+        val list = db.selectOneColumn(t)
         Assertions.assertEquals(15, list.size)
         Assertions.assertEquals("STREET 1", list[0])
     }
@@ -20,7 +20,7 @@ internal class SelectOneColumnTest(private val db: Db) {
     @Test
     fun sequence() {
         val t = template<String?>("select street from address")
-        val list = db.queryOneColumn(t) { it.toList() }
+        val list = db.selectOneColumn(t) { it.toList() }
         Assertions.assertEquals(15, list.size)
         Assertions.assertEquals("STREET 1", list[0])
     }

@@ -48,7 +48,7 @@ internal class BatchUpdateTest(private val db: Db) {
         })
 
         val t = template<Address>("select * from address where address_id in (1,2,3)")
-        val addressList = db.query(t)
+        val addressList = db.select(t)
         val list = db.batchUpdate(addressList)
         Assertions.assertEquals(
             listOf(
@@ -57,7 +57,7 @@ internal class BatchUpdateTest(private val db: Db) {
                 Address(3, "*STREET 3*", 2)
             ), list
         )
-        val list2 = db.query(t)
+        val list2 = db.select(t)
         Assertions.assertEquals(
             listOf(
                 Address(1, "*STREET 1", 2),
@@ -91,7 +91,7 @@ internal class BatchUpdateTest(private val db: Db) {
         )
 
         val sql = template<Address>("select * from address where address_id in (1,2,3)")
-        val addressList = db.query(sql)
+        val addressList = db.select(sql)
         val list = db.batchUpdate(addressList)
         Assertions.assertEquals(
             listOf(
@@ -100,7 +100,7 @@ internal class BatchUpdateTest(private val db: Db) {
                 Address(3, "*STREET 3*", 2)
             ), list
         )
-        val list2 = db.query<Address>(sql)
+        val list2 = db.select<Address>(sql)
         Assertions.assertEquals(
             listOf(
                 Address(1, "*STREET 1", 2),
@@ -118,10 +118,10 @@ internal class BatchUpdateTest(private val db: Db) {
             Person(3, "C")
         )
         db.batchInsert(personList)
-        db.query<Person>(template("select /*%expand*/* from person")).let {
+        db.select<Person>(template("select /*%expand*/* from person")).let {
             db.batchUpdate(it)
         }
-        val list = db.query<Person>(template("select /*%expand*/* from person"))
+        val list = db.select<Person>(template("select /*%expand*/* from person"))
         Assertions.assertTrue(list.all { it.updatedAt > LocalDateTime.MIN })
     }
 

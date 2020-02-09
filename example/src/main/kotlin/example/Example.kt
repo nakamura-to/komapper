@@ -91,7 +91,7 @@ fun main() {
                 val street = "street B"
             }
         )
-        val foundB2 = db.query(templateQuery).first()
+        val foundB2 = db.select(templateQuery).first()
         assert(addressB == foundB2)
 
         // DELETE

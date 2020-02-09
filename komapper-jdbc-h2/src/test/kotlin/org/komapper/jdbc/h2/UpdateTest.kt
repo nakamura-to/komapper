@@ -21,10 +21,10 @@ internal class UpdateTest(private val db: Db) {
     @Test
     fun test() {
         val sql = template<Address>("select * from address where address_id = 15")
-        val address = db.query(sql).first()
+        val address = db.select(sql).first()
         val newAddress = address.copy(street = "NY street")
         db.update(newAddress)
-        val address2 = db.query(sql).firstOrNull()
+        val address2 = db.select(sql).firstOrNull()
         Assertions.assertEquals(
             Address(
                 15,
@@ -74,7 +74,7 @@ internal class UpdateTest(private val db: Db) {
         })
 
         val t = template<Address>("select * from address where address_id = 15")
-        val address = db.query<Address>(t).first()
+        val address = db.select<Address>(t).first()
         val newAddress = address.copy(street = "NY street")
         val address2 = db.update(newAddress)
         Assertions.assertEquals(
@@ -84,7 +84,7 @@ internal class UpdateTest(private val db: Db) {
                 2
             ), address2
         )
-        val address3 = db.query(t).firstOrNull()
+        val address3 = db.select(t).firstOrNull()
         Assertions.assertEquals(
             Address(
                 15,
@@ -118,7 +118,7 @@ internal class UpdateTest(private val db: Db) {
         )
 
         val t = template<Address>("select * from address where address_id = 15")
-        val address = db.query(t).first()
+        val address = db.select(t).first()
         val newAddress = address.copy(street = "NY street")
         val address2 = db.update(newAddress)
         Assertions.assertEquals(
@@ -128,7 +128,7 @@ internal class UpdateTest(private val db: Db) {
                 2
             ), address2
         )
-        val address3 = db.query(t).firstOrNull()
+        val address3 = db.select(t).firstOrNull()
         Assertions.assertEquals(
             Address(
                 15,
@@ -151,7 +151,7 @@ internal class UpdateTest(private val db: Db) {
     @Test
     fun optimisticLockException() {
         val t = template<Address>("select * from address where address_id = 15")
-        val address = db.query(t).first()
+        val address = db.select(t).first()
         db.update(address)
         assertThrows<OptimisticLockException> {
             db.update(

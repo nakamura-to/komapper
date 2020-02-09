@@ -19,7 +19,7 @@ internal class ExecuteUpdateTest(private val db: Db) {
         val count = db.executeUpdate(updateAddress)
         Assertions.assertEquals(1, count)
         val selectAddress = template<Address>("select * from address where address_id = 15")
-        val address = db.query(selectAddress).firstOrNull()
+        val address = db.select(selectAddress).firstOrNull()
         Assertions.assertEquals(
             Address(
                 15,

@@ -12,7 +12,7 @@ internal class SelectTowColumnsTest(private val db: Db) {
     @Test
     fun test() {
         val t = template<Pair<Int, String>>("select address_id, street from address")
-        val list = db.queryTwoColumns(t)
+        val list = db.selectTwoColumns(t)
         Assertions.assertEquals(15, list.size)
         Assertions.assertEquals(1, list[0].first)
         Assertions.assertEquals("STREET 1", list[0].second)
@@ -21,7 +21,7 @@ internal class SelectTowColumnsTest(private val db: Db) {
     @Test
     fun sequence() {
         val t = template<Pair<Int, String?>>("select address_id, street from address")
-        val list = db.queryTwoColumns(t) { it.toList() }
+        val list = db.selectTwoColumns(t) { it.toList() }
         Assertions.assertEquals(15, list.size)
         Assertions.assertEquals(1, list[0].first)
         Assertions.assertEquals("STREET 1", list[0].second)

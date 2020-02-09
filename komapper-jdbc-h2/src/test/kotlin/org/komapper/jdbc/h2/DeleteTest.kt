@@ -20,9 +20,9 @@ internal class DeleteTest(private val db: Db) {
     @Test
     fun test() {
         val sql = template<Address>("select * from address where address_id = 15")
-        val address = db.query(sql).first()
+        val address = db.select(sql).first()
         db.delete(address)
-        val address2 = db.query(sql).firstOrNull()
+        val address2 = db.select(sql).firstOrNull()
         Assertions.assertNull(address2)
     }
 
@@ -60,7 +60,7 @@ internal class DeleteTest(private val db: Db) {
         )
 
         val sql = template<Address>("select * from address where address_id = 15")
-        val address = db.query(sql).first()
+        val address = db.select(sql).first()
         val address2 = db.delete(address)
         Assertions.assertEquals(
             Address(
@@ -69,7 +69,7 @@ internal class DeleteTest(private val db: Db) {
                 1
             ), address2
         )
-        val address3 = db.query(sql).firstOrNull()
+        val address3 = db.select(sql).firstOrNull()
         Assertions.assertNull(address3)
     }
 
@@ -97,7 +97,7 @@ internal class DeleteTest(private val db: Db) {
         )
 
         val sql = template<Address>("select * from address where address_id = 15")
-        val address = db.query(sql).first()
+        val address = db.select(sql).first()
         val address2 = db.delete(address)
         Assertions.assertEquals(
             Address(
@@ -106,14 +106,14 @@ internal class DeleteTest(private val db: Db) {
                 1
             ), address2
         )
-        val address3 = db.query(sql).firstOrNull()
+        val address3 = db.select(sql).firstOrNull()
         Assertions.assertNull(address3)
     }
 
     @Test
     fun optimisticLockException() {
         val sql = template<Address>("select * from address where address_id = 15")
-        val address = db.query(sql).first()
+        val address = db.select(sql).first()
         db.delete(address)
         assertThrows<OptimisticLockException> {
             db.delete(

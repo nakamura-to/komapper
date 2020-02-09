@@ -7,7 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.komapper.core.Db
 
 @ExtendWith(Env::class)
-class SelectTest {
+class SelectByCriteriaTest {
 
     @Test
     fun test(db: Db) {

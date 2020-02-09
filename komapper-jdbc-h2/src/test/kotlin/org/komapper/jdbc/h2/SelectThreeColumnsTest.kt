@@ -12,7 +12,7 @@ class SelectThreeColumnsTest(private val db: Db) {
     @Test
     fun test() {
         val t = template<Triple<Int, String, Int>>("select address_id, street, version from address")
-        val list = db.queryThreeColumns(t)
+        val list = db.selectThreeColumns(t)
         Assertions.assertEquals(15, list.size)
         Assertions.assertEquals(15, list[14].first)
         Assertions.assertEquals("STREET 15", list[14].second)
@@ -22,7 +22,7 @@ class SelectThreeColumnsTest(private val db: Db) {
     @Test
     fun sequence() {
         val t = template<Triple<Int, String?, Int>>("select address_id, street, version from address")
-        val list = db.queryThreeColumns(t) { it.toList() }
+        val list = db.selectThreeColumns(t) { it.toList() }
         Assertions.assertEquals(15, list.size)
         Assertions.assertEquals(15, list[14].first)
         Assertions.assertEquals("STREET 15", list[14].second)

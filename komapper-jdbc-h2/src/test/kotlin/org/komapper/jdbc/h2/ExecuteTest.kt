@@ -18,7 +18,7 @@ internal class ExecuteTest(private val db: Db) {
             """.trimIndent()
         )
         val t = template<String>("select value from execute_table")
-        val value = db.queryOneColumn(t).firstOrNull()
+        val value = db.selectOneColumn(t).firstOrNull()
         Assertions.assertEquals("test", value)
     }
 }

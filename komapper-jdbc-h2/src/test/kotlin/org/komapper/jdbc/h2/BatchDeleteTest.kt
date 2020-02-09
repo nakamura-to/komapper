@@ -26,10 +26,10 @@ internal class BatchDeleteTest(private val db: Db) {
         val sql = template<Address>("select * from address where address_id in (16, 17, 18)")
         Assertions.assertEquals(
             addressList,
-            db.query(sql)
+            db.select(sql)
         )
         db.batchDelete(addressList)
-        Assertions.assertTrue(db.query<Address>(sql).isEmpty())
+        Assertions.assertTrue(db.select<Address>(sql).isEmpty())
     }
 
     @Test
@@ -71,7 +71,7 @@ internal class BatchDeleteTest(private val db: Db) {
         val sql = template<Address>("select * from address where address_id in (16, 17, 18)")
         Assertions.assertEquals(
             addressList,
-            db.query(sql)
+            db.select(sql)
         )
         val list = db.batchDelete(addressList)
         Assertions.assertEquals(
@@ -82,7 +82,7 @@ internal class BatchDeleteTest(private val db: Db) {
             ), list
         )
         Assertions.assertTrue(
-            db.query<Address>(
+            db.select<Address>(
                 sql
             ).isEmpty()
         )
@@ -120,7 +120,7 @@ internal class BatchDeleteTest(private val db: Db) {
         val sql = template<Address>("select * from address where address_id in (16, 17, 18)")
         Assertions.assertEquals(
             addressList,
-            db.query(sql)
+            db.select(sql)
         )
         val list = db.batchDelete(addressList)
         Assertions.assertEquals(
@@ -131,7 +131,7 @@ internal class BatchDeleteTest(private val db: Db) {
             ), list
         )
         Assertions.assertTrue(
-            db.query<Address>(
+            db.select<Address>(
                 sql
             ).isEmpty()
         )

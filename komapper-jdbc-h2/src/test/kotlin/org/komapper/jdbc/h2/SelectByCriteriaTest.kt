@@ -10,7 +10,7 @@ import org.komapper.core.criteria.plus
 import org.komapper.core.criteria.select
 
 @ExtendWith(Env::class)
-internal class SelectTest(private val db: Db) {
+internal class SelectByCriteriaTest(private val db: Db) {
 
     @Test
     fun test() {

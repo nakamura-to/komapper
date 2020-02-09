@@ -25,7 +25,7 @@ internal class BatchInsertTest(private val db: Db) {
         )
         db.batchInsert(addressList)
         val t = template<Address>("select * from address where address_id in (16, 17, 18)")
-        val list = db.query(t)
+        val list = db.select(t)
         Assertions.assertEquals(addressList, list)
     }
 
@@ -72,7 +72,7 @@ internal class BatchInsertTest(private val db: Db) {
                 Address(18, "*STREET 18*", 0)
             ), list
         )
-        val list2 = db.query<Address>(template("select * from address where address_id in (16, 17, 18)"))
+        val list2 = db.select<Address>(template("select * from address where address_id in (16, 17, 18)"))
         Assertions.assertEquals(
             listOf(
                 Address(16, "*STREET 16", 0),
@@ -118,7 +118,7 @@ internal class BatchInsertTest(private val db: Db) {
                 Address(18, "*STREET 18*", 0)
             ), list
         )
-        val list2 = db.query<Address>(template("select * from address where address_id in (16, 17, 18)"))
+        val list2 = db.select<Address>(template("select * from address where address_id in (16, 17, 18)"))
         Assertions.assertEquals(
             listOf(
                 Address(16, "*STREET 16", 0),
@@ -136,7 +136,7 @@ internal class BatchInsertTest(private val db: Db) {
             Person(3, "C")
         )
         db.batchInsert(personList)
-        val list = db.query<Person>(template("select /*%expand*/* from person"))
+        val list = db.select<Person>(template("select /*%expand*/* from person"))
         Assertions.assertTrue(list.all { it.createdAt > LocalDateTime.MIN })
     }
 

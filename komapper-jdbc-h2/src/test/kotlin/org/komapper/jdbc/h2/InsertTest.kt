@@ -21,7 +21,7 @@ internal class InsertTest(private val db: Db) {
         val address = Address(16, "STREET 16", 0)
         db.insert(address)
         val t = template<Address>("select * from address where address_id = 16")
-        val address2 = db.query(t).firstOrNull()
+        val address2 = db.select(t).firstOrNull()
         Assertions.assertEquals(address, address2)
     }
 
@@ -65,7 +65,7 @@ internal class InsertTest(private val db: Db) {
             ), address2
         )
         val t = template<Address>("select * from address where address_id = 16")
-        val address3 = db.query(t).firstOrNull()
+        val address3 = db.select(t).firstOrNull()
         Assertions.assertEquals(
             Address(
                 16,
@@ -108,7 +108,7 @@ internal class InsertTest(private val db: Db) {
             ), address2
         )
         val t = template<Address>("select * from address where address_id = 16")
-        val address3 = db.query(t).firstOrNull()
+        val address3 = db.select(t).firstOrNull()
         Assertions.assertEquals(
             Address(
                 16,

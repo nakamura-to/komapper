@@ -95,7 +95,7 @@ internal class TransactionTest {
     @Test
     fun select() {
         val list = db.transaction.required {
-            db.query<Address>(template("select * from address"))
+            db.select<Address>(template("select * from address"))
         }
         assertEquals(15, list.size)
         assertEquals(Address(1, "STREET 1", 1), list[0])
@@ -105,11 +105,11 @@ internal class TransactionTest {
     fun commit() {
         val sql = template<Address>("select * from address where address_id = 15")
         db.transaction.required {
-            val address = db.query(sql).first()
+            val address = db.select(sql).first()
             db.delete(address)
         }
         db.transaction.required {
-            val address = db.query(sql).firstOrNull()
+            val address = db.select(sql).firstOrNull()
             assertNull(address)
         }
     }
@@ -119,14 +119,14 @@ internal class TransactionTest {
         val sql = template<Address>("select * from address where address_id = 15")
         try {
             db.transaction.required {
-                val address = db.query(sql).first()
+                val address = db.select(sql).first()
                 db.delete(address)
                 throw Exception()
             }
         } catch (ignored: Exception) {
         }
         db.transaction.required {
-            val address = db.query(sql).first()
+            val address = db.select(sql).first()
             assertNotNull(address)
         }
     }
@@ -135,14 +135,14 @@ internal class TransactionTest {
     fun setRollbackOnly() {
         val sql = template<Address>("select * from address where address_id = 15")
         db.transaction.required {
-            val address = db.query(sql).first()
+            val address = db.select(sql).first()
             db.delete(address)
             assertFalse(isRollbackOnly())
             setRollbackOnly()
             assertTrue(isRollbackOnly())
         }
         db.transaction.required {
-            val address = db.query(sql).first()
+            val address = db.select(sql).first()
             assertNotNull(address)
         }
     }
@@ -151,11 +151,11 @@ internal class TransactionTest {
     fun isolationLevel() {
         val t = template<Address>("select * from address where address_id = 15")
         db.transaction.required(TransactionIsolationLevel.SERIALIZABLE) {
-            val address = db.query(t).first()
+            val address = db.select(t).first()
             db.delete(address)
         }
         db.transaction.required {
-            val address = db.query(t).firstOrNull()
+            val address = db.select(t).firstOrNull()
             assertNull(address)
         }
     }
@@ -164,15 +164,15 @@ internal class TransactionTest {
     fun required_required() {
         val t = template<Address>("select * from address where address_id = 15")
         db.transaction.required {
-            val address = db.query(t).first()
+            val address = db.select(t).first()
             db.delete(address)
             required {
-                val address2 = db.query<Address>(t).firstOrNull()
+                val address2 = db.select<Address>(t).firstOrNull()
                 assertNull(address2)
             }
         }
         db.transaction.required {
-            val address = db.query(t).firstOrNull()
+            val address = db.select(t).firstOrNull()
             assertNull(address)
         }
     }
@@ -181,13 +181,13 @@ internal class TransactionTest {
     fun requiresNew() {
         val t = template<Address>("select * from address where address_id = 15")
         db.transaction.requiresNew {
-            val address = db.query<Address>(t).first()
+            val address = db.select<Address>(t).first()
             db.delete(address)
-            val address2 = db.query<Address>(t).firstOrNull()
+            val address2 = db.select<Address>(t).firstOrNull()
             assertNull(address2)
         }
         db.transaction.required {
-            val address = db.query<Address>(t).firstOrNull()
+            val address = db.select<Address>(t).firstOrNull()
             assertNull(address)
         }
     }
@@ -196,15 +196,15 @@ internal class TransactionTest {
     fun required_requiresNew() {
         val t = template<Address>("select * from address where address_id = 15")
         db.transaction.required {
-            val address = db.query<Address>(t).first()
+            val address = db.select<Address>(t).first()
             db.delete(address)
             requiresNew {
-                val address2 = db.query<Address>(t).firstOrNull()
+                val address2 = db.select<Address>(t).firstOrNull()
                 assertNotNull(address2)
             }
         }
         db.transaction.required {
-            val address = db.query<Address>(t).firstOrNull()
+            val address = db.select<Address>(t).firstOrNull()
             assertNull(address)
         }
     }
@@ -213,11 +213,11 @@ internal class TransactionTest {
     fun invoke() {
         val sql = template<Address>("select * from address where address_id = 15")
         db.transaction {
-            val address = db.query(sql).first()
+            val address = db.select(sql).first()
             db.delete(address)
         }
         db.transaction {
-            val address = db.query(sql).firstOrNull()
+            val address = db.select(sql).firstOrNull()
             assertNull(address)
         }
     }

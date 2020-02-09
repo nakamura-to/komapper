@@ -7,12 +7,12 @@ import org.komapper.core.Db
 import org.komapper.core.sql.template
 
 @ExtendWith(Env::class)
-internal class QueryTest(private val db: Db) {
+internal class SelectByTemplateTest(private val db: Db) {
 
     @Test
     fun test() {
 
-        val list = db.query<Address>(template("select * from address"))
+        val list = db.select<Address>(template("select * from address"))
         Assertions.assertEquals(15, list.size)
         Assertions.assertEquals(
             Address(
@@ -26,7 +26,7 @@ internal class QueryTest(private val db: Db) {
     @Test
     fun expand() {
 
-        val list = db.query<Address>(template("select /*%expand*/* from address"))
+        val list = db.select<Address>(template("select /*%expand*/* from address"))
         Assertions.assertEquals(15, list.size)
         Assertions.assertEquals(
             Address(
@@ -40,7 +40,7 @@ internal class QueryTest(private val db: Db) {
     @Test
     fun sequence() {
 
-        val list = db.query<Address, List<Address>>(template("select * from address")) {
+        val list = db.select<Address, List<Address>>(template("select * from address")) {
             it.toList()
         }
         Assertions.assertEquals(15, list.size)
@@ -56,7 +56,7 @@ internal class QueryTest(private val db: Db) {
     @Test
     fun sequence_expand() {
         val t = template<Address>("select /*%expand*/* from address")
-        val list = db.query(t) { it.toList() }
+        val list = db.select(t) { it.toList() }
         Assertions.assertEquals(15, list.size)
         Assertions.assertEquals(
             Address(
@@ -72,7 +72,7 @@ internal class QueryTest(private val db: Db) {
         val t = template<Address>("select * from address where street = /*street*/'test'", object {
             val street = "STREET 10"
         })
-        val list = db.query(t)
+        val list = db.select(t)
         Assertions.assertEquals(1, list.size)
         Assertions.assertEquals(
             Address(
@@ -91,7 +91,7 @@ internal class QueryTest(private val db: Db) {
             "select * from address where street = /*street*/'test'",
             Condition("STREET 10")
         )
-        val list = db.query(t)
+        val list = db.select(t)
         Assertions.assertEquals(1, list.size)
         Assertions.assertEquals(
             Address(
@@ -110,7 +110,7 @@ internal class QueryTest(private val db: Db) {
             hiredate, salary, department_id, address_id, version from employee 
         """.trimIndent()
         )
-        val list = db.query(t)
+        val list = db.select(t)
         Assertions.assertEquals(14, list.size)
     }
 
@@ -122,7 +122,7 @@ internal class QueryTest(private val db: Db) {
             hiredate, salary, department_id, address_id, version from employee
             """.trimIndent()
         )
-        val list = db.query(t)
+        val list = db.select(t)
         Assertions.assertEquals(14, list.size)
     }
 
@@ -131,7 +131,7 @@ internal class QueryTest(private val db: Db) {
         val t = template<Address>("select * from address where address_id in /*list*/(0)", object {
             val list = listOf(1, 2)
         })
-        val list = db.query(t)
+        val list = db.select(t)
         Assertions.assertEquals(2, list.size)
         Assertions.assertEquals(
             Address(
@@ -156,7 +156,7 @@ internal class QueryTest(private val db: Db) {
                 val pairs = listOf(1 to "STREET 1", 2 to "STREET 2")
             }
         )
-        val list = db.query(t)
+        val list = db.select(t)
         Assertions.assertEquals(2, list.size)
         Assertions.assertEquals(
             Address(
@@ -185,7 +185,7 @@ internal class QueryTest(private val db: Db) {
                     )
                 }
             )
-        val list = db.query(template)
+        val list = db.select(template)
         Assertions.assertEquals(2, list.size)
         Assertions.assertEquals(
             Address(

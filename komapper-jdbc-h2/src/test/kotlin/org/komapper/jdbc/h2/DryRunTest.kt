@@ -32,7 +32,7 @@ internal class DryRunTest(private val db: Db) {
 
     @Test
     fun query() {
-        val (sql) = db.dryRun.query<Address>(template("select * from address"))
+        val (sql) = db.dryRun.select<Address>(template("select * from address"))
         println(sql)
     }
 
@@ -45,28 +45,28 @@ internal class DryRunTest(private val db: Db) {
     @Test
     fun queryOneColumn() {
         val t = template<String>("select street from address")
-        val sql = db.dryRun.queryOneColumn(t)
+        val sql = db.dryRun.selectOneColumn(t)
         println(sql)
     }
 
     @Test
     fun queryTwoColumns() {
         val t = template<Pair<Int, String>>("select address_id, street from address")
-        val sql = db.dryRun.queryTwoColumns(t)
+        val sql = db.dryRun.selectTwoColumns(t)
         println(sql)
     }
 
     @Test
     fun queryThreeColumns() {
         val t = template<Triple<Int, String, Int>>("select address_id, street, version from address")
-        val sql = db.dryRun.queryThreeColumns(t)
+        val sql = db.dryRun.selectThreeColumns(t)
         println(sql)
     }
 
     @Test
     fun delete() {
         val t = template<Address>("select * from address where address_id = 15")
-        val address = db.query(t).first()
+        val address = db.select(t).first()
         val (sql) = db.dryRun.delete(address)
         println(sql)
     }
@@ -84,7 +84,7 @@ internal class DryRunTest(private val db: Db) {
     @Test
     fun update() {
         val t = template<Address>("select * from address where address_id = 15")
-        val address = db.query(t).first()
+        val address = db.select(t).first()
         val newAddress = address.copy(street = "NY street")
         val (sql) = db.dryRun.update(newAddress)
         println(sql)
