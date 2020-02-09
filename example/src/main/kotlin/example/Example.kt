@@ -7,7 +7,7 @@ import org.komapper.core.criteria.select
 import org.komapper.core.jdbc.SimpleDataSource
 import org.komapper.core.metadata.CollectedMetadataResolver
 import org.komapper.core.metadata.SequenceGenerator
-import org.komapper.core.metadata.entity
+import org.komapper.core.metadata.entities
 import org.komapper.core.sql.template
 import org.komapper.jdbc.h2.H2Dialect
 
@@ -21,8 +21,8 @@ data class Address(
 )
 
 // entity metadata
-val addressMetadata =
-    entity(Address::class) {
+val metadata = entities {
+    entity<Address> {
         id(Address::id, SequenceGenerator("ADDRESS_SEQ", 100))
         createdAt(Address::createdAt)
         updatedAt(Address::updatedAt)
@@ -31,6 +31,7 @@ val addressMetadata =
             column(Address::id, "address_id")
         }
     }
+}
 
 fun main() {
     // create Db instance
@@ -41,7 +42,7 @@ fun main() {
             // dialect for H2
             override val dialect = H2Dialect()
             // register entity metadata
-            override val metadataResolver = CollectedMetadataResolver(addressMetadata)
+            override val metadataResolver = CollectedMetadataResolver(metadata)
         }
     )
 

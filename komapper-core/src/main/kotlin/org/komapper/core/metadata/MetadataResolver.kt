@@ -7,10 +7,8 @@ interface MetadataResolver {
     fun <T : Any> resolve(kClass: KClass<T>): Metadata<T>
 }
 
-open class CollectedMetadataResolver(collection: Collection<Metadata<*>>) : MetadataResolver {
-    constructor(vararg metadata: Metadata<*>) : this(setOf(*metadata))
-
-    private val cache = ConcurrentHashMap(collection.associateBy { it.kClass })
+open class CollectedMetadataResolver(map: Map<KClass<*>, Metadata<*>>) : MetadataResolver {
+    private val cache = ConcurrentHashMap(map)
 
     override fun <T : Any> resolve(kClass: KClass<T>): Metadata<T> {
         @Suppress("UNCHECKED_CAST")

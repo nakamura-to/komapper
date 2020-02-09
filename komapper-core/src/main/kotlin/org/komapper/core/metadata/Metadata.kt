@@ -71,6 +71,23 @@ data class SequenceGenerator(
 )
 
 @Scope
+class EntitiesScope(private val metadataMap: MutableMap<KClass<*>, Metadata<*>>) {
+
+    inline fun <reified T : Any> entity(noinline block: EntityScope<T>.() -> Unit) {
+        require(T::class.isData) { "The parameter type T must be a data class." }
+        entity(T::class, block)
+    }
+
+    fun <T : Any> entity(kClass: KClass<T>, block: EntityScope<T>.() -> Unit) {
+        require(kClass.isData) { "The kClass \"${kClass.qualifiedName}\" must be a data class." }
+        val metadata = MutableMetadata(kClass).also {
+            EntityScope(it).block()
+        }
+        metadataMap[kClass] = metadata.asImmutable()
+    }
+}
+
+@Scope
 class EntityScope<T : Any>(private val metadata: MutableMetadata<T>) {
     private val tableScope = TableScope(metadata)
 
@@ -163,10 +180,8 @@ class TableScope<T : Any>(private val metadata: MutableMetadata<T>) {
     }
 }
 
-fun <T : Any> entity(kClass: KClass<T>, block: EntityScope<T>.() -> Unit = {}): Metadata<T> {
-    require(kClass.isData) { "The kClass \"${kClass.qualifiedName}\" must be a data class." }
-    val metadata = MutableMetadata(kClass).also {
-        EntityScope(it).block()
+fun entities(block: EntitiesScope.() -> Unit): Map<KClass<*>, Metadata<*>> {
+    return mutableMapOf<KClass<*>, Metadata<*>>().also {
+        EntitiesScope(it).block()
     }
-    return metadata.asImmutable()
 }

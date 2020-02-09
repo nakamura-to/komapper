@@ -23,7 +23,7 @@ import org.komapper.core.metadata.CollectedMetadataResolver
 import org.komapper.core.metadata.IdMeta
 import org.komapper.core.metadata.Metadata
 import org.komapper.core.metadata.MetadataResolver
-import org.komapper.core.metadata.entity
+import org.komapper.core.metadata.entities
 import org.komapper.core.sql.template
 import org.komapper.core.tx.TransactionIsolationLevel
 
@@ -39,11 +39,12 @@ internal class TransactionTest {
         override val dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
         override val dialect = H2Dialect()
         override val metadataResolver = CollectedMetadataResolver(
-            setOf(
+            entities {
                 entity(Address::class) {
                     id(Address::addressId)
                     version(Address::version)
-                })
+                }
+            }
         )
     }
 

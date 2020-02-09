@@ -15,11 +15,8 @@ import org.komapper.core.DbConfig
 import org.komapper.core.desc.EntityListener
 import org.komapper.core.jdbc.SimpleDataSource
 import org.komapper.core.metadata.CollectedMetadataResolver
-import org.komapper.core.metadata.Metadata
 import org.komapper.core.metadata.SequenceGenerator
-import org.komapper.core.metadata.entity
-
-private val metadata = mutableSetOf<Metadata<*>>()
+import org.komapper.core.metadata.entities
 
 data class Address(
     val addressId: Int,
@@ -27,18 +24,13 @@ data class Address(
     val version: Int
 )
 
-private val addressMeta = entity(Address::class) {
-    id(Address::addressId)
-    version(Address::version)
-}.also {
-    metadata.add(it)
-}
-
 class AddressListenerConfig(config: DbConfig, listener: EntityListener<Address>) : DbConfig() {
-    private val metadata = entity(Address::class) {
-        id(Address::addressId)
-        version(Address::version)
-        listener(listener)
+    private val metadata = entities {
+        entity(Address::class) {
+            id(Address::addressId)
+            version(Address::version)
+            listener(listener)
+        }
     }
     override val dataSource = config.dataSource
     override val dialect = config.dialect
@@ -52,61 +44,20 @@ data class CompositeKeyAddress(
     val version: Int
 )
 
-private val compositeKeyAddressMeta = entity(CompositeKeyAddress::class) {
-    id(CompositeKeyAddress::addressId1)
-    id(CompositeKeyAddress::addressId2)
-    version(CompositeKeyAddress::version)
-    table {
-        name("COMP_KEY_ADDRESS")
-    }
-}.also {
-    metadata.add(it)
-}
-
 data class SequenceStrategy(
     val id: Int,
     val value: String
 )
-
-private val sequenceStrategyMeta = entity(SequenceStrategy::class) {
-    id(SequenceStrategy::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", 100))
-    table {
-        name("SEQUENCE_STRATEGY")
-    }
-}.also {
-    metadata.add(it)
-}
 
 data class MultiSequenceStrategy(
     val id: Int,
     val value: Long
 )
 
-private val multiSequenceStrategyMeta = entity(MultiSequenceStrategy::class) {
-    id(MultiSequenceStrategy::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", 100))
-    id(MultiSequenceStrategy::value, SequenceGenerator("MY_SEQUENCE_STRATEGY_ID", 100))
-    table {
-        name("SEQUENCE_STRATEGY")
-    }
-}.also {
-    metadata.add(it)
-}
-
 data class Quotes(
     val id: Int,
     val value: String
 )
-
-private val quotesMeta = entity(Quotes::class) {
-    id(Quotes::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", quote = true))
-    table {
-        name(name = "SEQUENCE_STRATEGY", quote = true)
-        column(Quotes::id, "ID", quote = true)
-        column(Quotes::value, "VALUE", quote = true)
-    }
-}.also {
-    metadata.add(it)
-}
 
 data class Person(
     val personId: Int,
@@ -114,14 +65,6 @@ data class Person(
     val createdAt: LocalDateTime = LocalDateTime.MIN,
     val updatedAt: LocalDateTime = LocalDateTime.MIN
 )
-
-private val personMeta = entity(Person::class) {
-    id(Person::personId)
-    createdAt(Person::createdAt)
-    updatedAt(Person::updatedAt)
-}.also {
-    metadata.add(it)
-}
 
 data class EmployeeDetail(
     val hiredate: LocalDate,
@@ -139,26 +82,12 @@ data class Employee(
     val version: Int
 )
 
-private val employeeMeta = entity(Employee::class) {
-    id(Employee::employeeId)
-    embedded(Employee::detail)
-    version(Employee::version)
-}.also {
-    metadata.add(it)
-}
-
 data class WorkerSalary(val salary: BigDecimal)
 
 data class WorkerDetail(
     val hiredate: LocalDate,
     val salary: WorkerSalary
 )
-
-private val workerDetailMeta = entity(WorkerDetail::class) {
-    embedded(WorkerDetail::salary)
-}.also {
-    metadata.add(it)
-}
 
 data class Worker(
     val employeeId: Int,
@@ -171,17 +100,6 @@ data class Worker(
     val version: Int
 )
 
-private val workerMeta = entity(Worker::class) {
-    id(Worker::employeeId)
-    embedded(Worker::detail)
-    version(Worker::version)
-    table {
-        name("employee")
-    }
-}.also {
-    metadata.add(it)
-}
-
 data class Common(
     val personId: Int = 0,
     val createdAt: LocalDateTime = LocalDateTime.of(2000, 1, 1, 0, 0, 0),
@@ -189,28 +107,10 @@ data class Common(
     val version: Int = 0
 )
 
-private val commonMeta = entity(Common::class) {
-    id(Common::personId, SequenceGenerator("PERSON_ID_SEQUENCE", 100))
-    createdAt(Common::createdAt)
-    updatedAt(Common::updatedAt)
-    version(Common::version)
-}.also {
-    metadata.add(it)
-}
-
 data class Human(
     val name: String,
     val common: Common
 )
-
-private val humanMeta = entity(Human::class) {
-    embedded(Human::common)
-    table {
-        name("person")
-    }
-}.also {
-    metadata.add(it)
-}
 
 data class Department(
     val departmentId: Int,
@@ -220,17 +120,81 @@ data class Department(
     val version: Int
 )
 
-private val departmentMeta = entity(Department::class) {
-    id(Department::departmentId)
-    version(Department::version)
-}.also {
-    metadata.add(it)
-}
-
 data class NoId(val value1: Int, val value2: Int)
-private val noIdMeta = entity(NoId::class) {
-}.also {
-    metadata.add(it)
+
+private val metadata = entities {
+    entity<Address> {
+        id(Address::addressId)
+        version(Address::version)
+    }
+    entity<CompositeKeyAddress> {
+        id(CompositeKeyAddress::addressId1)
+        id(CompositeKeyAddress::addressId2)
+        version(CompositeKeyAddress::version)
+        table {
+            name("COMP_KEY_ADDRESS")
+        }
+    }
+    entity<SequenceStrategy> {
+        id(SequenceStrategy::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", 100))
+        table {
+            name("SEQUENCE_STRATEGY")
+        }
+    }
+    entity<MultiSequenceStrategy> {
+        id(MultiSequenceStrategy::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", 100))
+        id(MultiSequenceStrategy::value, SequenceGenerator("MY_SEQUENCE_STRATEGY_ID", 100))
+        table {
+            name("SEQUENCE_STRATEGY")
+        }
+    }
+    entity<Quotes> {
+        id(Quotes::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", quote = true))
+        table {
+            name(name = "SEQUENCE_STRATEGY", quote = true)
+            column(Quotes::id, "ID", quote = true)
+            column(Quotes::value, "VALUE", quote = true)
+        }
+    }
+    entity(Person::class) {
+        id(Person::personId)
+        createdAt(Person::createdAt)
+        updatedAt(Person::updatedAt)
+    }
+    entity(Employee::class) {
+        id(Employee::employeeId)
+        embedded(Employee::detail)
+        version(Employee::version)
+    }
+    entity(WorkerDetail::class) {
+        embedded(WorkerDetail::salary)
+    }
+    entity(Worker::class) {
+        id(Worker::employeeId)
+        embedded(Worker::detail)
+        version(Worker::version)
+        table {
+            name("employee")
+        }
+    }
+    entity(Common::class) {
+        id(Common::personId, SequenceGenerator("PERSON_ID_SEQUENCE", 100))
+        createdAt(Common::createdAt)
+        updatedAt(Common::updatedAt)
+        version(Common::version)
+    }
+    entity(Human::class) {
+        embedded(Human::common)
+        table {
+            name("person")
+        }
+    }
+    entity(Department::class) {
+        id(Department::departmentId)
+        version(Department::version)
+    }
+    entity(NoId::class) {
+    }
 }
 
 internal class Env :
@@ -388,8 +352,12 @@ internal class Env :
         }
     }
 
-    override fun supportsParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Boolean =
+    override fun supportsParameter(
+        parameterContext: ParameterContext?,
+        extensionContext: ExtensionContext?
+    ): Boolean =
         parameterContext!!.parameter.type === Db::class.java
 
-    override fun resolveParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Any = db
+    override fun resolveParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Any =
+        db
 }

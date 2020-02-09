@@ -3,7 +3,7 @@ package org.komapper.core.desc
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.komapper.core.metadata.CollectedMetadataResolver
-import org.komapper.core.metadata.entity
+import org.komapper.core.metadata.entities
 
 internal class DefaultEntityDescFactoryTest {
 
@@ -13,23 +13,23 @@ internal class DefaultEntityDescFactoryTest {
     data class AddressInfo(val id: Int)
     data class Address(val info: AddressInfo)
 
-    private val metadata = setOf(
+    private val metadata = entities {
         entity(Person::class) {
             embedded(Person::nested)
-        },
+        }
         entity(EmployeeInfo::class) {
             embedded(EmployeeInfo::manager)
-        },
+        }
         entity(Employee::class) {
             embedded(Employee::info)
-        },
+        }
         entity(AddressInfo::class) {
             id(AddressInfo::id)
-        },
+        }
         entity(Address::class) {
             id(Address::info)
         }
-    )
+    }
 
     private val namingStrategy = CamelToSnake()
 

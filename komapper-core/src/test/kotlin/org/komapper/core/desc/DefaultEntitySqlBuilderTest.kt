@@ -9,15 +9,17 @@ import org.komapper.core.DeleteOption
 import org.komapper.core.InsertOption
 import org.komapper.core.UpdateOption
 import org.komapper.core.metadata.CollectedMetadataResolver
-import org.komapper.core.metadata.entity
+import org.komapper.core.metadata.entities
 
 internal class DefaultEntitySqlBuilderTest {
 
     private val metadataResolver = CollectedMetadataResolver(
-        entity(Employee::class) {
-            id(Employee::employeeId)
-            embedded(Employee::detail)
-            version(Employee::version)
+        entities {
+            entity(Employee::class) {
+                id(Employee::employeeId)
+                embedded(Employee::detail)
+                version(Employee::version)
+            }
         }
     )
 

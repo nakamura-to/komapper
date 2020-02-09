@@ -15,14 +15,16 @@ internal class CollectedMetadataResolverTest {
         val updatedAt: LocalDateTime
     )
 
-    private val addressMeta = entity(Address::class) {
-        id(Address::id, SequenceGenerator("address_seq"))
-        version(Address::version)
-        createdAt(Address::createdAt)
-        updatedAt(Address::updatedAt)
-        table {
-            name("ADDRESS")
-            column(Address::id, name = "address_id", quote = true)
+    private val metadata = entities {
+        entity(Address::class) {
+            id(Address::id, SequenceGenerator("address_seq"))
+            version(Address::version)
+            createdAt(Address::createdAt)
+            updatedAt(Address::updatedAt)
+            table {
+                name("ADDRESS")
+                column(Address::id, name = "address_id", quote = true)
+            }
         }
     }
 
@@ -36,13 +38,13 @@ internal class CollectedMetadataResolverTest {
 
     @Test
     fun testRegistered() {
-        val resolver = CollectedMetadataResolver(addressMeta)
-        assertEquals(addressMeta, resolver.resolve(Address::class))
+        val resolver = CollectedMetadataResolver(metadata)
+        assertEquals(metadata[Address::class], resolver.resolve(Address::class))
     }
 
     @Test
     fun testNotRegistered() {
-        val resolver = CollectedMetadataResolver(addressMeta)
+        val resolver = CollectedMetadataResolver(metadata)
         assertDoesNotThrow {
             resolver.resolve(Person::class)
         }

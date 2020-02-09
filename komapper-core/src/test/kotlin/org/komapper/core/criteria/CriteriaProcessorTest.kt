@@ -9,7 +9,7 @@ import org.komapper.core.desc.DefaultEntityDescFactory
 import org.komapper.core.desc.DefaultPropDescFactory
 import org.komapper.core.jdbc.AbstractDialect
 import org.komapper.core.metadata.CollectedMetadataResolver
-import org.komapper.core.metadata.entity
+import org.komapper.core.metadata.entities
 
 internal class CriteriaProcessorTest {
     private data class Address(
@@ -17,11 +17,11 @@ internal class CriteriaProcessorTest {
         val street: String
     )
 
-    private val metadata = setOf(
+    private val metadata = entities {
         entity(Address::class) {
             id(Address::id)
         }
-    )
+    }
 
     private class MyDialect : AbstractDialect() {
         override fun isUniqueConstraintViolation(exception: SQLException): Boolean = false
