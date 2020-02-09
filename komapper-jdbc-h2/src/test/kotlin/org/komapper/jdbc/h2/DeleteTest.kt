@@ -3,12 +3,15 @@ package org.komapper.jdbc.h2
 import java.math.BigDecimal
 import java.time.LocalDate
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.OptimisticLockException
+import org.komapper.core.criteria.delete
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityListener
 import org.komapper.core.desc.GlobalEntityListener
@@ -183,5 +186,17 @@ internal class DeleteTest(private val db: Db) {
         db.delete(human2)
         val human3 = db.findById<Human>(1)
         Assertions.assertNull(human3)
+    }
+
+    @Test
+    fun criteria() {
+        val query = delete<Address> {
+            where {
+                eq(Address::addressId, 15)
+            }
+        }
+        val count = db.delete(query)
+        assertEquals(1, count)
+        assertNull(db.findById<Address>(15))
     }
 }
