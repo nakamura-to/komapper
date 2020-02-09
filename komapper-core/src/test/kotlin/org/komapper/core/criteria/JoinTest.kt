@@ -17,20 +17,20 @@ internal class JoinTest {
 
     @Test
     fun test() {
-        val e = Alias(0)
+        val e = Alias()
         val j = join<Employee, Address> { a ->
             eq(e[Employee::addressId], a[Address::id])
         }
         val criterionList = mutableListOf<Criterion>()
         val scope = JoinScope<Employee, Address>(e, { criterionList.add(it) }, {})
-        val a = Alias(1)
+        val a = e.next()
         j(scope, a)
         assertEquals(listOf(Criterion.Eq(e[Employee::addressId], a[Address::id])), criterionList)
     }
 
     @Test
     fun plus() {
-        val e = Alias(0)
+        val e = Alias()
         val j1 = join<Employee, Address> { a ->
             eq(e[Employee::id], a[Address::id])
         }
@@ -40,7 +40,7 @@ internal class JoinTest {
         val j3 = j1 + j2
         val criterionList = mutableListOf<Criterion>()
         val scope = JoinScope<Employee, Address>(e, { criterionList.add(it) }, {})
-        val a = Alias(1)
+        val a = e.next()
         scope.j3(a)
         assertEquals(
             listOf(

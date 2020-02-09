@@ -1,7 +1,8 @@
 package org.komapper.jdbc.h2
 
 import java.math.BigDecimal
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.komapper.core.Db
@@ -23,7 +24,7 @@ internal class SelectTest(private val db: Db) {
             limit(2)
             offset(5)
         }
-        Assertions.assertEquals(
+        assertEquals(
             listOf(
                 Address(10, "STREET 10", 1),
                 Address(9, "STREET 9", 1)
@@ -45,7 +46,7 @@ internal class SelectTest(private val db: Db) {
                 offset(5)
             }
         val list = db.select(criteriaQuery)
-        Assertions.assertEquals(
+        assertEquals(
             listOf(
                 Address(10, "STREET 10", 1),
                 Address(9, "STREET 9", 1)
@@ -69,7 +70,7 @@ internal class SelectTest(private val db: Db) {
         val list = db.select<Address> { alias ->
             criteriaQuery(alias)
         }
-        Assertions.assertEquals(
+        assertEquals(
             listOf(
                 Address(10, "STREET 10", 1),
                 Address(9, "STREET 9", 1)
@@ -95,7 +96,7 @@ internal class SelectTest(private val db: Db) {
             }
         val query3 = query1 + query2
         val list = db.select(query3)
-        Assertions.assertEquals(
+        assertEquals(
             listOf(
                 Address(10, "STREET 10", 1),
                 Address(9, "STREET 9", 1)
@@ -108,7 +109,7 @@ internal class SelectTest(private val db: Db) {
         val list = db.select<NoId> {
             distinct()
         }
-        Assertions.assertEquals(
+        assertEquals(
             listOf(
                 NoId(1, 1)
             ), list
@@ -125,7 +126,7 @@ internal class SelectTest(private val db: Db) {
                 asc(Address::addressId)
             }
         }.map { it.addressId }
-        Assertions.assertEquals((10..15).toList(), idList)
+        assertEquals((10..15).toList(), idList)
     }
 
     @Test
@@ -138,13 +139,13 @@ internal class SelectTest(private val db: Db) {
                 asc(Address::addressId)
             }
         }.map { it.addressId }
-        Assertions.assertEquals((1..9).toList(), idList)
+        assertEquals((1..9).toList(), idList)
     }
 
     @Test
     fun noArg() {
         val list = db.select<Address>()
-        Assertions.assertEquals(15, list.size)
+        assertEquals(15, list.size)
     }
 
     @Test
@@ -160,7 +161,7 @@ internal class SelectTest(private val db: Db) {
                 asc(Address::addressId)
             }
         }.map { it.addressId }
-        Assertions.assertEquals((6..9).toList(), idList)
+        assertEquals((6..9).toList(), idList)
     }
 
     @Test
@@ -179,7 +180,7 @@ internal class SelectTest(private val db: Db) {
             limit(2)
             offset(5)
         }
-        Assertions.assertEquals(
+        assertEquals(
             listOf(
                 Address(10, "STREET 10", 1),
                 Address(9, "STREET 9", 1)
@@ -204,7 +205,7 @@ internal class SelectTest(private val db: Db) {
             limit(2)
             offset(5)
         }
-        Assertions.assertEquals(
+        assertEquals(
             listOf(
                 Address(10, "STREET 10", 1),
                 Address(9, "STREET 9", 1)
@@ -223,7 +224,7 @@ internal class SelectTest(private val db: Db) {
                 desc(Address::addressId)
             }
         }
-        Assertions.assertEquals(
+        assertEquals(
             listOf(
                 Address(10, "STREET 10", 1),
                 Address(9, "STREET 9", 1)
@@ -242,7 +243,7 @@ internal class SelectTest(private val db: Db) {
                 asc(Address::addressId)
             }
         }.map { it.addressId }
-        Assertions.assertEquals((10..15).toList(), idList)
+        assertEquals((10..15).toList(), idList)
     }
 
     @Test
@@ -256,7 +257,7 @@ internal class SelectTest(private val db: Db) {
                 desc(Address::addressId)
             }
         }
-        Assertions.assertTrue(list.isEmpty())
+        assertTrue(list.isEmpty())
     }
 
     @Test
@@ -270,7 +271,7 @@ internal class SelectTest(private val db: Db) {
                 desc(Address::addressId)
             }
         }
-        Assertions.assertEquals(
+        assertEquals(
             listOf(
                 Address(10, "STREET 10", 1),
                 Address(9, "STREET 9", 1)
@@ -289,7 +290,7 @@ internal class SelectTest(private val db: Db) {
                 asc(Address::addressId)
             }
         }.map { it.addressId }
-        Assertions.assertEquals((3..15).toList(), idList)
+        assertEquals((3..15).toList(), idList)
     }
 
     @Test
@@ -303,7 +304,7 @@ internal class SelectTest(private val db: Db) {
                 desc(Address::addressId)
             }
         }
-        Assertions.assertTrue(list.isEmpty())
+        assertTrue(list.isEmpty())
     }
 
     @Test
@@ -325,7 +326,7 @@ internal class SelectTest(private val db: Db) {
                 desc(Address::addressId)
             }
         }
-        Assertions.assertEquals(
+        assertEquals(
             listOf(
                 Address(10, "STREET 10", 1),
                 Address(9, "STREET 9", 1)
@@ -350,7 +351,7 @@ internal class SelectTest(private val db: Db) {
                 asc(Address::addressId)
             }
         }.map { it.addressId }
-        Assertions.assertEquals((3..15).toList(), idList)
+        assertEquals((3..15).toList(), idList)
     }
 
     @Test
@@ -364,7 +365,7 @@ internal class SelectTest(private val db: Db) {
                 desc(Address::addressId)
             }
         }
-        Assertions.assertTrue(list.isEmpty())
+        assertTrue(list.isEmpty())
     }
 
     @Test
@@ -378,7 +379,7 @@ internal class SelectTest(private val db: Db) {
                 asc(Address::addressId)
             }
         }.map { it.addressId }
-        Assertions.assertEquals((5..10).toList(), idList)
+        assertEquals((5..10).toList(), idList)
     }
 
     @Test
@@ -389,7 +390,7 @@ internal class SelectTest(private val db: Db) {
                 eq(e[Employee::managerId], null)
             }
         }.map { it.employeeId }
-        Assertions.assertEquals(listOf(9), idList)
+        assertEquals(listOf(9), idList)
     }
 
     @Test
@@ -400,7 +401,7 @@ internal class SelectTest(private val db: Db) {
                 ne(Employee::managerId, null)
             }
         }.map { it.employeeId }
-        Assertions.assertTrue(9 !in idList)
+        assertTrue(9 !in idList)
     }
 
     @Test
@@ -418,7 +419,7 @@ internal class SelectTest(private val db: Db) {
         }) {
             it.toList()
         }
-        Assertions.assertEquals(
+        assertEquals(
             listOf(
                 Address(10, "STREET 10", 1),
                 Address(9, "STREET 9", 1)
@@ -449,10 +450,10 @@ internal class SelectTest(private val db: Db) {
             limit(2)
             offset(5)
         }
-        Assertions.assertEquals(2, employees.size)
-        Assertions.assertEquals(2, addressMap.size)
-        Assertions.assertEquals(2, departmentMap.size)
-        Assertions.assertEquals(listOf(9, 8), employees.map { it.employeeId })
+        assertEquals(2, employees.size)
+        assertEquals(2, addressMap.size)
+        assertEquals(2, departmentMap.size)
+        assertEquals(listOf(9, 8), employees.map { it.employeeId })
     }
 
     @Test
@@ -471,7 +472,7 @@ internal class SelectTest(private val db: Db) {
                 nowait()
             }
         }
-        Assertions.assertEquals(
+        assertEquals(
             listOf(
                 Address(10, "STREET 10", 1),
                 Address(9, "STREET 9", 1)
@@ -492,7 +493,7 @@ internal class SelectTest(private val db: Db) {
                 )
             }
         }
-        Assertions.assertEquals(6, list.size)
+        assertEquals(6, list.size)
     }
 
     @Test
@@ -508,6 +509,40 @@ internal class SelectTest(private val db: Db) {
                 )
             }
         }
-        Assertions.assertEquals(6, list.size)
+        assertEquals(6, list.size)
+    }
+
+    @Test
+    fun exists() {
+        val criteriaQuery =
+            select<Employee> { e ->
+                where {
+                    exists<Address> { a ->
+                        where {
+                            eq(e[Employee::addressId], a[Address::addressId])
+                            like(e[Employee::employeeName], "%S%")
+                        }
+                    }
+                }
+            }
+        val list = db.select(criteriaQuery)
+        assertEquals(5, list.size)
+    }
+
+    @Test
+    fun notExists() {
+        val criteriaQuery =
+            select<Employee> { e ->
+                where {
+                    notExists<Address> { a ->
+                        where {
+                            eq(e[Employee::addressId], a[Address::addressId])
+                            like(e[Employee::employeeName], "%S%")
+                        }
+                    }
+                }
+            }
+        val list = db.select(criteriaQuery)
+        assertEquals(9, list.size)
     }
 }

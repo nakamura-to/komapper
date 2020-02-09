@@ -37,8 +37,8 @@ class SelectScope<T : Any>(@Suppress("MemberVisibilityCanBePrivate") val _criter
 
     @Suppress("FunctionName")
     fun <S : Any> _join(kClass: KClass<S>, kind: JoinKind, block: Join<T, S>): Alias {
-        require(kClass.isData) { "The kClass must be a data class." }
-        val criteria = JoinCriteria<T, S>(kind, kClass, Alias(_criteria.aliasIndex++)).also { criteria ->
+        require(kClass.isData) { "The kClass ${kClass.qualifiedName} must be a data class." }
+        val criteria = JoinCriteria<T, S>(kind, kClass, _criteria.alias.next()).also { criteria ->
             val scope =
                 JoinScope<T, S>(
                     _criteria.alias,

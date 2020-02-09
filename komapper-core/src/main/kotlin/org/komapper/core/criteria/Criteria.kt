@@ -6,6 +6,7 @@ import org.komapper.core.dsl.EmptyScope
 
 data class Criteria<T : Any>(
     val kClass: KClass<T>,
+    val alias: Alias = Alias(),
     var distinct: Boolean = false,
     val joins: MutableList<JoinCriteria<Any, Any>> = mutableListOf(),
     val where: MutableList<Criterion> = mutableListOf(),
@@ -13,10 +14,7 @@ data class Criteria<T : Any>(
     var limit: Int? = null,
     var offset: Int? = null,
     var forUpdate: ForUpdateCriteria? = null
-) {
-    var aliasIndex = 0
-    val alias: Alias = Alias(aliasIndex++)
-}
+)
 
 sealed class Criterion {
     data class Eq(val prop: AliasProperty<*, *>, val value: Any?) : Criterion()
@@ -50,6 +48,8 @@ sealed class Criterion {
     data class Like(val prop: AliasProperty<*, *>, val value: String?) : Criterion()
     data class NotLike(val prop: AliasProperty<*, *>, val value: String?) : Criterion()
     data class Between(val prop: AliasProperty<*, *>, val range: Pair<*, *>) : Criterion()
+    data class Exists(val criteria: Criteria<*>) : Criterion()
+    data class NotExists(val criteria: Criteria<*>) : Criterion()
     data class Not(val criteria: List<Criterion>) : Criterion()
     data class And(val criteria: List<Criterion>) : Criterion()
     data class Or(val criteria: List<Criterion>) : Criterion()
@@ -72,13 +72,16 @@ data class OrderByItem(val prop: AliasProperty<*, *>, val sort: String)
 
 data class ForUpdateCriteria(var nowait: Boolean = false)
 
-data class Alias(val index: Int) {
+class Alias(private val parent: Alias? = null) {
+    private var counter = 0
+    private val index = if (parent != null) parent.counter++ else counter++
     val name = "t${index}_"
     operator fun <T, R> get(prop: KProperty1<T, R>): AliasProperty<T, R> = AliasProperty(this, prop)
     override fun toString(): String = name
+    fun next(): Alias = Alias(this)
 }
 
 data class AliasProperty<T, R>(
     val alias: Alias,
     val kProperty1: KProperty1<T, R>
-) : KProperty1<T, R> by kProperty1
+)

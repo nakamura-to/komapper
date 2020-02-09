@@ -12,7 +12,7 @@ internal class WhereTest {
 
     @Test
     fun test() {
-        val a = Alias(0)
+        val a = Alias()
         val w = where {
             eq(a[Address::id], 1)
         }
@@ -23,7 +23,7 @@ internal class WhereTest {
 
     @Test
     fun plus() {
-        val a = Alias(0)
+        val a = Alias()
         val w1 = where {
             eq(a[Address::id], 1)
         }

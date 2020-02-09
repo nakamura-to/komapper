@@ -12,7 +12,7 @@ internal class OrderByTest {
 
     @Test
     fun test() {
-        val a = Alias(0)
+        val a = Alias()
         val o = orderBy {
             desc(a[Address::id])
         }
@@ -23,7 +23,7 @@ internal class OrderByTest {
 
     @Test
     fun plus() {
-        val a = Alias(0)
+        val a = Alias()
         val o1 = orderBy {
             desc(Address::id)
         }

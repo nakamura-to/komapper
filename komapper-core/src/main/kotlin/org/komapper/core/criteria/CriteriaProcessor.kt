@@ -1,6 +1,7 @@
 package org.komapper.core.criteria
 
 import kotlin.reflect.KProperty1
+import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.jvmErasure
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityDescFactory
@@ -12,36 +13,48 @@ import org.komapper.core.sql.SqlBuffer
 import org.komapper.core.value.Value
 
 class CriteriaProcessor(
-    dialect: Dialect,
+    private val dialect: Dialect,
     private val entityDescFactory: EntityDescFactory,
-    private val criteria: Criteria<*>
+    private val criteria: Criteria<*>,
+    private val buf: SqlBuffer = SqlBuffer(dialect::formatValue),
+    private val parentEntityDescMap: Map<Alias, EntityDesc<*>> = emptyMap(),
+    private val parentColumnNameMap: Map<AliasProperty<*, *>, String> = emptyMap()
 ) : MultiEntityDesc {
 
-    private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
-
     private val entityDescMap: Map<Alias, EntityDesc<*>> =
-        listOf(criteria.alias to entityDescFactory.get(criteria.kClass)).plus(
-            criteria.joins.map {
-                it.alias to entityDescFactory.get(it.type)
-            }
-        ).toMap()
+        parentEntityDescMap + (
+                listOf(criteria.alias to entityDescFactory.get(criteria.kClass)).plus(
+                    criteria.joins.map {
+                        it.alias to entityDescFactory.get(it.type)
+                    }
+                ).toMap())
 
-    private val qualifiedColumnNameMap: Map<AliasProperty<*, *>, String> =
-        entityDescMap.entries.flatMap { (alias, entityDesc) ->
-            entityDesc.leafPropDescList.map { propDesc ->
-                AliasProperty(alias, propDesc.prop) to "${alias.name}.${propDesc.columnName}"
-            }
-        }.toMap()
+    private val columnNameMap: Map<AliasProperty<*, *>, String> =
+        parentColumnNameMap + (
+                entityDescMap.entries.flatMap { (alias, entityDesc) ->
+                    entityDesc.leafPropDescList.map { propDesc ->
+                        AliasProperty(alias, propDesc.prop) to "${alias.name}.${propDesc.columnName}"
+                    }
+                }.toMap())
 
     override val leafPropDescList: List<PropDesc> =
         entityDescMap.values.flatMap { it.leafPropDescList }
 
     fun buildSelect(): Sql {
+        appendSql()
+        return buf.toSql()
+    }
+
+    fun appendSql(expand: Boolean = true) {
         buf.append("select ")
         if (criteria.distinct) {
             buf.append("distinct ")
         }
-        qualifiedColumnNameMap.values.forEach { buf.append("$it, ") }
+        if (expand) {
+            columnNameMap.values.forEach { buf.append("$it, ") }
+        } else {
+            buf.append("*  ")
+        }
         val entityDesc = entityDescMap[criteria.alias] ?: error("The entityDesc not found.")
         buf.cutBack(2).append(" from ${entityDesc.tableName} ${criteria.alias.name}")
         with(criteria) {
@@ -68,14 +81,15 @@ class CriteriaProcessor(
                 }
             }
         }
-
-        return buf.toSql()
     }
 
-    // TODO
     private fun resolveColumnName(prop: AliasProperty<*, *>): String {
-        return qualifiedColumnNameMap[prop]
-            ?: error("The column name is not found for the property \"${prop.name}\".")
+        return columnNameMap[prop]
+            ?: error(
+                "The column name is not found for the property " +
+                        "\"${prop.kProperty1.javaField?.declaringClass?.name}.${prop.kProperty1.name}\". " +
+                        "Is the alias \"${prop.alias.name}\" for the property correct?"
+            )
     }
 
     private fun processJoinList(joinCriteriaList: List<JoinCriteria<*, *>>) {
@@ -112,6 +126,8 @@ class CriteriaProcessor(
                 is Criterion.Or -> visitLogicalBinaryOp("or", index, c.criteria)
                 is Criterion.Not -> visitNotOp(c.criteria)
                 is Criterion.Between -> processBetweenOp(c.prop, c.range)
+                is Criterion.Exists -> processExists("exists", c.criteria)
+                is Criterion.NotExists -> processExists("not exists", c.criteria)
             }
             buf.append(" and ")
         }
@@ -141,12 +157,15 @@ class CriteriaProcessor(
             else -> {
                 when (obj) {
                     is KProperty1<*, *> -> {
-                        val aliasProperty = if (obj is AliasProperty<*, *>) obj else criteria.alias[obj]
-                        val columnName = resolveColumnName(aliasProperty)
+                        val columnName = resolveColumnName(criteria.alias[obj])
+                        buf.append(" $op ").append(columnName)
+                    }
+                    is AliasProperty<*, *> -> {
+                        val columnName = resolveColumnName(obj)
                         buf.append(" $op ").append(columnName)
                     }
                     else -> {
-                        val value = Value(obj, prop.returnType)
+                        val value = Value(obj, prop.kProperty1.returnType)
                         buf.append(" $op ").bind(value)
                     }
                 }
@@ -157,7 +176,7 @@ class CriteriaProcessor(
     private fun processInOp(op: String, prop: AliasProperty<*, *>, values: Iterable<*>) {
         buf.append(resolveColumnName(prop))
         buf.append(" $op (")
-        val kClass = prop.returnType.jvmErasure
+        val kClass = prop.kProperty1.returnType.jvmErasure
         var counter = 0
         for (v in values) {
             if (++counter > 1) buf.append(", ")
@@ -177,8 +196,8 @@ class CriteriaProcessor(
     ) {
         buf.append("(${resolveColumnName(prop1)}, ${resolveColumnName(prop2)})")
         buf.append(" $op (")
-        val kClass1 = prop1.returnType.jvmErasure
-        val kClass2 = prop2.returnType.jvmErasure
+        val kClass1 = prop1.kProperty1.returnType.jvmErasure
+        val kClass2 = prop2.kProperty1.returnType.jvmErasure
         var counter = 0
         for ((f, s) in values) {
             if (++counter > 1) buf.append(", ")
@@ -203,9 +222,9 @@ class CriteriaProcessor(
     ) {
         buf.append("(${resolveColumnName(prop1)}, ${resolveColumnName(prop2)}, ${resolveColumnName(prop3)})")
         buf.append(" $op (")
-        val kClass1 = prop1.returnType.jvmErasure
-        val kClass2 = prop2.returnType.jvmErasure
-        val kClass3 = prop3.returnType.jvmErasure
+        val kClass1 = prop1.kProperty1.returnType.jvmErasure
+        val kClass2 = prop2.kProperty1.returnType.jvmErasure
+        val kClass3 = prop3.kProperty1.returnType.jvmErasure
         var counter = 0
         for ((f, s, t) in values) {
             if (++counter > 1) buf.append(", ")
@@ -226,9 +245,16 @@ class CriteriaProcessor(
     private fun processBetweenOp(prop: AliasProperty<*, *>, range: Pair<*, *>) {
         buf.append(resolveColumnName(prop))
             .append(" between ")
-            .bind(Value(range.first, prop.returnType))
+            .bind(Value(range.first, prop.kProperty1.returnType))
             .append(" and ")
-            .bind(Value(range.second, prop.returnType))
+            .bind(Value(range.second, prop.kProperty1.returnType))
+    }
+
+    private fun processExists(op: String, criteria: Criteria<*>) {
+        buf.append(" $op (")
+        val processor = CriteriaProcessor(dialect, entityDescFactory, criteria, buf, entityDescMap, columnNameMap)
+        processor.appendSql(false)
+        buf.append(")")
     }
 
     override fun new(leafValues: Map<PropDesc, Any?>): List<Any> {
