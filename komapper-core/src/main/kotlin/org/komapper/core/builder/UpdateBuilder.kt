@@ -1,6 +1,8 @@
-package org.komapper.core.criteria
+package org.komapper.core.builder
 
 import kotlin.reflect.KProperty1
+import org.komapper.core.criteria.AliasProperty
+import org.komapper.core.criteria.UpdateCriteria
 import org.komapper.core.desc.EntityDescFactory
 import org.komapper.core.jdbc.Dialect
 import org.komapper.core.sql.Sql
@@ -15,13 +17,27 @@ class UpdateBuilder(
     private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
 
     private val entityDescResolver =
-        EntityDescResolver(entityDescFactory, criteria.alias, criteria.kClass)
+        EntityDescResolver(
+            entityDescFactory,
+            criteria.alias,
+            criteria.kClass
+        )
 
     private val columnNameResolver = ColumnNameResolver(entityDescResolver)
 
     private val conditionBuilder =
-        ConditionBuilder(buf, criteria.alias, columnNameResolver) { criteria ->
-            SelectBuilder(dialect, entityDescFactory, criteria, entityDescResolver, columnNameResolver)
+        ConditionBuilder(
+            buf,
+            criteria.alias,
+            columnNameResolver
+        ) { criteria ->
+            SelectBuilder(
+                dialect,
+                entityDescFactory,
+                criteria,
+                entityDescResolver,
+                columnNameResolver
+            )
         }
 
     fun build(): Sql {

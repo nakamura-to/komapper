@@ -1,6 +1,8 @@
-package org.komapper.core.criteria
+package org.komapper.core.builder
 
 import kotlin.reflect.KClass
+import org.komapper.core.criteria.Alias
+import org.komapper.core.criteria.JoinCriteria
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityDescFactory
 

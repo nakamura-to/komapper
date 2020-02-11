@@ -1,7 +1,11 @@
-package org.komapper.core.criteria
+package org.komapper.core.builder
 
 import kotlin.reflect.KProperty1
 import kotlin.reflect.jvm.jvmErasure
+import org.komapper.core.criteria.Alias
+import org.komapper.core.criteria.AliasProperty
+import org.komapper.core.criteria.Criterion
+import org.komapper.core.criteria.SelectCriteria
 import org.komapper.core.sql.SqlBuffer
 import org.komapper.core.value.Value
 

@@ -3,6 +3,7 @@ package org.komapper.core.criteria
 import java.sql.SQLException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.komapper.core.builder.DeleteBuilder
 import org.komapper.core.desc.CamelToSnake
 import org.komapper.core.desc.DefaultDataDescFactory
 import org.komapper.core.desc.DefaultEntityDescFactory

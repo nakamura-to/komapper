@@ -1,5 +1,8 @@
-package org.komapper.core.criteria
+package org.komapper.core.builder
 
+import org.komapper.core.criteria.JoinCriteria
+import org.komapper.core.criteria.JoinKind
+import org.komapper.core.criteria.SelectCriteria
 import org.komapper.core.desc.EntityDescFactory
 import org.komapper.core.desc.MultiEntityDesc
 import org.komapper.core.desc.PropDesc
@@ -18,13 +21,30 @@ class SelectBuilder(
     private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
 
     private val entityDescResolver =
-        EntityDescResolver(entityDescFactory, criteria.alias, criteria.kClass, criteria.joins, parentEntityDescResolver)
+        EntityDescResolver(
+            entityDescFactory,
+            criteria.alias,
+            criteria.kClass,
+            criteria.joins,
+            parentEntityDescResolver
+        )
 
-    private val columnNameResolver = ColumnNameResolver(entityDescResolver, parentColumnNameResolver)
+    private val columnNameResolver =
+        ColumnNameResolver(entityDescResolver, parentColumnNameResolver)
 
     private val conditionBuilder =
-        ConditionBuilder(buf, criteria.alias, columnNameResolver) { criteria ->
-            SelectBuilder(dialect, entityDescFactory, criteria, entityDescResolver, columnNameResolver)
+        ConditionBuilder(
+            buf,
+            criteria.alias,
+            columnNameResolver
+        ) { criteria ->
+            SelectBuilder(
+                dialect,
+                entityDescFactory,
+                criteria,
+                entityDescResolver,
+                columnNameResolver
+            )
         }
 
     fun build(expand: Boolean = true): Sql {

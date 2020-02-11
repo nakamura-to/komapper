@@ -1,19 +1,15 @@
-package org.komapper.core.desc
+package org.komapper.core.builder
 
 import kotlin.reflect.KProperty1
 import org.komapper.core.DeleteOption
 import org.komapper.core.InsertOption
 import org.komapper.core.UpdateOption
-import org.komapper.core.criteria.DeleteBuilder
 import org.komapper.core.criteria.DeleteCriteria
 import org.komapper.core.criteria.DeleteScope
-import org.komapper.core.criteria.InsertBuilder
 import org.komapper.core.criteria.InsertCriteria
 import org.komapper.core.criteria.InsertScope
-import org.komapper.core.criteria.SelectBuilder
 import org.komapper.core.criteria.SelectCriteria
 import org.komapper.core.criteria.SelectScope
-import org.komapper.core.criteria.UpdateBuilder
 import org.komapper.core.criteria.UpdateCriteria
 import org.komapper.core.criteria.UpdateScope
 import org.komapper.core.criteria.Where
@@ -22,6 +18,9 @@ import org.komapper.core.criteria.insert
 import org.komapper.core.criteria.select
 import org.komapper.core.criteria.update
 import org.komapper.core.criteria.where
+import org.komapper.core.desc.EntityDesc
+import org.komapper.core.desc.EntityDescFactory
+import org.komapper.core.desc.PropDesc
 import org.komapper.core.jdbc.Dialect
 import org.komapper.core.sql.Sql
 import org.komapper.core.sql.SqlBuffer

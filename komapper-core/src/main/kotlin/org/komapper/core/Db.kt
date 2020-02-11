@@ -16,20 +16,20 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.streams.asSequence
 import kotlin.streams.toList
+import org.komapper.core.builder.DeleteBuilder
+import org.komapper.core.builder.InsertBuilder
+import org.komapper.core.builder.SelectBuilder
+import org.komapper.core.builder.UpdateBuilder
 import org.komapper.core.criteria.Delete
-import org.komapper.core.criteria.DeleteBuilder
 import org.komapper.core.criteria.DeleteCriteria
 import org.komapper.core.criteria.DeleteScope
 import org.komapper.core.criteria.Insert
-import org.komapper.core.criteria.InsertBuilder
 import org.komapper.core.criteria.InsertCriteria
 import org.komapper.core.criteria.InsertScope
 import org.komapper.core.criteria.Select
-import org.komapper.core.criteria.SelectBuilder
 import org.komapper.core.criteria.SelectCriteria
 import org.komapper.core.criteria.SelectScope
 import org.komapper.core.criteria.Update
-import org.komapper.core.criteria.UpdateBuilder
 import org.komapper.core.criteria.UpdateCriteria
 import org.komapper.core.criteria.UpdateScope
 import org.komapper.core.desc.EntityDesc
@@ -889,7 +889,11 @@ class Db(val config: DbConfig) {
             val criteria = SelectCriteria(T::class).also {
                 SelectScope(it).query(it.alias)
             }
-            val builder = SelectBuilder(config.dialect, config.entityDescFactory, criteria)
+            val builder = SelectBuilder(
+                config.dialect,
+                config.entityDescFactory,
+                criteria
+            )
             val sql = builder.build()
             return sql to builder
         }
@@ -1018,7 +1022,11 @@ class Db(val config: DbConfig) {
             val criteria = InsertCriteria(T::class).also {
                 InsertScope(it).query(it.alias)
             }
-            val builder = InsertBuilder(config.dialect, config.entityDescFactory, criteria)
+            val builder = InsertBuilder(
+                config.dialect,
+                config.entityDescFactory,
+                criteria
+            )
             val sql = builder.build()
             return sql to desc
         }
@@ -1060,7 +1068,11 @@ class Db(val config: DbConfig) {
             val criteria = DeleteCriteria(T::class).also {
                 DeleteScope(it).query(it.alias)
             }
-            val builder = DeleteBuilder(config.dialect, config.entityDescFactory, criteria)
+            val builder = DeleteBuilder(
+                config.dialect,
+                config.entityDescFactory,
+                criteria
+            )
             val sql = builder.build()
             return sql to desc
         }
@@ -1105,7 +1117,11 @@ class Db(val config: DbConfig) {
             val criteria = UpdateCriteria(T::class).also {
                 UpdateScope(it).query(it.alias)
             }
-            val builder = UpdateBuilder(config.dialect, config.entityDescFactory, criteria)
+            val builder = UpdateBuilder(
+                config.dialect,
+                config.entityDescFactory,
+                criteria
+            )
             val sql = builder.build()
             return sql to desc
         }

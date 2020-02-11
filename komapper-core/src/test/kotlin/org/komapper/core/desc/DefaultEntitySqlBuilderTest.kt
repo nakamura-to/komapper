@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test
 import org.komapper.core.DeleteOption
 import org.komapper.core.InsertOption
 import org.komapper.core.UpdateOption
+import org.komapper.core.builder.DefaultEntitySqlBuilder
 import org.komapper.core.jdbc.AbstractDialect
 import org.komapper.core.metadata.CollectedMetadataResolver
 import org.komapper.core.metadata.entities

@@ -1,5 +1,6 @@
-package org.komapper.core.criteria
+package org.komapper.core.builder
 
+import org.komapper.core.criteria.InsertCriteria
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityDescFactory
 import org.komapper.core.jdbc.Dialect

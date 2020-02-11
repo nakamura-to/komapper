@@ -1,6 +1,7 @@
-package org.komapper.core.criteria
+package org.komapper.core.builder
 
 import kotlin.reflect.jvm.javaField
+import org.komapper.core.criteria.AliasProperty
 
 class ColumnNameResolver(
     entityDescResolver: EntityDescResolver,
