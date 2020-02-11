@@ -11,7 +11,7 @@ import org.komapper.core.jdbc.AbstractDialect
 import org.komapper.core.metadata.CollectedMetadataResolver
 import org.komapper.core.metadata.entities
 
-internal class CriteriaProcessorTest {
+internal class SelectBuilderTest {
     private data class Address(
         val id: Int,
         val street: String
@@ -46,12 +46,12 @@ internal class CriteriaProcessorTest {
 
     @Test
     fun test() {
-        val criteria = Criteria(Address::class).apply {
+        val criteria = SelectCriteria(Address::class).apply {
             val alias = this.alias
             where.add(Criterion.Eq(alias[Address::street], "a"))
         }
-        val processor = CriteriaProcessor(MyDialect(), factory, criteria)
-        val sql = processor.buildSelect()
+        val processor = SelectBuilder(MyDialect(), factory, criteria)
+        val sql = processor.build()
         assertEquals("select t0_.id, t0_.street from address t0_ where t0_.street = ?", sql.text)
     }
 }

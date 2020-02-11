@@ -7,20 +7,20 @@ import org.komapper.core.sql.Sql
 import org.komapper.core.sql.SqlBuffer
 import org.komapper.core.value.Value
 
-class InsertProcessor(
-    private val dialect: Dialect,
-    private val entityDescFactory: EntityDescFactory,
-    private val criteria: InsertCriteria<*>,
-    private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
+class InsertBuilder(
+    dialect: Dialect,
+    entityDescFactory: EntityDescFactory,
+    private val criteria: InsertCriteria<*>
 ) {
+    private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
 
     private val entityDesc: EntityDesc<*> = entityDescFactory.get(criteria.kClass)
 
-    fun buildInsert(): Sql {
+    fun build(): Sql {
         buf.append("insert into ${entityDesc.tableName} (")
         with(criteria) {
             if (values.isNotEmpty()) {
-                values.forEach { (prop, obj) ->
+                values.forEach { (prop, _) ->
                     val propDesc = entityDesc.propMap[prop.kProperty1] ?: error("The propDesc is not found.")
                     buf.append("${propDesc.columnName}, ")
                 }

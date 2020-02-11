@@ -145,9 +145,9 @@ class WhereScope(val _alias: Alias, val _add: (Criterion) -> Unit) {
         _exists(T::class, block, Criterion::NotExists)
     }
 
-    fun <T : Any> _exists(kClass: KClass<T>, block: Select<T>, factory: (Criteria<T>) -> Criterion) {
+    fun <T : Any> _exists(kClass: KClass<T>, block: Select<T>, factory: (SelectCriteria<T>) -> Criterion) {
         require(kClass.isData) { "The kClass ${kClass.qualifiedName} must be a data class." }
-        val criteria = Criteria(kClass, _alias.next()).also { criteria ->
+        val criteria = SelectCriteria(kClass, _alias.next()).also { criteria ->
             val scope = SelectScope(criteria)
             scope.block(criteria.alias)
         }

@@ -1,6 +1,4 @@
-package org.komapper.core.criteria
-
-import org.komapper.core.desc.PropDesc
+package org.komapper.core.desc
 
 interface MultiEntityDesc {
 

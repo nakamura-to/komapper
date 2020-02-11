@@ -93,7 +93,8 @@ abstract class DbConfig() {
     open val listener: GlobalEntityListener by lazy { DefaultGlobalEntityListener() }
     open val entitySqlBuilder: EntitySqlBuilder by lazy {
         DefaultEntitySqlBuilder(
-            dialect::formatValue
+            dialect,
+            entityDescFactory
         )
     }
     open val exprNodeFactory: ExprNodeFactory by lazy { CacheExprNodeFactory() }

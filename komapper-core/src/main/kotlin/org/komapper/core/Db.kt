@@ -16,24 +16,24 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.streams.asSequence
 import kotlin.streams.toList
-import org.komapper.core.criteria.Criteria
-import org.komapper.core.criteria.CriteriaProcessor
 import org.komapper.core.criteria.Delete
+import org.komapper.core.criteria.DeleteBuilder
 import org.komapper.core.criteria.DeleteCriteria
-import org.komapper.core.criteria.DeleteProcessor
 import org.komapper.core.criteria.DeleteScope
 import org.komapper.core.criteria.Insert
+import org.komapper.core.criteria.InsertBuilder
 import org.komapper.core.criteria.InsertCriteria
-import org.komapper.core.criteria.InsertProcessor
 import org.komapper.core.criteria.InsertScope
-import org.komapper.core.criteria.MultiEntityDesc
 import org.komapper.core.criteria.Select
+import org.komapper.core.criteria.SelectBuilder
+import org.komapper.core.criteria.SelectCriteria
 import org.komapper.core.criteria.SelectScope
 import org.komapper.core.criteria.Update
+import org.komapper.core.criteria.UpdateBuilder
 import org.komapper.core.criteria.UpdateCriteria
-import org.komapper.core.criteria.UpdateProcessor
 import org.komapper.core.criteria.UpdateScope
 import org.komapper.core.desc.EntityDesc
+import org.komapper.core.desc.MultiEntityDesc
 import org.komapper.core.desc.PropDesc
 import org.komapper.core.sql.Sql
 import org.komapper.core.sql.Template
@@ -80,37 +80,37 @@ class Db(val config: DbConfig) {
      * Selects entities by criteria.
      *
      * @param T the entity type
-     * @param criteriaQuery the criteria query
+     * @param query the criteria query
      * @return the selected entities
      */
     inline fun <reified T : Any> select(
-        criteriaQuery: Select<T> = { }
+        query: Select<T> = { }
     ): List<T> {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        return select(criteriaQuery, Sequence<T>::toList)
+        return select(query, Sequence<T>::toList)
     }
 
     /**
      * Selects entities by criteria and process them as sequence.
      *
      * @param T the entity type
-     * @param criteriaQuery the criteria query
-     * @param sequenceBlock the processor
+     * @param query the criteria query
+     * @param block the result processor
      * @return the processed result
      */
     inline fun <reified T : Any, R> select(
-        criteriaQuery: Select<T> = { },
-        sequenceBlock: (Sequence<T>) -> R
+        query: Select<T> = { },
+        block: (Sequence<T>) -> R
     ): R {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        val (sql, desc) = dryRun.select(criteriaQuery)
+        val (sql, desc) = dryRun.select(query)
         return `access$streamMultiEntity`(sql, desc).use { stream ->
             stream.asSequence().map { entities ->
                 val entity = entities.first()
                 val joinedEntities = entities.subList(1, entities.size)
                 desc.associate(entity, joinedEntities)
                 entity as T
-            }.let { sequenceBlock(it) }
+            }.let { block(it) }
         }
     }
 
@@ -133,7 +133,7 @@ class Db(val config: DbConfig) {
      *
      * @param T the entity type
      * @param template the SQL template
-     * @param block the processor
+     * @param block the result processor
      * @return the processed result
      */
     inline fun <reified T : Any, R> select(
@@ -163,7 +163,7 @@ class Db(val config: DbConfig) {
      *
      * @param T the column type
      * @param template the SQL template
-     * @param block the processor
+     * @param block the result processor
      * @return the processed result
      */
     inline fun <reified T : Any?, R> selectOneColumn(
@@ -194,7 +194,7 @@ class Db(val config: DbConfig) {
      * @param A the first column type
      * @param B the second column type
      * @param template the SQL template
-     * @param block the processor
+     * @param block the result processor
      * @return the processed result
      */
     inline fun <reified A : Any?, reified B : Any?, R> selectTwoColumns(
@@ -227,7 +227,7 @@ class Db(val config: DbConfig) {
      * @param B the second column type
      * @param C the third column type
      * @param template the SQL template
-     * @param block the processor
+     * @param block the result processor
      * @return the processed result
      */
     inline fun <reified A : Any?, reified B : Any?, reified C : Any?, R> selectThreeColumns(
@@ -879,19 +879,19 @@ class Db(val config: DbConfig) {
          * Returns the result of a dry run for [Db.select].
          *
          * @param T the entity type
-         * @param criteriaQuery the criteria query
+         * @param query the criteria query
          * @return the SQL and the metadata
          */
         inline fun <reified T : Any> select(
-            criteriaQuery: Select<T> = { }
+            query: Select<T> = { }
         ): Pair<Sql, MultiEntityDesc> {
             require(T::class.isData) { "The type parameter T must be a data class." }
-            val criteria = Criteria(T::class).also {
-                SelectScope(it).criteriaQuery(it.alias)
+            val criteria = SelectCriteria(T::class).also {
+                SelectScope(it).query(it.alias)
             }
-            val processor = CriteriaProcessor(config.dialect, config.entityDescFactory, criteria)
-            val sql = processor.buildSelect()
-            return sql to processor
+            val builder = SelectBuilder(config.dialect, config.entityDescFactory, criteria)
+            val sql = builder.build()
+            return sql to builder
         }
 
         /**
@@ -1018,8 +1018,8 @@ class Db(val config: DbConfig) {
             val criteria = InsertCriteria(T::class).also {
                 InsertScope(it).query(it.alias)
             }
-            val processor = InsertProcessor(config.dialect, config.entityDescFactory, criteria)
-            val sql = processor.buildInsert()
+            val builder = InsertBuilder(config.dialect, config.entityDescFactory, criteria)
+            val sql = builder.build()
             return sql to desc
         }
 
@@ -1060,8 +1060,8 @@ class Db(val config: DbConfig) {
             val criteria = DeleteCriteria(T::class).also {
                 DeleteScope(it).query(it.alias)
             }
-            val processor = DeleteProcessor(config.dialect, config.entityDescFactory, criteria)
-            val sql = processor.buildDelete()
+            val builder = DeleteBuilder(config.dialect, config.entityDescFactory, criteria)
+            val sql = builder.build()
             return sql to desc
         }
 
@@ -1105,8 +1105,8 @@ class Db(val config: DbConfig) {
             val criteria = UpdateCriteria(T::class).also {
                 UpdateScope(it).query(it.alias)
             }
-            val processor = UpdateProcessor(config.dialect, config.entityDescFactory, criteria)
-            val sql = processor.buildUpdate()
+            val builder = UpdateBuilder(config.dialect, config.entityDescFactory, criteria)
+            val sql = builder.build()
             return sql to desc
         }
 

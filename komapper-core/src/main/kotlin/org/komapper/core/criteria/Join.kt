@@ -1,5 +1,6 @@
 package org.komapper.core.criteria
 
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import org.komapper.core.dsl.EmptyScope
 import org.komapper.core.dsl.Scope
@@ -14,6 +15,19 @@ infix operator fun <T : Any, S : Any> (Join<T, S>).plus(other: Join<T, S>): Join
         self(alias)
         other(alias)
     }
+}
+
+data class JoinCriteria<T : Any, S : Any>(
+    val kind: JoinKind,
+    val type: KClass<S>,
+    val alias: Alias,
+    val on: MutableList<Criterion> = mutableListOf(),
+    var association: EmptyScope.(T, S) -> Unit = { _, _ -> }
+)
+
+enum class JoinKind {
+    INNER,
+    LEFT
 }
 
 @Suppress("MemberVisibilityCanBePrivate")

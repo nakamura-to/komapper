@@ -14,6 +14,8 @@ infix operator fun (ForUpdate).plus(other: ForUpdate): ForUpdate {
     }
 }
 
+data class ForUpdateCriteria(var nowait: Boolean = false)
+
 @Scope
 class ForUpdateScope(val _update: (ForUpdateCriteria) -> Unit) {
 

@@ -11,7 +11,7 @@ import org.komapper.core.jdbc.AbstractDialect
 import org.komapper.core.metadata.CollectedMetadataResolver
 import org.komapper.core.metadata.entities
 
-internal class DeleteProcessorTest {
+internal class DeleteBuilderTest {
     private data class Address(
         val id: Int,
         val street: String
@@ -50,8 +50,8 @@ internal class DeleteProcessorTest {
             val alias = this.alias
             where.add(Criterion.Eq(alias[Address::street], "a"))
         }
-        val processor = DeleteProcessor(MyDialect(), factory, criteria)
-        val sql = processor.buildDelete()
+        val processor = DeleteBuilder(MyDialect(), factory, criteria)
+        val sql = processor.build()
         assertEquals("delete from address t0_ where t0_.street = ?", sql.text)
     }
 }

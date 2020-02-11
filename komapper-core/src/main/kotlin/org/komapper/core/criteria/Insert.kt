@@ -1,5 +1,6 @@
 package org.komapper.core.criteria
 
+import kotlin.reflect.KClass
 import org.komapper.core.dsl.Scope
 
 typealias Insert<T> = InsertScope<T>.(Alias) -> Unit
@@ -13,6 +14,12 @@ infix operator fun <T : Any> (Insert<T>).plus(other: Insert<T>): Insert<T> {
         other(alias)
     }
 }
+
+data class InsertCriteria<T : Any>(
+    val kClass: KClass<T>,
+    val alias: Alias = Alias(),
+    val values: MutableList<Pair<AliasProperty<*, *>, Any?>> = mutableListOf()
+)
 
 @Scope
 class InsertScope<T : Any>(@Suppress("MemberVisibilityCanBePrivate") val _criteria: InsertCriteria<T>) {

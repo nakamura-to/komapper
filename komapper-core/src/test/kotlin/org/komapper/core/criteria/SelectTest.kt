@@ -18,7 +18,7 @@ internal class SelectTest {
 
     @Test
     fun distinct() {
-        val criteria = Criteria(Address::class)
+        val criteria = SelectCriteria(Address::class)
         val scope = SelectScope(criteria)
         val select = select<Address> {
             distinct()
@@ -29,7 +29,7 @@ internal class SelectTest {
 
     @Test
     fun where() {
-        val criteria = Criteria(Address::class)
+        val criteria = SelectCriteria(Address::class)
         val scope = SelectScope(criteria)
         val select = select<Address> { a ->
             where {
@@ -69,7 +69,7 @@ internal class SelectTest {
 
     @Test
     fun orderBy() {
-        val criteria = Criteria(Address::class)
+        val criteria = SelectCriteria(Address::class)
         val scope = SelectScope(criteria)
         val select = select<Address> {
             orderBy {
@@ -85,7 +85,7 @@ internal class SelectTest {
 
     @Test
     fun limit() {
-        val criteria = Criteria(Address::class)
+        val criteria = SelectCriteria(Address::class)
         val scope = SelectScope(criteria)
         val select = select<Address> {
             limit(10)
@@ -96,7 +96,7 @@ internal class SelectTest {
 
     @Test
     fun offset() {
-        val criteria = Criteria(Address::class)
+        val criteria = SelectCriteria(Address::class)
         val scope = SelectScope(criteria)
         val select = select<Address> {
             offset(100)
@@ -107,7 +107,7 @@ internal class SelectTest {
 
     @Test
     fun where_orderBy_limit_offset() {
-        val criteria = Criteria(Address::class)
+        val criteria = SelectCriteria(Address::class)
         val scope = SelectScope(criteria)
         val select = select<Address> { a ->
             where {
@@ -143,7 +143,7 @@ internal class SelectTest {
             offset(15)
         }
         val s3 = s1 + s2
-        val criteria = Criteria(Address::class)
+        val criteria = SelectCriteria(Address::class)
         val scope = SelectScope(criteria)
         scope.s3(criteria.alias)
         assertEquals(1, criteria.where.size)

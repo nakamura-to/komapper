@@ -17,6 +17,13 @@ class SqlBuffer(
         return this
     }
 
+    fun append(sql: Sql): SqlBuffer {
+        this.sql.append(sql.text)
+        values.addAll(sql.values)
+        log.append(sql.log)
+        return this
+    }
+
     fun bind(value: Value): SqlBuffer {
         sql.append("?")
         log.append(formatter(value.obj, value.type))

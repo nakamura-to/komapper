@@ -1,10 +1,28 @@
 package org.komapper.core.desc
 
-import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import org.komapper.core.DeleteOption
 import org.komapper.core.InsertOption
 import org.komapper.core.UpdateOption
+import org.komapper.core.criteria.DeleteBuilder
+import org.komapper.core.criteria.DeleteCriteria
+import org.komapper.core.criteria.DeleteScope
+import org.komapper.core.criteria.InsertBuilder
+import org.komapper.core.criteria.InsertCriteria
+import org.komapper.core.criteria.InsertScope
+import org.komapper.core.criteria.SelectBuilder
+import org.komapper.core.criteria.SelectCriteria
+import org.komapper.core.criteria.SelectScope
+import org.komapper.core.criteria.UpdateBuilder
+import org.komapper.core.criteria.UpdateCriteria
+import org.komapper.core.criteria.UpdateScope
+import org.komapper.core.criteria.Where
+import org.komapper.core.criteria.delete
+import org.komapper.core.criteria.insert
+import org.komapper.core.criteria.select
+import org.komapper.core.criteria.update
+import org.komapper.core.criteria.where
+import org.komapper.core.jdbc.Dialect
 import org.komapper.core.sql.Sql
 import org.komapper.core.sql.SqlBuffer
 import org.komapper.core.value.Value
@@ -35,78 +53,87 @@ interface EntitySqlBuilder {
 
 open class DefaultEntitySqlBuilder(
     @Suppress("MemberVisibilityCanBePrivate")
-    protected val formatter: (Any?, KClass<*>) -> String
+    protected val dialect: Dialect,
+    @Suppress("MemberVisibilityCanBePrivate")
+    protected val entityDescFactory: EntityDescFactory
 
 ) : EntitySqlBuilder {
 
     override fun <T : Any> buildFindById(entityDesc: EntityDesc<T>, id: Any, versionValue: Any?): Sql {
-        with(entityDesc) {
-            val buf = newSqlBuffer().append("select ")
-            leafPropDescList.forEach { buf.append("${it.columnName}, ") }
-            buf.cutBack(2).append(" from $tableName where ")
-            when (id) {
-                is Collection<*> -> {
-                    require(id.size == idList.size) { "The number of id must be {$idList.size}." }
-                    id.zip(idList).forEach { (obj, propDesc) ->
-                        val value = Value(obj, propDesc.kClass)
-                        buf.append("${propDesc.columnName} = ").bind(value).append(" and ")
+        val query = select<T> {
+            where {
+                with(entityDesc) {
+                    when (id) {
+                        is Collection<*> -> {
+                            require(id.size == idList.size) { "The number of id must be {$idList.size}." }
+                            id.zip(idList).forEach { (obj, propDesc) ->
+                                eq(propDesc.prop, obj)
+                            }
+                        }
+                        else -> {
+                            require(idList.size == 1) { "The number of id must be ${idList.size}." }
+                            eq(idList[0].prop, id)
+                        }
+                    }
+                    if (versionValue != null && version != null) {
+                        eq(version.prop, versionValue)
                     }
                 }
-                else -> {
-                    require(idList.size == 1) { "The number of id must be ${idList.size}." }
-                    val value = Value(id, idList[0].kClass)
-                    buf.append("${idList[0].columnName} = ").bind(value).append(" and ")
-                }
             }
-            buf.cutBack(5)
-            if (versionValue != null && version != null) {
-                val value = Value(versionValue, version.kClass)
-                buf.append(" and ").append("${version.columnName} = ").bind(value)
-            }
-            return buf.toSql()
         }
+        val criteria = SelectCriteria(entityDesc.kClass).also {
+            SelectScope(it).query(it.alias)
+        }
+        val builder = SelectBuilder(dialect, entityDescFactory, criteria)
+        return builder.build()
     }
 
     override fun <T : Any> buildInsert(entityDesc: EntityDesc<T>, newEntity: T, option: InsertOption): Sql {
-        with(entityDesc) {
-            val buf = newSqlBuffer().append("insert into $tableName (")
-            val propDescList = leafPropDescList
-                .filter { option.include.isEmpty() || it.prop in option.include }
-                .filter { option.exclude.isEmpty() || it.prop !in option.exclude }
-            propDescList.forEach { buf.append("${it.columnName}, ") }
-            buf.cutBack(2).append(") values (")
-            propDescList.forEach {
-                val value = it.getValue(newEntity as Any)
-                buf.bind(value).append(", ")
+        val query = insert<T> {
+            values {
+                entityDesc.leafPropDescList
+                    .filter { option.include.isEmpty() || it.prop in option.include }
+                    .filter { option.exclude.isEmpty() || it.prop !in option.exclude }
+                    .forEach {
+                        value(it.prop, it.deepGetter(newEntity))
+                    }
             }
-            buf.cutBack(2).append(")")
-            return buf.toSql()
         }
+        val criteria = InsertCriteria(entityDesc.kClass).also {
+            InsertScope(it).query(it.alias)
+        }
+        val builder = InsertBuilder(dialect, entityDescFactory, criteria)
+        return builder.build()
     }
 
     override fun <T : Any> buildDelete(entityDesc: EntityDesc<T>, entity: T, option: DeleteOption): Sql {
-        with(entityDesc) {
-            val buf = newSqlBuffer()
-            buf.append("delete from $tableName")
-            buildWhereClauseForIdAndVersion(entityDesc, entity, option.ignoreVersion, buf)
-            return buf.toSql()
+        val query = delete<T> {
+            where(idAndVersionWhere(entityDesc, entity, option.ignoreVersion))
         }
+        val criteria = DeleteCriteria(entityDesc.kClass).also {
+            DeleteScope(it).query(it.alias)
+        }
+        val builder = DeleteBuilder(dialect, entityDescFactory, criteria)
+        return builder.build()
     }
 
     override fun <T : Any> buildUpdate(entityDesc: EntityDesc<T>, entity: T, newEntity: T, option: UpdateOption): Sql {
-        with(entityDesc) {
-            val buf = newSqlBuffer().append("update $tableName set ")
-            nonIdList
-                .filter { option.include.isEmpty() || it.prop in option.include }
-                .filter { option.exclude.isEmpty() || it.prop !in option.exclude }
-                .forEach {
-                    val value = it.getValue(newEntity as Any)
-                    buf.append("${it.columnName} = ").bind(value).append(", ")
-                }
-            buf.cutBack(2)
-            buildWhereClauseForIdAndVersion(entityDesc, entity, option.ignoreVersion, buf)
-            return buf.toSql()
+        val query = update<T> {
+            set {
+                entityDesc.nonIdList
+                    .filter { option.include.isEmpty() || it.prop in option.include }
+                    .filter { option.exclude.isEmpty() || it.prop !in option.exclude }
+                    .forEach {
+                        value(it.prop, it.deepGetter(newEntity))
+                    }
+            }
+            where(idAndVersionWhere(entityDesc, entity, option.ignoreVersion))
         }
+        val criteria = UpdateCriteria(entityDesc.kClass).also {
+            UpdateScope(it).query(it.alias)
+        }
+        val builder = UpdateBuilder(dialect, entityDescFactory, criteria)
+        return builder.build()
     }
 
     override fun <T : Any> buildMerge(
@@ -217,31 +244,27 @@ open class DefaultEntitySqlBuilder(
         }
     }
 
-    protected open fun <T : Any> buildWhereClauseForIdAndVersion(
+    protected open fun <T : Any> idAndVersionWhere(
         entityDesc: EntityDesc<T>,
         entity: T,
-        ignoreVersion: Boolean,
-        buf: SqlBuffer
-    ) {
-        with(entityDesc) {
-            if (idList.isNotEmpty()) {
-                buf.append(" where ")
-                idList.forEach {
-                    val value = it.getValue(entity)
-                    buf.append("${it.columnName} = ").bind(value).append(" and ")
+        ignoreVersion: Boolean
+    ): Where {
+        return where {
+            with(entityDesc) {
+                if (idList.isNotEmpty()) {
+                    idList.forEach {
+                        eq(it.prop, it.deepGetter(entity))
+                    }
                 }
-                buf.cutBack(5)
-            }
-            if (!ignoreVersion && version != null) {
-                buf.append(if (idList.isEmpty()) " where " else " and ")
-                    .append("${version.columnName} = ")
-                    .bind(version.getValue(entity))
+                if (!ignoreVersion && version != null) {
+                    eq(version.prop, version.deepGetter(entity))
+                }
             }
         }
     }
 
     protected open fun newSqlBuffer(): SqlBuffer {
-        return SqlBuffer(formatter)
+        return SqlBuffer(dialect::formatValue)
     }
 
     protected fun <T : Any> PropDesc.getValue(entity: T): Value {

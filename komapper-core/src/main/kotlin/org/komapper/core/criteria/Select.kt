@@ -15,8 +15,20 @@ infix operator fun <T : Any> (Select<T>).plus(other: Select<T>): Select<T> {
     }
 }
 
+data class SelectCriteria<T : Any>(
+    val kClass: KClass<T>,
+    val alias: Alias = Alias(),
+    var distinct: Boolean = false,
+    val joins: MutableList<JoinCriteria<Any, Any>> = mutableListOf(),
+    val where: MutableList<Criterion> = mutableListOf(),
+    val orderBy: MutableList<OrderByItem> = mutableListOf(),
+    var limit: Int? = null,
+    var offset: Int? = null,
+    var forUpdate: ForUpdateCriteria? = null
+)
+
 @Scope
-class SelectScope<T : Any>(@Suppress("MemberVisibilityCanBePrivate") val _criteria: Criteria<T>) {
+class SelectScope<T : Any>(@Suppress("MemberVisibilityCanBePrivate") val _criteria: SelectCriteria<T>) {
     private val whereScope = WhereScope(_criteria.alias) { _criteria.where.add(it) }
     private val orderByScope = OrderByScope(_criteria.alias) { _criteria.orderBy.add(it) }
     private val forUpdateScope = ForUpdateScope { _criteria.forUpdate = it }

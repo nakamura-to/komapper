@@ -1,6 +1,7 @@
 package org.komapper.core.desc
 
 import java.math.BigDecimal
+import java.sql.SQLException
 import java.time.LocalDate
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Nested
@@ -8,10 +9,21 @@ import org.junit.jupiter.api.Test
 import org.komapper.core.DeleteOption
 import org.komapper.core.InsertOption
 import org.komapper.core.UpdateOption
+import org.komapper.core.jdbc.AbstractDialect
 import org.komapper.core.metadata.CollectedMetadataResolver
 import org.komapper.core.metadata.entities
 
 internal class DefaultEntitySqlBuilderTest {
+
+    class MyDialect : AbstractDialect() {
+        override fun isUniqueConstraintViolation(exception: SQLException): Boolean {
+            return false
+        }
+
+        override fun getSequenceSql(sequenceName: String): String {
+            return ""
+        }
+    }
 
     private val metadataResolver = CollectedMetadataResolver(
         entities {
@@ -39,7 +51,7 @@ internal class DefaultEntitySqlBuilderTest {
         namingStrategy
     )
 
-    val builder = DefaultEntitySqlBuilder { value, _ -> value.toString() }
+    val builder = DefaultEntitySqlBuilder(MyDialect(), factory)
 
     data class EmployeeDetail(
         val hiredate: LocalDate,
@@ -103,7 +115,7 @@ internal class DefaultEntitySqlBuilderTest {
             val meta = factory.get(Employee::class)
             val sql = builder.buildDelete(meta, Employee(), DeleteOption())
             assertEquals(
-                "delete from employee where employee_id = ? and version = ?", sql.text
+                "delete from employee t0_ where t0_.employee_id = ? and t0_.version = ?", sql.text
             )
         }
 
@@ -112,7 +124,7 @@ internal class DefaultEntitySqlBuilderTest {
             val meta = factory.get(Employee::class)
             val sql = builder.buildDelete(meta, Employee(), DeleteOption(ignoreVersion = true))
             assertEquals(
-                "delete from employee where employee_id = ?", sql.text
+                "delete from employee t0_ where t0_.employee_id = ?", sql.text
             )
         }
     }
@@ -126,8 +138,9 @@ internal class DefaultEntitySqlBuilderTest {
             val newEntity = entity.copy(version = entity.version.inc())
             val sql = builder.buildUpdate(desc, entity, newEntity, UpdateOption())
             assertEquals(
-                "update employee set employee_no = ?, employee_name = ?, hiredate = ?, salary = ?, " +
-                        "version = ? where employee_id = ? and version = ?", sql.text
+                "update employee t0_ set employee_no = ?, employee_name = ?, " +
+                        "hiredate = ?, salary = ?, version = ? where t0_.employee_id = ? " +
+                        "and t0_.version = ?", sql.text
             )
         }
 
@@ -138,8 +151,8 @@ internal class DefaultEntitySqlBuilderTest {
             val newEntity = entity.copy(version = entity.version.inc())
             val sql = builder.buildUpdate(desc, entity, newEntity, UpdateOption(ignoreVersion = true))
             assertEquals(
-                "update employee set employee_no = ?, employee_name = ?, hiredate = ?, salary = ?, " +
-                        "version = ? where employee_id = ?", sql.text
+                "update employee t0_ set employee_no = ?, employee_name = ?, hiredate = ?, " +
+                        "salary = ?, version = ? where t0_.employee_id = ?", sql.text
             )
         }
 
@@ -155,8 +168,8 @@ internal class DefaultEntitySqlBuilderTest {
                 UpdateOption(include = listOf(Employee::employeeName, EmployeeDetail::salary))
             )
             assertEquals(
-                "update employee set employee_name = ?, salary = ? " +
-                        "where employee_id = ? and version = ?", sql.text
+                "update employee t0_ set employee_name = ?, salary = ? " +
+                        "where t0_.employee_id = ? and t0_.version = ?", sql.text
             )
         }
 
@@ -172,8 +185,9 @@ internal class DefaultEntitySqlBuilderTest {
                 UpdateOption(exclude = listOf(Employee::employeeName, EmployeeDetail::salary))
             )
             assertEquals(
-                "update employee set employee_no = ?, hiredate = ?, version = ? " +
-                        "where employee_id = ? and version = ?", sql.text
+                "update employee t0_ set employee_no = ?, hiredate = ?, " +
+                        "version = ? where t0_.employee_id = ? and t0_.version = ?",
+                sql.text
             )
         }
     }

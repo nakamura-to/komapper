@@ -15,6 +15,8 @@ infix operator fun (OrderBy).plus(other: OrderBy): OrderBy {
     }
 }
 
+data class OrderByItem(val prop: AliasProperty<*, *>, val sort: String)
+
 @Scope
 class OrderByScope(val _alias: Alias, val _add: (OrderByItem) -> Unit) {
 
