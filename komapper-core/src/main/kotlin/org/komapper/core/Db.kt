@@ -25,6 +25,10 @@ import org.komapper.core.criteria.DeleteScope
 import org.komapper.core.criteria.MultiEntityDesc
 import org.komapper.core.criteria.Select
 import org.komapper.core.criteria.SelectScope
+import org.komapper.core.criteria.Update
+import org.komapper.core.criteria.UpdateCriteria
+import org.komapper.core.criteria.UpdateProcessor
+import org.komapper.core.criteria.UpdateScope
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.PropDesc
 import org.komapper.core.sql.Sql
@@ -450,6 +454,18 @@ class Db(val config: DbConfig) {
                 config.listener.postUpdate(newEntity, desc)
             }
         }
+    }
+
+    /**
+     * Updates by criteria.
+     *
+     * @param query the criteria query
+     * @return the affected row count
+     */
+    inline fun <reified T : Any> update(query: Update<T>): Int {
+        require(T::class.isData) { "The type parameter T must be a data class." }
+        val (sql, _) = dryRun.update(query)
+        return `access$executeUpdate`(sql, false) { it }
     }
 
     /**
@@ -1038,6 +1054,25 @@ class Db(val config: DbConfig) {
                 val sql = config.entitySqlBuilder.buildUpdate(desc, entity, newEntity, option)
                 Triple(sql, desc, newEntity)
             }
+        }
+
+        /**
+         * Returns the result of a dry run for [Db.update].
+         *
+         * @param query the criteria query
+         * @return the SQL and the metadata
+         */
+        inline fun <reified T : Any> update(
+            query: Update<T>
+        ): Pair<Sql, EntityDesc<T>> {
+            require(T::class.isData) { "The type parameter T must be a data class." }
+            val desc = config.entityDescFactory.get(T::class)
+            val criteria = UpdateCriteria(T::class).also {
+                UpdateScope(it).query(it.alias)
+            }
+            val processor = UpdateProcessor(config.dialect, config.entityDescFactory, criteria)
+            val sql = processor.buildUpdate()
+            return sql to desc
         }
 
         /**

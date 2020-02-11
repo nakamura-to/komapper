@@ -10,6 +10,7 @@ import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.OptimisticLockException
 import org.komapper.core.UniqueConstraintException
+import org.komapper.core.criteria.update
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityListener
 import org.komapper.core.desc.GlobalEntityListener
@@ -251,5 +252,21 @@ internal class UpdateTest(private val db: Db) {
         val human5 = db.findById<Human>(1)
         Assertions.assertEquals(human4, human5)
         println(human4)
+    }
+
+    @Test
+    fun criteria() {
+        val query = update<Address> {
+            set {
+                value(Address::street, "new street")
+            }
+            where {
+                eq(Address::addressId, 15)
+            }
+        }
+        val count = db.update(query)
+        Assertions.assertEquals(1, count)
+        val address = db.findById<Address>(15)
+        Assertions.assertEquals(Address(15, "new street", 1), address)
     }
 }

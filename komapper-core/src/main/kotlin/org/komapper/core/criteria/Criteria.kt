@@ -22,6 +22,13 @@ data class DeleteCriteria<T : Any>(
     val where: MutableList<Criterion> = mutableListOf()
 )
 
+data class UpdateCriteria<T : Any>(
+    val kClass: KClass<T>,
+    val alias: Alias = Alias(),
+    val set: MutableList<Pair<AliasProperty<*, *>, Any?>> = mutableListOf(),
+    val where: MutableList<Criterion> = mutableListOf()
+)
+
 sealed class Criterion {
     data class Eq(val prop: AliasProperty<*, *>, val value: Any?) : Criterion()
     data class Ne(val prop: AliasProperty<*, *>, val value: Any?) : Criterion()
