@@ -22,6 +22,12 @@ data class DeleteCriteria<T : Any>(
     val where: MutableList<Criterion> = mutableListOf()
 )
 
+data class InsertCriteria<T : Any>(
+    val kClass: KClass<T>,
+    val alias: Alias = Alias(),
+    val values: MutableList<Pair<AliasProperty<*, *>, Any?>> = mutableListOf()
+)
+
 data class UpdateCriteria<T : Any>(
     val kClass: KClass<T>,
     val alias: Alias = Alias(),

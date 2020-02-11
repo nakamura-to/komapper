@@ -22,6 +22,10 @@ import org.komapper.core.criteria.Delete
 import org.komapper.core.criteria.DeleteCriteria
 import org.komapper.core.criteria.DeleteProcessor
 import org.komapper.core.criteria.DeleteScope
+import org.komapper.core.criteria.Insert
+import org.komapper.core.criteria.InsertCriteria
+import org.komapper.core.criteria.InsertProcessor
+import org.komapper.core.criteria.InsertScope
 import org.komapper.core.criteria.MultiEntityDesc
 import org.komapper.core.criteria.Select
 import org.komapper.core.criteria.SelectScope
@@ -399,6 +403,18 @@ class Db(val config: DbConfig) {
                 config.listener.postInsert(newEntity, desc)
             }
         }
+    }
+
+    /**
+     * Inserts by criteria.
+     *
+     * @param query the criteria query
+     * @return the affected row count
+     */
+    inline fun <reified T : Any> insert(query: Insert<T>): Int {
+        require(T::class.isData) { "The type parameter T must be a data class." }
+        val (sql, _) = dryRun.insert(query)
+        return `access$executeUpdate`(sql, false) { it }
     }
 
     /**
@@ -986,6 +1002,25 @@ class Db(val config: DbConfig) {
                 val sql = config.entitySqlBuilder.buildInsert(desc, newEntity, option)
                 Triple(sql, desc, newEntity)
             }
+        }
+
+        /**
+         * Returns the result of a dry run for [Db.delete].
+         *
+         * @param query the criteria query
+         * @return the SQL and the metadata
+         */
+        inline fun <reified T : Any> insert(
+            query: Insert<T>
+        ): Pair<Sql, EntityDesc<T>> {
+            require(T::class.isData) { "The type parameter T must be a data class." }
+            val desc = config.entityDescFactory.get(T::class)
+            val criteria = InsertCriteria(T::class).also {
+                InsertScope(it).query(it.alias)
+            }
+            val processor = InsertProcessor(config.dialect, config.entityDescFactory, criteria)
+            val sql = processor.buildInsert()
+            return sql to desc
         }
 
         /**

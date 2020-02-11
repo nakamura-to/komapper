@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.UniqueConstraintException
+import org.komapper.core.criteria.insert
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityListener
 import org.komapper.core.desc.GlobalEntityListener
@@ -213,5 +214,20 @@ internal class InsertTest(private val db: Db) {
         val human2 = db.insert(human)
         val human3 = db.findById<Human>(1, 0)
         Assertions.assertEquals(human2, human3)
+    }
+
+    @Test
+    fun criteria() {
+        val query = insert<Address> {
+            values {
+                value(Address::addressId, 16)
+                value(Address::street, "new street")
+                value(Address::version, 1)
+            }
+        }
+        val count = db.insert(query)
+        Assertions.assertEquals(1, count)
+        val address = db.findById<Address>(16)
+        Assertions.assertEquals(Address(16, "new street", 1), address)
     }
 }
