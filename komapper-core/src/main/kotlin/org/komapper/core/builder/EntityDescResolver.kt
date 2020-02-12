@@ -13,7 +13,6 @@ class EntityDescResolver(
     joins: MutableList<JoinCriteria<Any, Any>>? = null,
     private val parent: EntityDescResolver? = null
 ) {
-
     private val entityDescMap: Map<Alias, EntityDesc<*>> =
                 listOf(alias to entityDescFactory.get(entityClass)).plus(
                     joins?.map {
@@ -32,7 +31,7 @@ class EntityDescResolver(
                 return name
             }
         }
-        return entityDescMap[alias] ?: error("The entityDesc is not found for the alias \"${alias.name}\"")
+        return entityDescMap[alias] ?: error("The entityDesc is not found for the alias \"${alias.name}\".")
     }
 
     private fun getWithoutException(alias: Alias): EntityDesc<*>? {

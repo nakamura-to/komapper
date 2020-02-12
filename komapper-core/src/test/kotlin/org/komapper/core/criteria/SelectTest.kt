@@ -31,9 +31,9 @@ internal class SelectTest {
     fun where() {
         val criteria = SelectCriteria(Address::class)
         val scope = SelectScope(criteria)
-        val select = select<Address> { a ->
+        val select = select<Address> {
             where {
-                eq(a[Address::aaa], 1)
+                eq(Address::aaa, 1)
                 ne(Address::bbb, "B")
                 or {
                     gt(Address::ccc, 2)
@@ -47,21 +47,21 @@ internal class SelectTest {
         }
         scope.select(criteria.alias)
         assertEquals(4, criteria.where.size)
-        assertEquals(criteria.where[0], Criterion.Eq(criteria.alias[ Address::aaa], 1))
-        assertEquals(criteria.where[1], Criterion.Ne(criteria.alias[Address::bbb], "B"))
+        assertEquals(criteria.where[0], Criterion.Eq(Expr.wrap(Address::aaa), Expr.wrap(1)))
+        assertEquals(criteria.where[1], Criterion.Ne(Expr.wrap(Address::bbb), Expr.wrap("B")))
         assertEquals(
             criteria.where[2], Criterion.Or(
                 listOf(
-                    Criterion.Gt(criteria.alias[Address::ccc], 2),
-                    Criterion.Ge(criteria.alias[Address::ddd], "D")
+                    Criterion.Gt(Expr.wrap(Address::ccc), Expr.wrap(2)),
+                    Criterion.Ge(Expr.wrap(Address::ddd), Expr.wrap("D"))
                 )
             )
         )
         assertEquals(
             criteria.where[3], Criterion.And(
                 listOf(
-                    Criterion.Lt(criteria.alias[Address::eee], 3),
-                    Criterion.Le(criteria.alias[Address::fff], "F")
+                    Criterion.Lt(Expr.wrap(Address::eee), Expr.wrap(3)),
+                    Criterion.Le(Expr.wrap(Address::fff), Expr.wrap("F"))
                 )
             )
         )
@@ -71,15 +71,15 @@ internal class SelectTest {
     fun orderBy() {
         val criteria = SelectCriteria(Address::class)
         val scope = SelectScope(criteria)
-        val select = select<Address> {
+        val select = select<Address> { a ->
             orderBy {
                 desc(Address::aaa)
-                asc(Address::bbb)
+                asc(a[Address::bbb])
             }
         }
         scope.select(criteria.alias)
         assertEquals(2, criteria.orderBy.size)
-        assertEquals(criteria.orderBy[0], OrderByItem(criteria.alias[Address::aaa], "desc"))
+        assertEquals(criteria.orderBy[0], OrderByItem(Expr.wrap(Address::aaa), "desc"))
         assertEquals(criteria.orderBy[1], OrderByItem(criteria.alias[Address::bbb], "asc"))
     }
 
@@ -114,16 +114,16 @@ internal class SelectTest {
                 eq(a[Address::aaa], 1)
             }
             orderBy {
-                desc(Address::bbb)
+                desc(a[Address::bbb])
             }
             limit(5)
             offset(15)
         }
         scope.select(criteria.alias)
         assertEquals(1, criteria.where.size)
-        assertEquals(criteria.where[0], Criterion.Eq(criteria.alias [Address::aaa], 1))
+        assertEquals(Criterion.Eq(criteria.alias[Address::aaa], Expr.wrap(1)), criteria.where[0])
         assertEquals(1, criteria.orderBy.size)
-        assertEquals(criteria.orderBy[0], OrderByItem(criteria.alias[Address::bbb], "desc"))
+        assertEquals(OrderByItem(criteria.alias[Address::bbb], "desc"), criteria.orderBy[0])
         assertEquals(5, criteria.limit)
         assertEquals(15, criteria.offset)
     }
@@ -147,9 +147,9 @@ internal class SelectTest {
         val scope = SelectScope(criteria)
         scope.s3(criteria.alias)
         assertEquals(1, criteria.where.size)
-        assertEquals(criteria.where[0], Criterion.Eq(criteria.alias[Address::aaa], 1))
+        assertEquals(Criterion.Eq(Expr.wrap(Address::aaa), Expr.wrap(1)), criteria.where[0])
         assertEquals(1, criteria.orderBy.size)
-        assertEquals(criteria.orderBy[0], OrderByItem(criteria.alias[Address::bbb], "desc"))
+        assertEquals(OrderByItem(Expr.wrap(Address::bbb), "desc"), criteria.orderBy[0])
         assertEquals(5, criteria.limit)
         assertEquals(15, criteria.offset)
     }

@@ -16,7 +16,7 @@ class SelectBuilder(
     private val entityDescFactory: EntityDescFactory,
     private val criteria: SelectCriteria<*>,
     parentEntityDescResolver: EntityDescResolver? = null,
-    parentColumnNameResolver: ColumnNameResolver? = null
+    parentColumnResolver: ColumnResolver? = null
 ) : MultiEntityDesc {
     private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
 
@@ -29,21 +29,20 @@ class SelectBuilder(
             parentEntityDescResolver
         )
 
-    private val columnNameResolver =
-        ColumnNameResolver(entityDescResolver, parentColumnNameResolver)
+    private val columnResolver =
+        ColumnResolver(entityDescResolver, parentColumnResolver)
 
-    private val conditionBuilder =
-        ConditionBuilder(
+    private val criterionVisitor =
+        CriterionVisitor(
             buf,
-            criteria.alias,
-            columnNameResolver
+            columnResolver
         ) { criteria ->
             SelectBuilder(
                 dialect,
                 entityDescFactory,
                 criteria,
                 entityDescResolver,
-                columnNameResolver
+                columnResolver
             )
         }
 
@@ -53,7 +52,7 @@ class SelectBuilder(
             buf.append("distinct ")
         }
         if (expand) {
-            columnNameResolver.values.forEach { buf.append("$it, ") }
+            columnResolver.values.forEach { buf.append("$it, ") }
         } else {
             buf.append("*  ")
         }
@@ -65,12 +64,12 @@ class SelectBuilder(
             }
             if (where.isNotEmpty()) {
                 buf.append(" where ")
-                conditionBuilder.build(where)
+                criterionVisitor.visit(where)
             }
             if (orderBy.isNotEmpty()) {
                 buf.append(" order by ")
                 orderBy.forEach { item ->
-                    buf.append(columnNameResolver[item.prop]).append(" ${item.sort}, ")
+                    buf.append(columnResolver[item.prop]).append(" ${item.sort}, ")
                 }
                 buf.cutBack(2)
             }
@@ -94,7 +93,7 @@ class SelectBuilder(
             }
             val entityDesc = entityDescResolver[joinCriteria.alias]
             buf.append("${entityDesc.tableName} ${joinCriteria.alias.name} on (")
-            conditionBuilder.build(joinCriteria.on)
+            criterionVisitor.visit(joinCriteria.on)
             buf.append(")")
         }
     }

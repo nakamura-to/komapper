@@ -1,6 +1,7 @@
 package org.komapper.core.criteria
 
 import kotlin.reflect.KProperty1
+import kotlin.reflect.jvm.jvmErasure
 import org.komapper.core.dsl.Scope
 
 typealias Values = ValuesScope.() -> Unit
@@ -17,7 +18,7 @@ infix operator fun (Values).plus(other: Values): Values {
 
 @Scope
 @Suppress("FunctionName", "MemberVisibilityCanBePrivate")
-class ValuesScope(val _alias: Alias, val _add: (Pair<AliasProperty<*, *>, Any?>) -> Unit) {
-    fun value(prop: KProperty1<*, *>, value: Any?) = _add(AliasProperty(_alias, prop) to value)
-    fun value(prop: AliasProperty<*, *>, value: Any?) = _add(prop to value)
+class ValuesScope(val _add: (Pair<Expr.Property<*, *>, Expr>) -> Unit) {
+    fun value(prop: KProperty1<*, *>, value: Any?) =
+        _add(Expr.wrap(prop) to Expr.wrap(value, prop.returnType.jvmErasure))
 }

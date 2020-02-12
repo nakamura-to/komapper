@@ -17,13 +17,12 @@ internal class OrderByTest {
             desc(a[Address::id])
         }
         val criterionList = mutableListOf<OrderByItem>()
-        OrderByScope(a) { criterionList.add(it) }.o()
+        OrderByScope() { criterionList.add(it) }.o()
         assertEquals(listOf(OrderByItem(a[Address::id], "desc")), criterionList)
     }
 
     @Test
     fun plus() {
-        val a = Alias()
         val o1 = orderBy {
             desc(Address::id)
         }
@@ -32,11 +31,11 @@ internal class OrderByTest {
         }
         val o3 = o1 + o2
         val criterionList = mutableListOf<OrderByItem>()
-        OrderByScope(a) { criterionList.add(it) }.o3()
+        OrderByScope() { criterionList.add(it) }.o3()
         assertEquals(
             listOf(
-                OrderByItem(a[Address::id], "desc"),
-                OrderByItem(a[Address::street], "asc")
+                OrderByItem(Expr.wrap(Address::id), "desc"),
+                OrderByItem(Expr.wrap(Address::street), "asc")
             ),
             criterionList
         )

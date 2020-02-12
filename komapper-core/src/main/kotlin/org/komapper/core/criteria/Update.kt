@@ -18,13 +18,13 @@ infix operator fun <T : Any> (Update<T>).plus(other: Update<T>): Update<T> {
 data class UpdateCriteria<T : Any>(
     val kClass: KClass<T>,
     val alias: Alias = Alias(),
-    val set: MutableList<Pair<AliasProperty<*, *>, Any?>> = mutableListOf(),
+    val set: MutableList<Pair<Expr.Property<*, *>, Expr>> = mutableListOf(),
     val where: MutableList<Criterion> = mutableListOf()
 )
 
 @Scope
 class UpdateScope<T : Any>(@Suppress("MemberVisibilityCanBePrivate") val _criteria: UpdateCriteria<T>) {
-    private val setScope = SetScope(_criteria.alias) { _criteria.set.add(it) }
+    private val setScope = SetScope() { _criteria.set.add(it) }
     private val whereScope = WhereScope(_criteria.alias) { _criteria.where.add(it) }
 
     fun set(block: Set) = setScope.block()

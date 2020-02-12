@@ -2,6 +2,7 @@ package org.komapper.core.criteria
 
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
+import kotlin.reflect.jvm.jvmErasure
 import org.komapper.core.dsl.EmptyScope
 import org.komapper.core.dsl.Scope
 
@@ -33,45 +34,27 @@ enum class JoinKind {
 @Suppress("MemberVisibilityCanBePrivate")
 @Scope
 class JoinScope<T : Any, S : Any>(
-    val _alias: Alias,
     val _add: (Criterion) -> Unit,
     val _associate: (EmptyScope.(T, S) -> Unit) -> Unit
 ) {
-    fun <V> eq(prop1: KProperty1<T, V>, prop2: AliasProperty<S, V>) =
-        _add(Criterion.Eq(AliasProperty(_alias, prop1), prop2))
 
-    fun <V> eq(prop1: AliasProperty<T, V>, prop2: AliasProperty<S, V>) =
-        _add(Criterion.Eq(prop1, prop2))
+    fun eq(prop: KProperty1<*, *>, value: Any) =
+        _add(Criterion.Eq(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
 
-    fun <V> ne(prop1: KProperty1<T, V>, prop2: AliasProperty<S, V>) =
-        _add(Criterion.Ne(AliasProperty(_alias, prop1), prop2))
+    fun ne(prop: KProperty1<*, *>, value: Any) =
+        _add(Criterion.Ne(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
 
-    fun <V> ne(prop1: AliasProperty<T, V>, prop2: AliasProperty<S, V>) =
-        _add(Criterion.Ne(prop1, prop2))
+    fun gt(prop: KProperty1<*, *>, value: Any) =
+        _add(Criterion.Gt(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
 
-    fun <V> gt(prop1: KProperty1<T, V>, prop2: AliasProperty<S, V>) =
-        _add(Criterion.Gt(AliasProperty(_alias, prop1), prop2))
+    fun ge(prop: KProperty1<*, *>, value: Any) =
+        _add(Criterion.Ge(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
 
-    fun <V> gt(prop1: AliasProperty<T, V>, prop2: AliasProperty<S, V>) =
-        _add(Criterion.Gt(prop1, prop2))
+    fun lt(prop: KProperty1<*, *>, value: Any) =
+        _add(Criterion.Lt(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
 
-    fun <V> ge(prop1: KProperty1<T, V>, prop2: AliasProperty<S, V>) =
-        _add(Criterion.Ge(AliasProperty(_alias, prop1), prop2))
-
-    fun <V> ge(prop1: AliasProperty<T, V>, prop2: AliasProperty<S, V>) =
-        _add(Criterion.Ge(prop1, prop2))
-
-    fun <V> lt(prop1: KProperty1<T, V>, prop2: AliasProperty<S, V>) =
-        _add(Criterion.Lt(AliasProperty(_alias, prop1), prop2))
-
-    fun <V> lt(prop1: AliasProperty<T, V>, prop2: AliasProperty<S, V>) =
-        _add(Criterion.Lt(prop1, prop2))
-
-    fun <V> le(prop1: KProperty1<T, V>, prop2: AliasProperty<S, V>) =
-        _add(Criterion.Le(AliasProperty(_alias, prop1), prop2))
-
-    fun <V> le(prop1: AliasProperty<T, V>, prop2: AliasProperty<S, V>) =
-        _add(Criterion.Le(prop1, prop2))
+    fun le(prop: KProperty1<*, *>, value: Any) =
+        _add(Criterion.Le(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
 
     fun associate(block: EmptyScope.(T, S) -> Unit) = _associate(block)
 }

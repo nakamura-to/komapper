@@ -2,6 +2,7 @@ package org.komapper.core.criteria
 
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
+import kotlin.reflect.jvm.jvmErasure
 import org.komapper.core.dsl.Scope
 
 typealias Where = WhereScope.() -> Unit
@@ -20,120 +21,143 @@ infix operator fun (Where).plus(other: Where): Where {
 @Suppress("FunctionName", "MemberVisibilityCanBePrivate")
 class WhereScope(val _alias: Alias, val _add: (Criterion) -> Unit) {
 
-    fun eq(prop: KProperty1<*, *>, value: Any?) = _add(Criterion.Eq(AliasProperty(_alias, prop), value))
+    fun eq(prop: KProperty1<*, *>, value: Any?) = _add(
+        Criterion.Eq(
+            Expr.wrap(prop),
+            Expr.wrap(value, prop.returnType.jvmErasure)
+        )
+    )
 
-    fun eq(prop: AliasProperty<*, *>, value: Any?) = _add(Criterion.Eq(prop, value))
+    fun ne(prop: KProperty1<*, *>, value: Any?) = _add(
+        Criterion.Ne(
+            Expr.wrap(prop),
+            Expr.wrap(value, prop.returnType.jvmErasure)
+        )
+    )
 
-    fun ne(prop: KProperty1<*, *>, value: Any?) = _add(Criterion.Ne(AliasProperty(_alias, prop), value))
+    fun gt(prop: KProperty1<*, *>, value: Any?) = _add(
+        Criterion.Gt(
+            Expr.wrap(prop),
+            Expr.wrap(value, prop.returnType.jvmErasure)
+        )
+    )
 
-    fun ne(prop: AliasProperty<*, *>, value: Any?) = _add(Criterion.Ne(prop, value))
+    fun lt(prop: KProperty1<*, *>, value: Any?) = _add(
+        Criterion.Lt(
+            Expr.wrap(prop),
+            Expr.wrap(value, prop.returnType.jvmErasure)
+        )
+    )
 
-    fun gt(prop: KProperty1<*, *>, value: Any?) = _add(Criterion.Gt(AliasProperty(_alias, prop), value))
+    fun ge(prop: KProperty1<*, *>, value: Any?) = _add(
+        Criterion.Ge(
+            Expr.wrap(prop),
+            Expr.wrap(value, prop.returnType.jvmErasure)
+        )
+    )
 
-    fun gt(prop: AliasProperty<*, *>, value: Any?) = _add(Criterion.Gt(prop, value))
+    fun le(prop: KProperty1<*, *>, value: Any?) = _add(
+        Criterion.Le(
+            Expr.wrap(prop),
+            Expr.wrap(value, prop.returnType.jvmErasure)
+        )
+    )
 
-    fun lt(prop: KProperty1<*, *>, value: Any?) = _add(Criterion.Lt(AliasProperty(_alias, prop), value))
-
-    fun lt(prop: AliasProperty<*, *>, value: Any?) = _add(Criterion.Lt(prop, value))
-
-    fun ge(prop: KProperty1<*, *>, value: Any?) = _add(Criterion.Ge(AliasProperty(_alias, prop), value))
-
-    fun ge(prop: AliasProperty<*, *>, value: Any?) = _add(Criterion.Ge(prop, value))
-
-    fun le(prop: KProperty1<*, *>, value: Any?) = _add(Criterion.Le(AliasProperty(_alias, prop), value))
-
-    fun le(prop: AliasProperty<*, *>, value: Any?) = _add(Criterion.Le(prop, value))
-
-    fun `in`(prop: KProperty1<*, *>, value: List<Any?>) = _add(Criterion.In(AliasProperty(_alias, prop), value))
-
-    fun `in`(prop: AliasProperty<*, *>, value: List<Any?>) = _add(Criterion.In(prop, value))
+    fun `in`(prop: KProperty1<*, *>, values: List<Any?>) =
+        _add(Criterion.In(Expr.wrap(prop), values.map { Expr.wrap(it, prop.returnType.jvmErasure) }))
 
     fun in2(
         prop1: KProperty1<*, *>,
         prop2: KProperty1<*, *>,
-        value: List<Pair<*, *>>
-    ) = _add(Criterion.In2(AliasProperty(_alias, prop1), AliasProperty(_alias, prop2), value))
-
-    fun in2(
-        prop1: AliasProperty<*, *>,
-        prop2: AliasProperty<*, *>,
-        value: List<Pair<*, *>>
-    ) = _add(Criterion.In2(prop1, prop2, value))
+        values: List<Pair<*, *>>
+    ) = _add(
+        Criterion.In2(
+            Expr.wrap(prop1),
+            Expr.wrap(prop2),
+            values.map { (a, b) ->
+                Expr.wrap(a, prop1.returnType.jvmErasure) to Expr.wrap(
+                    b,
+                    prop2.returnType.jvmErasure
+                )
+            })
+    )
 
     fun in3(
         prop1: KProperty1<*, *>,
         prop2: KProperty1<*, *>,
         prop3: KProperty1<*, *>,
-        value: List<Triple<*, *, *>>
+        values: List<Triple<*, *, *>>
     ) = _add(
         Criterion.In3(
-            AliasProperty(_alias, prop1),
-            AliasProperty(_alias, prop2),
-            AliasProperty(_alias, prop3),
-            value
+            Expr.wrap(prop1),
+            Expr.wrap(prop2),
+            Expr.wrap(prop3),
+            values.map { (a, b, c) ->
+                Triple(
+                    Expr.wrap(a, prop1.returnType.jvmErasure),
+                    Expr.wrap(b, prop2.returnType.jvmErasure),
+                    Expr.wrap(c, prop3.returnType.jvmErasure)
+                )
+            }
         )
     )
 
-    fun in3(
-        prop1: AliasProperty<*, *>,
-        prop2: AliasProperty<*, *>,
-        prop3: AliasProperty<*, *>,
-        value: List<Triple<*, *, *>>
-    ) = _add(Criterion.In3(prop1, prop2, prop3, value))
-
-    fun notIn(prop: KProperty1<*, *>, value: List<Any?>) =
-        _add(Criterion.NotIn(AliasProperty(_alias, prop), value))
-
-    fun notIn(prop: AliasProperty<*, *>, value: List<Any?>) =
-        _add(Criterion.NotIn(prop, value))
+    fun notIn(prop: KProperty1<*, *>, values: List<Any?>) =
+        _add(Criterion.NotIn(Expr.wrap(prop), values.map { Expr.wrap(it, prop.returnType.jvmErasure) }))
 
     fun notIn2(
         prop1: KProperty1<*, *>,
         prop2: KProperty1<*, *>,
-        value: List<Pair<*, *>>
-    ) = _add(Criterion.NotIn2(AliasProperty(_alias, prop1), AliasProperty(_alias, prop2), value))
-
-    fun notIn2(
-        prop1: AliasProperty<*, *>,
-        prop2: AliasProperty<*, *>,
-        value: List<Pair<*, *>>
-    ) = _add(Criterion.NotIn2(prop1, prop2, value))
+        values: List<Pair<*, *>>
+    ) = _add(
+        Criterion.NotIn2(
+            Expr.wrap(prop1),
+            Expr.wrap(prop2),
+            values.map { (a, b) ->
+                Expr.wrap(a, prop1.returnType.jvmErasure) to Expr.wrap(
+                    b,
+                    prop2.returnType.jvmErasure
+                )
+            })
+    )
 
     fun notIn3(
         prop1: KProperty1<*, *>,
         prop2: KProperty1<*, *>,
         prop3: KProperty1<*, *>,
-        value: List<Triple<*, *, *>>
+        values: List<Triple<*, *, *>>
     ) = _add(
         Criterion.NotIn3(
-            AliasProperty(_alias, prop1),
-            AliasProperty(_alias, prop2),
-            AliasProperty(_alias, prop3),
-            value
+            Expr.wrap(prop1),
+            Expr.wrap(prop2),
+            Expr.wrap(prop3),
+            values.map { (a, b, c) ->
+                Triple(
+                    Expr.wrap(a, prop1.returnType.jvmErasure),
+                    Expr.wrap(b, prop2.returnType.jvmErasure),
+                    Expr.wrap(c, prop3.returnType.jvmErasure)
+                )
+            }
         )
     )
 
-    fun notIn3(
-        prop1: AliasProperty<*, *>,
-        prop2: AliasProperty<*, *>,
-        prop3: AliasProperty<*, *>,
-        value: List<Triple<*, *, *>>
-    ) = _add(Criterion.NotIn3(prop1, prop2, prop3, value))
-
     fun between(prop: KProperty1<*, *>, begin: Any?, end: Any?) =
-        _add(Criterion.Between(AliasProperty(_alias, prop), begin to end))
+        _add(
+            Criterion.Between(
+                Expr.wrap(prop),
+                Expr.wrap(begin, prop.returnType.jvmErasure) to Expr.wrap(end, prop.returnType.jvmErasure)
+            )
+        )
 
-    fun between(prop: AliasProperty<*, *>, begin: Any?, end: Any?) =
-        _add(Criterion.Between(prop, begin to end))
-
-    fun like(prop: KProperty1<*, *>, value: String?) = _add(Criterion.Like(AliasProperty(_alias, prop), value))
-
-    fun like(prop: AliasProperty<*, *>, value: String?) = _add(Criterion.Like(prop, value))
+    fun like(prop: KProperty1<*, *>, value: String?) = _add(
+        Criterion.Like(
+            Expr.wrap(prop),
+            Expr.wrap(value, prop.returnType.jvmErasure)
+        )
+    )
 
     fun notLike(prop: KProperty1<*, *>, value: String?) =
-        _add(Criterion.NotLike(AliasProperty(_alias, prop), value))
-
-    fun notLike(prop: AliasProperty<*, *>, value: String?) = _add(Criterion.NotLike(prop, value))
+        _add(Criterion.NotLike(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
 
     inline fun <reified T : Any> exists(noinline block: Select<T>) {
         require(T::class.isData) { "The type parameter T must be a data class." }

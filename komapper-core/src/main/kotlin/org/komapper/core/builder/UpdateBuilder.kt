@@ -1,13 +1,11 @@
 package org.komapper.core.builder
 
-import kotlin.reflect.KProperty1
-import org.komapper.core.criteria.AliasProperty
+import org.komapper.core.criteria.Expr
 import org.komapper.core.criteria.UpdateCriteria
 import org.komapper.core.desc.EntityDescFactory
 import org.komapper.core.jdbc.Dialect
 import org.komapper.core.sql.Sql
 import org.komapper.core.sql.SqlBuffer
-import org.komapper.core.value.Value
 
 class UpdateBuilder(
     private val dialect: Dialect,
@@ -23,20 +21,21 @@ class UpdateBuilder(
             criteria.kClass
         )
 
-    private val columnNameResolver = ColumnNameResolver(entityDescResolver)
+    private val columnResolver = ColumnResolver(entityDescResolver)
 
-    private val conditionBuilder =
-        ConditionBuilder(
+    private val exprVisitor = ExprVisitor(buf, columnResolver)
+
+    private val criterionVisitor =
+        CriterionVisitor(
             buf,
-            criteria.alias,
-            columnNameResolver
+            columnResolver
         ) { criteria ->
             SelectBuilder(
                 dialect,
                 entityDescFactory,
                 criteria,
                 entityDescResolver,
-                columnNameResolver
+                columnResolver
             )
         }
 
@@ -51,32 +50,17 @@ class UpdateBuilder(
             }
             if (where.isNotEmpty()) {
                 buf.append(" where ")
-                conditionBuilder.build(where)
+                criterionVisitor.visit(where)
             }
         }
         return buf.toSql()
     }
 
-    private fun processAssignmentList(assignmentList: List<Pair<AliasProperty<*, *>, Any?>>) {
-        assignmentList.forEach { (prop, obj) ->
-            val entityDesc = entityDescResolver[prop.alias]
-            val propDesc = entityDesc.propMap[prop.kProperty1]
-                ?: error("The propDesc is not found for the property \"${prop.kProperty1.name}\"")
-            buf.append("${propDesc.columnName} = ")
-            when (obj) {
-                is KProperty1<*, *> -> {
-                    val columnName = columnNameResolver[criteria.alias[obj]]
-                    buf.append(columnName)
-                }
-                is AliasProperty<*, *> -> {
-                    val columnName = columnNameResolver[obj]
-                    buf.append(columnName)
-                }
-                else -> {
-                    val value = Value(obj, prop.kProperty1.returnType)
-                    buf.bind(value)
-                }
-            }
+    private fun processAssignmentList(assignmentList: List<Pair<Expr.Property<*, *>, Expr>>) {
+        assignmentList.forEach { (prop, expr) ->
+            exprVisitor.visit(prop) { (_, name) -> name }
+            buf.append(" = ")
+            exprVisitor.visit(expr)
             buf.append(", ")
         }
         buf.cutBack(2)

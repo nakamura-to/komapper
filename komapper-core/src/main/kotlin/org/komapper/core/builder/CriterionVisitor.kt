@@ -1,22 +1,19 @@
 package org.komapper.core.builder
 
-import kotlin.reflect.KProperty1
-import kotlin.reflect.jvm.jvmErasure
-import org.komapper.core.criteria.Alias
-import org.komapper.core.criteria.AliasProperty
 import org.komapper.core.criteria.Criterion
+import org.komapper.core.criteria.Expr
 import org.komapper.core.criteria.SelectCriteria
 import org.komapper.core.sql.SqlBuffer
-import org.komapper.core.value.Value
 
-class ConditionBuilder(
+class CriterionVisitor(
     private val buf: SqlBuffer,
-    private val alias: Alias,
-    private val columnNameResolver: ColumnNameResolver,
+    columnResolver: ColumnResolver,
     private val newSelectBuilder: (SelectCriteria<*>) -> SelectBuilder
 ) {
 
-    fun build(criterionList: List<Criterion>) {
+    private val exprVisitor = ExprVisitor(buf, columnResolver)
+
+    fun visit(criterionList: List<Criterion>) {
         criterionList.forEachIndexed { index, c ->
             when (c) {
                 is Criterion.Eq -> processBinaryOp("=", c.prop, c.value)
@@ -50,48 +47,50 @@ class ConditionBuilder(
             buf.cutBack(5).append(" $op ")
         }
         buf.append("(")
-        build(criterionList)
+        visit(criterionList)
         buf.append(")")
     }
 
     private fun processNotOp(criterionList: List<Criterion>) {
         buf.append("not (")
-        build(criterionList)
+        visit(criterionList)
         buf.append(")")
     }
 
-    private fun processBinaryOp(op: String, prop: AliasProperty<*, *>, obj: Any?) {
-        buf.append(columnNameResolver[prop])
-        when {
-            op == "=" && obj == null -> buf.append(" is null")
-            op == "<>" && obj == null -> buf.append(" is not null")
-            else -> {
-                when (obj) {
-                    is KProperty1<*, *> -> {
-                        val columnName = columnNameResolver[alias[obj]]
-                        buf.append(" $op ").append(columnName)
-                    }
-                    is AliasProperty<*, *> -> {
-                        val columnName = columnNameResolver[obj]
-                        buf.append(" $op ").append(columnName)
-                    }
-                    else -> {
-                        val value = Value(obj, prop.kProperty1.returnType)
-                        buf.append(" $op ").bind(value)
-                    }
+    private fun processBinaryOp(op: String, left: Expr, right: Expr) {
+        exprVisitor.visit(left)
+        fun processRightExpr() {
+            buf.append(" $op ")
+            exprVisitor.visit(right)
+        }
+        if (op == "=") {
+            if (left is Expr.Property<*, *>) {
+                if (right is Expr.Value && right.obj == null) {
+                    buf.append(" is null")
+                } else {
+                    processRightExpr()
                 }
             }
+        } else if (op == "<>") {
+            if (left is Expr.Property<*, *>) {
+                if (right is Expr.Value && right.obj == null) {
+                    buf.append(" is not null")
+                } else {
+                    processRightExpr()
+                }
+            }
+        } else {
+            processRightExpr()
         }
     }
 
-    private fun processInOp(op: String, prop: AliasProperty<*, *>, values: Iterable<*>) {
-        buf.append(columnNameResolver[prop])
+    private fun processInOp(op: String, prop: Expr, values: Iterable<Expr>) {
+        exprVisitor.visit(prop)
         buf.append(" $op (")
-        val kClass = prop.kProperty1.returnType.jvmErasure
         var counter = 0
-        for (v in values) {
+        for (each in values) {
             if (++counter > 1) buf.append(", ")
-            buf.bind(Value(v, kClass))
+            exprVisitor.visit(each)
         }
         if (counter == 0) {
             buf.append("null")
@@ -101,21 +100,23 @@ class ConditionBuilder(
 
     private fun processIn2Op(
         op: String,
-        prop1: AliasProperty<*, *>,
-        prop2: AliasProperty<*, *>,
-        values: Iterable<Pair<*, *>>
+        prop1: Expr,
+        prop2: Expr,
+        values: Iterable<Pair<Expr, Expr>>
     ) {
-        buf.append("(${columnNameResolver[prop1]}, ${columnNameResolver[prop2]})")
+        buf.append("(")
+        exprVisitor.visit(prop1)
+        buf.append(", ")
+        exprVisitor.visit(prop2)
+        buf.append(")")
         buf.append(" $op (")
-        val kClass1 = prop1.kProperty1.returnType.jvmErasure
-        val kClass2 = prop2.kProperty1.returnType.jvmErasure
         var counter = 0
         for ((f, s) in values) {
             if (++counter > 1) buf.append(", ")
             buf.append("(")
-            buf.bind(Value(f, kClass1))
+            exprVisitor.visit(f)
             buf.append(", ")
-            buf.bind(Value(s, kClass2))
+            exprVisitor.visit(s)
             buf.append(")")
         }
         if (counter == 0) {
@@ -126,25 +127,28 @@ class ConditionBuilder(
 
     private fun processIn3Op(
         op: String,
-        prop1: AliasProperty<*, *>,
-        prop2: AliasProperty<*, *>,
-        prop3: AliasProperty<*, *>,
-        values: Iterable<Triple<*, *, *>>
+        prop1: Expr,
+        prop2: Expr,
+        prop3: Expr,
+        values: Iterable<Triple<Expr, Expr, Expr>>
     ) {
-        buf.append("(${columnNameResolver[prop1]}, ${columnNameResolver[prop2]}, ${columnNameResolver[prop3]})")
+        buf.append("(")
+        exprVisitor.visit(prop1)
+        buf.append(", ")
+        exprVisitor.visit(prop2)
+        buf.append(", ")
+        exprVisitor.visit(prop3)
+        buf.append(")")
         buf.append(" $op (")
-        val kClass1 = prop1.kProperty1.returnType.jvmErasure
-        val kClass2 = prop2.kProperty1.returnType.jvmErasure
-        val kClass3 = prop3.kProperty1.returnType.jvmErasure
         var counter = 0
         for ((f, s, t) in values) {
             if (++counter > 1) buf.append(", ")
             buf.append("(")
-            buf.bind(Value(f, kClass1))
+            exprVisitor.visit(f)
             buf.append(", ")
-            buf.bind(Value(s, kClass2))
+            exprVisitor.visit(s)
             buf.append(", ")
-            buf.bind(Value(t, kClass3))
+            exprVisitor.visit(t)
             buf.append(")")
         }
         if (counter == 0) {
@@ -153,12 +157,12 @@ class ConditionBuilder(
         buf.append(")")
     }
 
-    private fun processBetweenOp(prop: AliasProperty<*, *>, range: Pair<*, *>) {
-        buf.append(columnNameResolver[prop])
-            .append(" between ")
-            .bind(Value(range.first, prop.kProperty1.returnType))
-            .append(" and ")
-            .bind(Value(range.second, prop.kProperty1.returnType))
+    private fun processBetweenOp(prop: Expr, range: Pair<Expr, Expr>) {
+        exprVisitor.visit(prop)
+        buf.append(" between ")
+        exprVisitor.visit(range.first)
+        buf.append(" and ")
+        exprVisitor.visit(range.second)
     }
 
     private fun processExistsOp(op: String, criteria: SelectCriteria<*>) {

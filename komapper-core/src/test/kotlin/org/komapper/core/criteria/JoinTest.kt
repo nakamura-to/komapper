@@ -22,7 +22,7 @@ internal class JoinTest {
             eq(e[Employee::addressId], a[Address::id])
         }
         val criterionList = mutableListOf<Criterion>()
-        val scope = JoinScope<Employee, Address>(e, { criterionList.add(it) }, {})
+        val scope = JoinScope<Employee, Address>({ criterionList.add(it) }, {})
         val a = e.next()
         j(scope, a)
         assertEquals(listOf(Criterion.Eq(e[Employee::addressId], a[Address::id])), criterionList)
@@ -39,7 +39,7 @@ internal class JoinTest {
         }
         val j3 = j1 + j2
         val criterionList = mutableListOf<Criterion>()
-        val scope = JoinScope<Employee, Address>(e, { criterionList.add(it) }, {})
+        val scope = JoinScope<Employee, Address>({ criterionList.add(it) }, {})
         val a = e.next()
         scope.j3(a)
         assertEquals(

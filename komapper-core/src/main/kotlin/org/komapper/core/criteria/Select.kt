@@ -30,7 +30,7 @@ data class SelectCriteria<T : Any>(
 @Scope
 class SelectScope<T : Any>(@Suppress("MemberVisibilityCanBePrivate") val _criteria: SelectCriteria<T>) {
     private val whereScope = WhereScope(_criteria.alias) { _criteria.where.add(it) }
-    private val orderByScope = OrderByScope(_criteria.alias) { _criteria.orderBy.add(it) }
+    private val orderByScope = OrderByScope() { _criteria.orderBy.add(it) }
     private val forUpdateScope = ForUpdateScope { _criteria.forUpdate = it }
 
     fun distinct(value: Boolean = true) {
@@ -53,7 +53,6 @@ class SelectScope<T : Any>(@Suppress("MemberVisibilityCanBePrivate") val _criter
         val criteria = JoinCriteria<T, S>(kind, kClass, _criteria.alias.next()).also { criteria ->
             val scope =
                 JoinScope<T, S>(
-                    _criteria.alias,
                     { criteria.on.add(it) },
                     { criteria.association = it })
             scope.block(criteria.alias)

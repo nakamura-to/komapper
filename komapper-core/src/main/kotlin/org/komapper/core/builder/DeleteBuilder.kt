@@ -20,20 +20,19 @@ class DeleteBuilder(
             criteria.kClass
         )
 
-    private val columnNameResolver = ColumnNameResolver(entityDescResolver)
+    private val columnResolver = ColumnResolver(entityDescResolver)
 
-    private val conditionBuilder =
-        ConditionBuilder(
+    private val criterionVisitor =
+        CriterionVisitor(
             buf,
-            criteria.alias,
-            columnNameResolver
+            columnResolver
         ) { criteria ->
             SelectBuilder(
                 dialect,
                 entityDescFactory,
                 criteria,
                 entityDescResolver,
-                columnNameResolver
+                columnResolver
             )
         }
 
@@ -44,7 +43,7 @@ class DeleteBuilder(
         with(criteria) {
             if (where.isNotEmpty()) {
                 buf.append(" where ")
-                conditionBuilder.build(where)
+                criterionVisitor.visit(where)
             }
         }
         return buf.toSql()

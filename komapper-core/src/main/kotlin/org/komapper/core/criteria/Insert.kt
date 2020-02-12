@@ -18,12 +18,12 @@ infix operator fun <T : Any> (Insert<T>).plus(other: Insert<T>): Insert<T> {
 data class InsertCriteria<T : Any>(
     val kClass: KClass<T>,
     val alias: Alias = Alias(),
-    val values: MutableList<Pair<AliasProperty<*, *>, Any?>> = mutableListOf()
+    val values: MutableList<Pair<Expr.Property<*, *>, Expr>> = mutableListOf()
 )
 
 @Scope
 class InsertScope<T : Any>(@Suppress("MemberVisibilityCanBePrivate") val _criteria: InsertCriteria<T>) {
-    private val valuesScope = ValuesScope(_criteria.alias) { _criteria.values.add(it) }
+    private val valuesScope = ValuesScope() { _criteria.values.add(it) }
 
     fun values(block: Values) = valuesScope.block()
 }

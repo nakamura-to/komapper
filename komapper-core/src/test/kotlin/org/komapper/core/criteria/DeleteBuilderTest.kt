@@ -49,7 +49,7 @@ internal class DeleteBuilderTest {
     fun test() {
         val criteria = DeleteCriteria(Address::class).apply {
             val alias = this.alias
-            where.add(Criterion.Eq(alias[Address::street], "a"))
+            where.add(Criterion.Eq(alias[Address::street], Expr.wrap("a")))
         }
         val processor = DeleteBuilder(MyDialect(), factory, criteria)
         val sql = processor.build()
