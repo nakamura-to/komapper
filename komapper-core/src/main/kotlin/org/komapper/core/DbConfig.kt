@@ -35,7 +35,7 @@ import org.komapper.core.sql.SqlNodeFactory
 import org.komapper.core.sql.SqlRewriter
 import org.komapper.core.tx.TransactionIsolationLevel
 import org.komapper.core.tx.TransactionManager
-import org.komapper.core.tx.TransactionScope
+import org.komapper.core.tx.TransactionScopeInitiator
 
 /**
  * A database configuration.
@@ -122,10 +122,16 @@ abstract class DbConfig() {
     open val fetchSize: Int? = null
     open val maxRows: Int? = null
     open val queryTimeout: Int? = null
-    private val transactionManagerDelegate = lazy { TransactionManager(dataSource, logger) }
+    private val transactionManagerDelegate = lazy {
+        TransactionManager(dataSource, logger)
+    }
     val transactionManager: TransactionManager by transactionManagerDelegate
-    val transactionScope: TransactionScope
-        get() = TransactionScope(transactionManager, isolationLevel)
+    val transactionScopeInitiator: TransactionScopeInitiator by lazy {
+        TransactionScopeInitiator(
+            transactionManager,
+            isolationLevel
+        )
+    }
     val connection: Connection
         get() = if (transactionManagerDelegate.isInitialized())
             transactionManager.getDataSource().connection

@@ -38,7 +38,6 @@ import org.komapper.core.desc.PropDesc
 import org.komapper.core.sql.Sql
 import org.komapper.core.sql.Template
 import org.komapper.core.sql.template
-import org.komapper.core.tx.TransactionScope
 import org.komapper.core.value.Value
 
 /**
@@ -55,10 +54,9 @@ class Db(val config: DbConfig) {
     val dryRun = DryRun(config)
 
     /**
-     * Creates a transaction scope.
+     * A transaction scope initiator.
      */
-    val transaction: TransactionScope
-        get() = config.transactionScope
+    val transaction by lazy { config.transactionScopeInitiator }
 
     /**
      * Finds an entity by Id and version.

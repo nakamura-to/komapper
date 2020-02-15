@@ -8,18 +8,13 @@ class TransactionScope(
     private val defaultIsolationLevel: TransactionIsolationLevel? = null
 ) {
 
-    operator fun <R> invoke(
-        isolationLevel: TransactionIsolationLevel? = defaultIsolationLevel,
-        block: TransactionScope.() -> R
-    ) = required(isolationLevel, block)
-
     fun <R> required(
         isolationLevel: TransactionIsolationLevel? = defaultIsolationLevel,
         block: TransactionScope.() -> R
     ): R = if (transactionManager.isActive) {
         block(this)
     } else {
-        executeInTransaction(isolationLevel, block)
+        executeInNewTransaction(isolationLevel, block)
     }
 
     fun <R> requiresNew(
@@ -28,15 +23,15 @@ class TransactionScope(
     ): R = if (transactionManager.isActive) {
         val context = transactionManager.suspend()
         try {
-            executeInTransaction(isolationLevel, block)
+            executeInNewTransaction(isolationLevel, block)
         } finally {
             transactionManager.resume(context)
         }
     } else {
-        executeInTransaction(isolationLevel, block)
+        executeInNewTransaction(isolationLevel, block)
     }
 
-    private fun <R> executeInTransaction(
+    private fun <R> executeInNewTransaction(
         isolationLevel: TransactionIsolationLevel?,
         block: TransactionScope.() -> R
     ): R {
