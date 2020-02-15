@@ -15,9 +15,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
-import org.komapper.core.metadata.IdMeta
-import org.komapper.core.metadata.Metadata
-import org.komapper.core.metadata.MetadataResolver
+import org.komapper.core.meta.EntityMeta
+import org.komapper.core.meta.EntityMetaResolver
+import org.komapper.core.meta.IdMeta
 
 @ExtendWith(Env::class)
 class DataTypeTest {
@@ -27,17 +27,17 @@ class DataTypeTest {
         NORTH, SOUTH, WEST, EAST
     }
 
-    class DataTypeMetadataResolver : MetadataResolver {
-        override fun <T : Any> resolve(kClass: KClass<T>): Metadata<T> {
+    class DataTypeEntityMetaResolver : EntityMetaResolver {
+        override fun <T : Any> resolve(kClass: KClass<T>): EntityMeta<T> {
             val id = kClass.memberProperties.first { it.name == "id" }.let { IdMeta.Assign(it.name) }
-            return Metadata(kClass, idList = listOf(id))
+            return EntityMeta(kClass, idList = listOf(id))
         }
     }
 
     private fun newDb(db: Db) = Db(object : DbConfig() {
         override val dataSource = db.config.dataSource
         override val dialect = db.config.dialect
-        override val metadataResolver = DataTypeMetadataResolver()
+        override val entityMetaResolver = DataTypeEntityMetaResolver()
     })
 
     @Test

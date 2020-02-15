@@ -9,8 +9,8 @@ import org.komapper.core.desc.DefaultDataDescFactory
 import org.komapper.core.desc.DefaultEntityDescFactory
 import org.komapper.core.desc.DefaultPropDescFactory
 import org.komapper.core.jdbc.AbstractDialect
-import org.komapper.core.metadata.CollectedMetadataResolver
-import org.komapper.core.metadata.entities
+import org.komapper.core.meta.DefaultEntityMetaResolver
+import org.komapper.core.meta.entities
 
 internal class SelectBuilderTest {
     private data class Address(
@@ -32,7 +32,7 @@ internal class SelectBuilderTest {
     private val namingStrategy = CamelToSnake()
 
     private val dataDescFactory = DefaultDataDescFactory(
-        CollectedMetadataResolver(metadata),
+        DefaultEntityMetaResolver(metadata),
         DefaultPropDescFactory(
             { it },
             namingStrategy

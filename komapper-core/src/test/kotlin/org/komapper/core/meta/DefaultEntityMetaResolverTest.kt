@@ -1,11 +1,11 @@
-package org.komapper.core.metadata
+package org.komapper.core.meta
 
 import java.time.LocalDateTime
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 
-internal class CollectedMetadataResolverTest {
+internal class DefaultEntityMetaResolverTest {
 
     data class Address(
         val id: Int,
@@ -38,13 +38,13 @@ internal class CollectedMetadataResolverTest {
 
     @Test
     fun testRegistered() {
-        val resolver = CollectedMetadataResolver(metadata)
+        val resolver = DefaultEntityMetaResolver(metadata)
         assertEquals(metadata[Address::class], resolver.resolve(Address::class))
     }
 
     @Test
     fun testNotRegistered() {
-        val resolver = CollectedMetadataResolver(metadata)
+        val resolver = DefaultEntityMetaResolver(metadata)
         assertDoesNotThrow {
             resolver.resolve(Person::class)
         }

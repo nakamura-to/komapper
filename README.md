@@ -38,9 +38,9 @@ import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.criteria.select
 import org.komapper.core.jdbc.SimpleDataSource
-import org.komapper.core.metadata.CollectedMetadataResolver
-import org.komapper.core.metadata.SequenceGenerator
-import org.komapper.core.metadata.entities
+import org.komapper.core.meta.CollectedMetadataResolver
+import org.komapper.core.meta.SequenceGenerator
+import org.komapper.core.meta.entities
 import org.komapper.core.sql.template
 import org.komapper.jdbc.h2.H2Dialect
 

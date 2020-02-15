@@ -19,11 +19,11 @@ import org.junit.jupiter.api.Test
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.jdbc.SimpleDataSource
-import org.komapper.core.metadata.CollectedMetadataResolver
-import org.komapper.core.metadata.IdMeta
-import org.komapper.core.metadata.Metadata
-import org.komapper.core.metadata.MetadataResolver
-import org.komapper.core.metadata.entities
+import org.komapper.core.meta.DefaultEntityMetaResolver
+import org.komapper.core.meta.EntityMeta
+import org.komapper.core.meta.EntityMetaResolver
+import org.komapper.core.meta.IdMeta
+import org.komapper.core.meta.entities
 import org.komapper.core.sql.template
 import org.komapper.core.tx.TransactionIsolationLevel
 
@@ -38,7 +38,7 @@ internal class TransactionTest {
     private val config = object : DbConfig() {
         override val dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
         override val dialect = H2Dialect()
-        override val metadataResolver = CollectedMetadataResolver(
+        override val entityMetaResolver = DefaultEntityMetaResolver(
             entities {
                 entity(Address::class) {
                     id(Address::addressId)
@@ -223,17 +223,17 @@ internal class TransactionTest {
         }
     }
 
-    class DataTypeMetadataResolver : MetadataResolver {
-        override fun <T : Any> resolve(kClass: KClass<T>): Metadata<T> {
+    class DataTypeEntityMetaResolver : EntityMetaResolver {
+        override fun <T : Any> resolve(kClass: KClass<T>): EntityMeta<T> {
             val id = kClass.memberProperties.first { it.name == "id" }.let { IdMeta.Assign(it.name) }
-            return Metadata(kClass, idList = listOf(id))
+            return EntityMeta(kClass, idList = listOf(id))
         }
     }
 
     val dataTypeConfig = object : DbConfig() {
         override val dataSource = config.dataSource
         override val dialect = config.dialect
-        override val metadataResolver = DataTypeMetadataResolver()
+        override val entityMetaResolver = DataTypeEntityMetaResolver()
     }
 
     @Nested

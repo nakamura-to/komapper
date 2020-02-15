@@ -11,8 +11,8 @@ import org.komapper.core.InsertOption
 import org.komapper.core.UpdateOption
 import org.komapper.core.builder.DefaultEntitySqlBuilder
 import org.komapper.core.jdbc.AbstractDialect
-import org.komapper.core.metadata.CollectedMetadataResolver
-import org.komapper.core.metadata.entities
+import org.komapper.core.meta.DefaultEntityMetaResolver
+import org.komapper.core.meta.entities
 
 internal class DefaultEntitySqlBuilderTest {
 
@@ -26,7 +26,7 @@ internal class DefaultEntitySqlBuilderTest {
         }
     }
 
-    private val metadataResolver = CollectedMetadataResolver(
+    private val metadataResolver = DefaultEntityMetaResolver(
         entities {
             entity(Employee::class) {
                 id(Employee::employeeId)

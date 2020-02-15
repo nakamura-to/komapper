@@ -4,7 +4,7 @@ class EntityDesc<T : Any>(
     private val dataDesc: DataDesc<T>,
     val tableName: String
 ) {
-    val kClass = dataDesc.metadata.kClass
+    val kClass = dataDesc.entityMeta.kClass
     val leafPropDescList = dataDesc.getLeafPropDescList()
     val idList = leafPropDescList.filter { it.kind is PropKind.Id }
     val sequenceIdList = idList.filter { it.kind is PropKind.Id.Sequence }
@@ -15,7 +15,7 @@ class EntityDesc<T : Any>(
     val columnLabelMap = leafPropDescList.associateBy { it.columnLabel }
     val propMap = leafPropDescList.associateBy { it.prop }
     val expander: (String) -> List<String> = { prefix -> leafPropDescList.map { prefix + it.columnName } }
-    val listener = dataDesc.metadata.listener?.instance
+    val listener = dataDesc.entityMeta.listener?.instance
 
     fun new(leaves: Map<PropDesc, Any?>): T {
         return dataDesc.new(leaves)

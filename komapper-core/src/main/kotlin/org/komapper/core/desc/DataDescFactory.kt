@@ -5,7 +5,7 @@ import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.jvmErasure
-import org.komapper.core.metadata.MetadataResolver
+import org.komapper.core.meta.EntityMetaResolver
 
 interface DataDescFactory {
     fun <T : Any> create(
@@ -17,7 +17,7 @@ interface DataDescFactory {
 }
 
 open class DefaultDataDescFactory(
-    private val metadataResolver: MetadataResolver,
+    private val entityMetaResolver: EntityMetaResolver,
     private val propDescFactory: PropDescFactory
 ) : DataDescFactory {
     override fun <T : Any> create(
@@ -27,7 +27,7 @@ open class DefaultDataDescFactory(
         receiverResolver: (Any) -> Any?
     ): DataDesc<T> {
         require(kClass.isData) { "The kClass must be a data class." }
-        val metadata = metadataResolver.resolve(kClass)
+        val meta = entityMetaResolver.resolve(kClass)
         val constructor = kClass.primaryConstructor ?: error("The kClazz has no primary constructor.")
         val copy = kClass.memberFunctions.find {
             it.name == "copy" && it.returnType.jvmErasure == kClass && it.parameters.size == constructor.parameters.size + 1
@@ -44,7 +44,7 @@ open class DefaultDataDescFactory(
                     "${constructorParam.type} is not equal to ${prop.returnType}"
                 }
                 propDescFactory.create(
-                    metadata,
+                    meta,
                     constructorParam,
                     copyParam,
                     prop,
@@ -53,6 +53,6 @@ open class DefaultDataDescFactory(
                     receiverResolver
                 )
             }
-        return DataDesc(metadata, constructor, copy, propDescList, isMarkedNullable)
+        return DataDesc(meta, constructor, copy, propDescList, isMarkedNullable)
     }
 }

@@ -6,12 +6,12 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
 import kotlin.reflect.jvm.jvmErasure
-import org.komapper.core.metadata.IdMeta
-import org.komapper.core.metadata.Metadata
+import org.komapper.core.meta.EntityMeta
+import org.komapper.core.meta.IdMeta
 
 interface PropDescFactory {
     fun create(
-        metadata: Metadata<*>,
+        entityMeta: EntityMeta<*>,
         constructorParam: KParameter,
         copyParam: KParameter,
         prop: KProperty1<*, *>,
@@ -27,7 +27,7 @@ open class DefaultPropDescFactory(
 ) : PropDescFactory {
 
     override fun create(
-        metadata: Metadata<*>,
+        entityMeta: EntityMeta<*>,
         constructorParam: KParameter,
         copyParam: KParameter,
         prop: KProperty1<*, *>,
@@ -37,11 +37,11 @@ open class DefaultPropDescFactory(
     ): PropDesc {
         val kClass = prop.returnType.jvmErasure
         val deepGetter: (Any) -> Any? = { entity -> receiverResolver(entity)?.let { prop.call(it) } }
-        val id = metadata.idList.find { it.propName == prop.name }
-        val version = metadata.version?.let { if (it.propName == prop.name) it else null }
-        val createdAt = metadata.createdAt?.let { if (it.propName == prop.name) it else null }
-        val updatedAt = metadata.updatedAt?.let { if (it.propName == prop.name) it else null }
-        val embedded = metadata.embeddedList.find { it.propName == prop.name }
+        val id = entityMeta.idList.find { it.propName == prop.name }
+        val version = entityMeta.version?.let { if (it.propName == prop.name) it else null }
+        val createdAt = entityMeta.createdAt?.let { if (it.propName == prop.name) it else null }
+        val updatedAt = entityMeta.updatedAt?.let { if (it.propName == prop.name) it else null }
+        val embedded = entityMeta.embeddedList.find { it.propName == prop.name }
         val kind = when {
             id != null -> idKind(kClass, prop, id)
             version != null -> versionKind(kClass, prop)
@@ -50,7 +50,7 @@ open class DefaultPropDescFactory(
             embedded != null -> embeddedKind(kClass, prop, dataDescFactory, hierarchy, deepGetter)
             else -> PropKind.Basic
         }
-        val column = metadata.columnList.find { it.propName == prop.name }
+        val column = entityMeta.columnList.find { it.propName == prop.name }
         val name = column?.name ?: namingStrategy.fromKotlinToDb(constructorParam.name!!)
         val columnLabel = name.split('.').first().toLowerCase()
         val columnName = if (column?.quote == true) quote(name) else name

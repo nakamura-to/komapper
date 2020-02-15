@@ -26,7 +26,7 @@ import org.komapper.core.expr.ExprNodeFactory
 import org.komapper.core.jdbc.Dialect
 import org.komapper.core.logging.Logger
 import org.komapper.core.logging.StdoutLogger
-import org.komapper.core.metadata.MetadataResolver
+import org.komapper.core.meta.EntityMetaResolver
 import org.komapper.core.sql.CacheSqlNodeFactory
 import org.komapper.core.sql.DefaultSqlBuilder
 import org.komapper.core.sql.DefaultSqlRewriter
@@ -44,7 +44,7 @@ import org.komapper.core.tx.TransactionScopeInitiator
  * @property dialect the dialect
  * @property name the key which is used to manage sequence values. The name must be unique.
  * @property namingStrategy the naming strategy for entity classes and properties.
- * @property metadataResolver the metadata resolver
+ * @property entityMetaResolver the metadata resolver
  * @property objectDescFactory the object description factory
  * @property dataDescFactory the data class description factory
  * @property propDescFactory the property description factory
@@ -67,7 +67,7 @@ import org.komapper.core.tx.TransactionScopeInitiator
 abstract class DbConfig() {
     abstract val dataSource: DataSource
     abstract val dialect: Dialect
-    abstract val metadataResolver: MetadataResolver
+    abstract val entityMetaResolver: EntityMetaResolver
     open val name: String = System.identityHashCode(object {}).toString()
     open val namingStrategy: NamingStrategy by lazy { CamelToSnake() }
     open val objectDescFactory: ObjectDescFactory by lazy { DefaultObjectDescFactory() }
@@ -79,7 +79,7 @@ abstract class DbConfig() {
     }
     open val dataDescFactory: DataDescFactory by lazy {
         DefaultDataDescFactory(
-            metadataResolver,
+            entityMetaResolver,
             propDescFactory
         )
     }

@@ -1,10 +1,10 @@
 package org.komapper.core.desc
 
 import kotlin.reflect.KFunction
-import org.komapper.core.metadata.Metadata
+import org.komapper.core.meta.EntityMeta
 
 data class DataDesc<T : Any>(
-    val metadata: Metadata<T>,
+    val entityMeta: EntityMeta<T>,
     private val constructor: KFunction<T>,
     private val copy: KFunction<*>,
     private val propDescList: List<PropDesc>,

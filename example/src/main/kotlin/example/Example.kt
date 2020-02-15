@@ -5,9 +5,9 @@ import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.criteria.select
 import org.komapper.core.jdbc.SimpleDataSource
-import org.komapper.core.metadata.CollectedMetadataResolver
-import org.komapper.core.metadata.SequenceGenerator
-import org.komapper.core.metadata.entities
+import org.komapper.core.meta.DefaultEntityMetaResolver
+import org.komapper.core.meta.SequenceGenerator
+import org.komapper.core.meta.entities
 import org.komapper.core.sql.template
 import org.komapper.jdbc.h2.H2Dialect
 
@@ -42,7 +42,7 @@ fun main() {
             // dialect for H2
             override val dialect = H2Dialect()
             // register entity metadata
-            override val metadataResolver = CollectedMetadataResolver(metadata)
+            override val entityMetaResolver = DefaultEntityMetaResolver(metadata)
         }
     )
 

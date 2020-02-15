@@ -1,4 +1,4 @@
-package org.komapper.core.metadata
+package org.komapper.core.meta
 
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
@@ -7,7 +7,7 @@ import kotlin.reflect.KProperty1
 import org.komapper.core.desc.EntityListener
 import org.komapper.core.dsl.Scope
 
-data class Metadata<T : Any>(
+data class EntityMeta<T : Any>(
     val kClass: KClass<T>,
     val table: TableMeta = TableMeta(null, false),
     val columnList: List<ColumnMeta> = emptyList(),
@@ -34,7 +34,7 @@ data class MutableMetadata<T : Any>(
     val embeddedList: MutableList<EmbeddedMeta> = mutableListOf(),
     var listener: ListenerMeta<T>? = null
 ) {
-    fun asImmutable(): Metadata<T> = Metadata(
+    fun asImmutable(): EntityMeta<T> = EntityMeta(
         kClass,
         table,
         columnList,
@@ -71,7 +71,7 @@ data class SequenceGenerator(
 )
 
 @Scope
-class EntitiesScope(private val metadataMap: MutableMap<KClass<*>, Metadata<*>>) {
+class EntitiesScope(private val entityMetaMap: MutableMap<KClass<*>, EntityMeta<*>>) {
 
     inline fun <reified T : Any> entity(noinline block: EntityScope<T>.() -> Unit) {
         require(T::class.isData) { "The parameter type T must be a data class." }
@@ -83,7 +83,7 @@ class EntitiesScope(private val metadataMap: MutableMap<KClass<*>, Metadata<*>>)
         val metadata = MutableMetadata(kClass).also {
             EntityScope(it).block()
         }
-        metadataMap[kClass] = metadata.asImmutable()
+        entityMetaMap[kClass] = metadata.asImmutable()
     }
 }
 
@@ -180,8 +180,8 @@ class TableScope<T : Any>(private val metadata: MutableMetadata<T>) {
     }
 }
 
-fun entities(block: EntitiesScope.() -> Unit): Map<KClass<*>, Metadata<*>> {
-    return mutableMapOf<KClass<*>, Metadata<*>>().also {
+fun entities(block: EntitiesScope.() -> Unit): Map<KClass<*>, EntityMeta<*>> {
+    return mutableMapOf<KClass<*>, EntityMeta<*>>().also {
         EntitiesScope(it).block()
     }
 }

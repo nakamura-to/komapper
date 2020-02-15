@@ -10,9 +10,9 @@ import org.junit.jupiter.api.extension.ParameterResolver
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.jdbc.SimpleDataSource
-import org.komapper.core.metadata.CollectedMetadataResolver
-import org.komapper.core.metadata.SequenceGenerator
-import org.komapper.core.metadata.entities
+import org.komapper.core.meta.DefaultEntityMetaResolver
+import org.komapper.core.meta.SequenceGenerator
+import org.komapper.core.meta.entities
 
 class Env : BeforeAllCallback,
     AfterAllCallback,
@@ -27,7 +27,7 @@ class Env : BeforeAllCallback,
             override val dataSource =
                 SimpleDataSource(url = "jdbc:postgresql://127.0.0.1:$port/komapper", user = "postgres")
             override val dialect = PostgreSqlDialect()
-            override val metadataResolver = CollectedMetadataResolver(
+            override val entityMetaResolver = DefaultEntityMetaResolver(
                 entities {
                     entity(Address::class) {
                         id(Address::addressId)

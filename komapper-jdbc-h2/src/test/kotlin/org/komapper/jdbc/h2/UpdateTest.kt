@@ -53,7 +53,7 @@ internal class UpdateTest(private val db: Db) {
         val db = Db(object : DbConfig() {
             override val dataSource = db.config.dataSource
             override val dialect = db.config.dialect
-            override val metadataResolver = db.config.metadataResolver
+            override val entityMetaResolver = db.config.entityMetaResolver
             override val listener = object : GlobalEntityListener {
                 override fun <T : Any> preUpdate(
                     entity: T,

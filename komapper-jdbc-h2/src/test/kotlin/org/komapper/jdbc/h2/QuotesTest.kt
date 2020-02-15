@@ -25,7 +25,7 @@ internal class QuotesTest(private val db: Db) {
         val myConfig = object : DbConfig() {
             override val dataSource = db.config.dataSource
             override val dialect = db.config.dialect
-            override val metadataResolver = db.config.metadataResolver
+            override val entityMetaResolver = db.config.entityMetaResolver
             override val logger: Logger = logger
         }
 

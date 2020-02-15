@@ -2,8 +2,8 @@ package org.komapper.core.desc
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.komapper.core.metadata.CollectedMetadataResolver
-import org.komapper.core.metadata.entities
+import org.komapper.core.meta.DefaultEntityMetaResolver
+import org.komapper.core.meta.entities
 
 internal class DefaultEntityDescFactoryTest {
 
@@ -34,7 +34,7 @@ internal class DefaultEntityDescFactoryTest {
     private val namingStrategy = CamelToSnake()
 
     private val dataDescFactory = DefaultDataDescFactory(
-        CollectedMetadataResolver(metadata),
+        DefaultEntityMetaResolver(metadata),
         DefaultPropDescFactory(
             { it },
             namingStrategy

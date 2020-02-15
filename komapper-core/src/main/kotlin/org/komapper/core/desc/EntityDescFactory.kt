@@ -23,7 +23,7 @@ open class DefaultEntityDescFactory(
 
     protected open fun <T : Any> create(kClass: KClass<T>): EntityDesc<T> {
         val desc = dataDescFactory.create(kClass, false, listOf(kClass)) { it }
-        val table = desc.metadata.table
+        val table = desc.entityMeta.table
         val name = table.name ?: namingStrategy.fromKotlinToDb(kClass.simpleName!!)
         val tableName = if (table.quote) quote(name) else name
         return EntityDesc(desc, tableName)
