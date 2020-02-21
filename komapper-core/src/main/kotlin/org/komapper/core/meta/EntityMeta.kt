@@ -23,7 +23,7 @@ data class EntityMeta<T : Any>(
     }
 }
 
-data class MutableMetadata<T : Any>(
+data class MutableEntityMeta<T : Any>(
     val kClass: KClass<T>,
     var table: TableMeta = TableMeta(null, false),
     val columnList: MutableList<ColumnMeta> = mutableListOf(),
@@ -80,7 +80,7 @@ class EntitiesScope(private val entityMetaMap: MutableMap<KClass<*>, EntityMeta<
 
     fun <T : Any> entity(kClass: KClass<T>, block: EntityScope<T>.() -> Unit) {
         require(kClass.isData) { "The kClass \"${kClass.qualifiedName}\" must be a data class." }
-        val metadata = MutableMetadata(kClass).also {
+        val metadata = MutableEntityMeta(kClass).also {
             EntityScope(it).block()
         }
         entityMetaMap[kClass] = metadata.asImmutable()
@@ -88,12 +88,12 @@ class EntitiesScope(private val entityMetaMap: MutableMap<KClass<*>, EntityMeta<
 }
 
 @Scope
-class EntityScope<T : Any>(private val metadata: MutableMetadata<T>) {
-    private val tableScope = TableScope(metadata)
+class EntityScope<T : Any>(private val entityMeta: MutableEntityMeta<T>) {
+    private val tableScope = TableScope(entityMeta)
 
     fun id(property: KProperty1<T, *>) {
         val idMeta = IdMeta.Assign(property.name)
-        metadata.idList.add(idMeta)
+        entityMeta.idList.add(idMeta)
     }
 
     fun id(
@@ -102,7 +102,7 @@ class EntityScope<T : Any>(private val metadata: MutableMetadata<T>) {
         @Suppress("UNUSED_PARAMETER") `_`: Int? = null
     ) {
         val idMeta = IdMeta.Sequence(property.name, generator)
-        metadata.idList.add(idMeta)
+        entityMeta.idList.add(idMeta)
     }
 
     fun id(
@@ -111,72 +111,72 @@ class EntityScope<T : Any>(private val metadata: MutableMetadata<T>) {
         @Suppress("UNUSED_PARAMETER") `_`: Long? = null
     ) {
         val idMeta = IdMeta.Sequence(property.name, generator)
-        metadata.idList.add(idMeta)
+        entityMeta.idList.add(idMeta)
     }
 
     fun version(
         property: KProperty1<T, Int?>,
         @Suppress("UNUSED_PARAMETER") `_`: Int? = null
     ) {
-        metadata.version = VersionMeta(property.name)
+        entityMeta.version = VersionMeta(property.name)
     }
 
     fun version(
         property: KProperty1<T, Long?>,
         @Suppress("UNUSED_PARAMETER") `_`: Long? = null
     ) {
-        metadata.version = VersionMeta(property.name)
+        entityMeta.version = VersionMeta(property.name)
     }
 
     fun createdAt(
         property: KProperty1<T, LocalDateTime?>,
         @Suppress("UNUSED_PARAMETER") `_`: LocalDateTime? = null
     ) {
-        metadata.createdAt = CreatedAtMeta(property.name)
+        entityMeta.createdAt = CreatedAtMeta(property.name)
     }
 
     fun createdAt(
         property: KProperty1<T, OffsetDateTime?>,
         @Suppress("UNUSED_PARAMETER") `_`: OffsetDateTime? = null
     ) {
-        metadata.createdAt = CreatedAtMeta(property.name)
+        entityMeta.createdAt = CreatedAtMeta(property.name)
     }
 
     fun updatedAt(
         property: KProperty1<T, LocalDateTime?>,
         @Suppress("UNUSED_PARAMETER") `_`: LocalDateTime? = null
     ) {
-        metadata.updatedAt = UpdatedAtMeta(property.name)
+        entityMeta.updatedAt = UpdatedAtMeta(property.name)
     }
 
     fun updatedAt(
         property: KProperty1<T, OffsetDateTime?>,
         @Suppress("UNUSED_PARAMETER") `_`: OffsetDateTime? = null
     ) {
-        metadata.updatedAt = UpdatedAtMeta(property.name)
+        entityMeta.updatedAt = UpdatedAtMeta(property.name)
     }
 
     fun embedded(property: KProperty1<T, *>) {
         val embedded = EmbeddedMeta(property.name)
-        metadata.embeddedList.add(embedded)
+        entityMeta.embeddedList.add(embedded)
     }
 
     fun listener(entityListener: EntityListener<T>) {
-        metadata.listener = ListenerMeta(entityListener)
+        entityMeta.listener = ListenerMeta(entityListener)
     }
 
     fun table(block: TableScope<T>.() -> Unit) = tableScope.block()
 }
 
 @Scope
-class TableScope<T : Any>(private val metadata: MutableMetadata<T>) {
+class TableScope<T : Any>(private val entityMeta: MutableEntityMeta<T>) {
     fun name(name: String, quote: Boolean = false) {
-        metadata.table = TableMeta(name, quote)
+        entityMeta.table = TableMeta(name, quote)
     }
 
     fun column(property: KProperty1<T, *>, name: String? = null, quote: Boolean = false) {
         val column = ColumnMeta(property.name, name, quote)
-        metadata.columnList.add(column)
+        entityMeta.columnList.add(column)
     }
 }
 
