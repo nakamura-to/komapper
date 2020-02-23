@@ -7,7 +7,7 @@ import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.logging.Logger
 import org.komapper.core.logging.StdoutLogger
-import org.komapper.core.sql.Sql
+import org.komapper.core.sql.Stmt
 
 @ExtendWith(Env::class)
 internal class QuotesTest(private val db: Db) {
@@ -16,8 +16,8 @@ internal class QuotesTest(private val db: Db) {
     fun test() {
         val messages = mutableListOf<String>()
         val logger = object : StdoutLogger() {
-            override fun logSql(sql: Sql) {
-                val message = sql.log!!
+            override fun logStmt(stmt: Stmt) {
+                val message = stmt.log!!
                 println(message)
                 messages.add(message)
             }

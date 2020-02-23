@@ -1,17 +1,17 @@
 package org.komapper.core.builder
 
 import org.komapper.core.criteria.DeleteCriteria
-import org.komapper.core.desc.EntityDescFactory
+import org.komapper.core.entity.EntityDescFactory
 import org.komapper.core.jdbc.Dialect
-import org.komapper.core.sql.Sql
-import org.komapper.core.sql.SqlBuffer
+import org.komapper.core.sql.Stmt
+import org.komapper.core.sql.StmtBuffer
 
 class DeleteBuilder(
     private val dialect: Dialect,
     private val entityDescFactory: EntityDescFactory,
     private val criteria: DeleteCriteria<*>
 ) {
-    private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
+    private val buf: StmtBuffer = StmtBuffer(dialect::formatValue)
 
     private val entityDescResolver =
         EntityDescResolver(
@@ -36,7 +36,7 @@ class DeleteBuilder(
             )
         }
 
-    fun build(): Sql {
+    fun build(): Stmt {
         buf.append("delete from")
         val entityDesc = entityDescResolver[criteria.alias]
         buf.append(" ${entityDesc.tableName} ${criteria.alias.name}")
@@ -46,6 +46,6 @@ class DeleteBuilder(
                 criterionVisitor.visit(where)
             }
         }
-        return buf.toSql()
+        return buf.toStmt()
     }
 }

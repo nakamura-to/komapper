@@ -3,20 +3,19 @@ package org.komapper.core
 import java.sql.Connection
 import java.sql.PreparedStatement
 import javax.sql.DataSource
-import org.komapper.core.builder.DefaultEntitySqlBuilder
-import org.komapper.core.builder.EntitySqlBuilder
-import org.komapper.core.desc.CamelToSnake
-import org.komapper.core.desc.DataDescFactory
-import org.komapper.core.desc.DefaultDataDescFactory
-import org.komapper.core.desc.DefaultEntityDescFactory
-import org.komapper.core.desc.DefaultGlobalEntityListener
-import org.komapper.core.desc.DefaultObjectDescFactory
-import org.komapper.core.desc.DefaultPropDescFactory
-import org.komapper.core.desc.EntityDescFactory
-import org.komapper.core.desc.GlobalEntityListener
-import org.komapper.core.desc.NamingStrategy
-import org.komapper.core.desc.ObjectDescFactory
-import org.komapper.core.desc.PropDescFactory
+import org.komapper.core.builder.DefaultEntityStmtBuilder
+import org.komapper.core.builder.EntityStmtBuilder
+import org.komapper.core.entity.CamelToSnake
+import org.komapper.core.entity.DataDescFactory
+import org.komapper.core.entity.DefaultDataDescFactory
+import org.komapper.core.entity.DefaultEntityDescFactory
+import org.komapper.core.entity.DefaultGlobalEntityListener
+import org.komapper.core.entity.DefaultPropDescFactory
+import org.komapper.core.entity.EntityDescFactory
+import org.komapper.core.entity.EntityMetaResolver
+import org.komapper.core.entity.GlobalEntityListener
+import org.komapper.core.entity.NamingStrategy
+import org.komapper.core.entity.PropDescFactory
 import org.komapper.core.expr.CacheExprNodeFactory
 import org.komapper.core.expr.DefaultExprEnvironment
 import org.komapper.core.expr.DefaultExprEvaluator
@@ -26,13 +25,14 @@ import org.komapper.core.expr.ExprNodeFactory
 import org.komapper.core.jdbc.Dialect
 import org.komapper.core.logging.Logger
 import org.komapper.core.logging.StdoutLogger
-import org.komapper.core.meta.EntityMetaResolver
+import org.komapper.core.sql.AnyDescFactory
+import org.komapper.core.sql.CacheAnyDescFactory
 import org.komapper.core.sql.CacheSqlNodeFactory
-import org.komapper.core.sql.DefaultSqlBuilder
-import org.komapper.core.sql.DefaultSqlRewriter
-import org.komapper.core.sql.SqlBuilder
+import org.komapper.core.sql.DefaultStmtBuilder
+import org.komapper.core.sql.DefaultTemplateRewriter
 import org.komapper.core.sql.SqlNodeFactory
-import org.komapper.core.sql.SqlRewriter
+import org.komapper.core.sql.StmtBuilder
+import org.komapper.core.sql.TemplateRewriter
 import org.komapper.core.tx.TransactionIsolationLevel
 import org.komapper.core.tx.TransactionManager
 import org.komapper.core.tx.TransactionScopeInitiator
@@ -44,21 +44,21 @@ import org.komapper.core.tx.TransactionScopeInitiator
  * @property dialect the dialect
  * @property name the key which is used to manage sequence values. The name must be unique.
  * @property namingStrategy the naming strategy for entity classes and properties.
- * @property entityMetaResolver the metadata resolver
- * @property objectDescFactory the object description factory
+ * @property entityMetaResolver the entity metadata resolver
+ * @property anyDescFactory the object description factory
  * @property dataDescFactory the data class description factory
  * @property propDescFactory the property description factory
  * @property entityDescFactory the entity description factory
- * @property listener the entity listener
- * @property entitySqlBuilder the sql builder for entities
+ * @property listener the global entity listener
+ * @property entityStmtBuilder the sql statement builder for entities
  * @property exprNodeFactory the expression node factory
  * @property exprEnvironment the expression environment
  * @property exprEvaluator the expression evaluator
  * @property sqlNodeFactory the sql node factory
- * @property sqlRewriter the sql rewriter
- * @property sqlBuilder the sql builder
+ * @property templateRewriter the template rewriter
+ * @property stmtBuilder the sql statement builder
  * @property logger the logger
- * @property isolationLevel the isolation level.
+ * @property isolationLevel the transaction isolation level.
  * @property batchSize the batch size. This value is used for batch commands.
  * @property fetchSize the fetch size. See [PreparedStatement.setFetchSize].
  * @property maxRows the max rows. See [PreparedStatement.setMaxRows].
@@ -70,7 +70,7 @@ abstract class DbConfig() {
     abstract val entityMetaResolver: EntityMetaResolver
     open val name: String = System.identityHashCode(object {}).toString()
     open val namingStrategy: NamingStrategy by lazy { CamelToSnake() }
-    open val objectDescFactory: ObjectDescFactory by lazy { DefaultObjectDescFactory() }
+    open val anyDescFactory: AnyDescFactory by lazy { CacheAnyDescFactory() }
     open val propDescFactory: PropDescFactory by lazy {
         DefaultPropDescFactory(
             dialect::quote,
@@ -91,8 +91,8 @@ abstract class DbConfig() {
         )
     }
     open val listener: GlobalEntityListener by lazy { DefaultGlobalEntityListener() }
-    open val entitySqlBuilder: EntitySqlBuilder by lazy {
-        DefaultEntitySqlBuilder(
+    open val entityStmtBuilder: EntityStmtBuilder by lazy {
+        DefaultEntityStmtBuilder(
             dialect,
             entityDescFactory
         )
@@ -108,10 +108,11 @@ abstract class DbConfig() {
         )
     }
     open val sqlNodeFactory: SqlNodeFactory by lazy { CacheSqlNodeFactory() }
-    open val sqlRewriter: SqlRewriter by lazy { DefaultSqlRewriter() }
-    open val sqlBuilder: SqlBuilder by lazy {
-        DefaultSqlBuilder(
+    open val templateRewriter: TemplateRewriter by lazy { DefaultTemplateRewriter() }
+    open val stmtBuilder: StmtBuilder by lazy {
+        DefaultStmtBuilder(
             dialect::formatValue,
+            anyDescFactory,
             sqlNodeFactory,
             exprEvaluator
         )

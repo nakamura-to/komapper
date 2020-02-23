@@ -37,9 +37,9 @@ import org.komapper.core.criteria.SelectScope
 import org.komapper.core.criteria.Update
 import org.komapper.core.criteria.UpdateCriteria
 import org.komapper.core.criteria.UpdateScope
-import org.komapper.core.desc.EntityDesc
-import org.komapper.core.desc.PropDesc
-import org.komapper.core.sql.Sql
+import org.komapper.core.entity.EntityDesc
+import org.komapper.core.entity.PropDesc
+import org.komapper.core.sql.Stmt
 import org.komapper.core.sql.Template
 import org.komapper.core.sql.template
 import org.komapper.core.value.Value
@@ -72,8 +72,8 @@ class Db(val config: DbConfig) {
      */
     inline fun <reified T : Any> findById(id: Any, version: Any? = null): T? {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        val (sql, desc) = dryRun.findById<T>(id, version)
-        return `access$streamEntity`(sql, desc).use { stream ->
+        val (stmt, desc) = dryRun.findById<T>(id, version)
+        return `access$streamEntity`(stmt, desc).use { stream ->
             stream.toList().firstOrNull()
         }
     }
@@ -89,8 +89,8 @@ class Db(val config: DbConfig) {
         query: Select<T> = { }
     ): List<T> {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        val (sql, desc) = dryRun.select(query)
-        return `access$aggregate`(sql, desc)
+        val (stmt, desc) = dryRun.select(query)
+        return `access$aggregate`(stmt, desc)
     }
 
     /**
@@ -120,8 +120,8 @@ class Db(val config: DbConfig) {
         block: (Sequence<T>) -> R
     ): R {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        val (sql, desc) = dryRun.select(template)
-        return `access$streamEntity`(sql, desc).use { stream ->
+        val (stmt, desc) = dryRun.select(template)
+        return `access$streamEntity`(stmt, desc).use { stream ->
             block(stream.asSequence())
         }
     }
@@ -149,8 +149,8 @@ class Db(val config: DbConfig) {
         template: Template<T>,
         block: (Sequence<T>) -> R
     ): R {
-        val sql = dryRun.selectOneColumn(template)
-        return `access$streamOneColumn`<T>(sql, T::class).use { stream ->
+        val stmt = dryRun.selectOneColumn(template)
+        return `access$streamOneColumn`<T>(stmt, T::class).use { stream ->
             block(stream.asSequence())
         }
     }
@@ -180,8 +180,8 @@ class Db(val config: DbConfig) {
         template: Template<Pair<A, B>>,
         block: (Sequence<Pair<A, B>>) -> R
     ): R {
-        val sql = dryRun.selectTwoColumns(template)
-        return `access$streamTwoColumns`<A, B>(sql, A::class, B::class).use { stream ->
+        val stmt = dryRun.selectTwoColumns(template)
+        return `access$streamTwoColumns`<A, B>(stmt, A::class, B::class).use { stream ->
             block(stream.asSequence())
         }
     }
@@ -213,8 +213,8 @@ class Db(val config: DbConfig) {
         template: Template<Triple<A, B, C>>,
         block: (Sequence<Triple<A, B, C>>) -> R
     ): R {
-        val sql = dryRun.selectThreeColumns(template)
-        return `access$streamThreeColumns`<A, B, C>(sql, A::class, B::class, C::class).use { stream ->
+        val stmt = dryRun.selectThreeColumns(template)
+        return `access$streamThreeColumns`<A, B, C>(stmt, A::class, B::class, C::class).use { stream ->
             block(stream.asSequence())
         }
     }
@@ -234,32 +234,32 @@ class Db(val config: DbConfig) {
         offset: Int?
     ): Pair<List<T>, Int> {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        val paginationTemplate = config.sqlRewriter.rewriteForPagination(template, limit, offset)
-        val countTemplate = config.sqlRewriter.rewriteForCount(template)
+        val paginationTemplate = config.templateRewriter.rewriteForPagination(template, limit, offset)
+        val countTemplate = config.templateRewriter.rewriteForCount(template)
         val list = select(paginationTemplate)
         val count = selectOneColumn(countTemplate).first()
         return list to count
     }
 
     private fun <T : Any> aggregate(
-        sql: Sql,
+        stmt: Stmt,
         desc: AggregationDesc
     ): List<T> {
-        val context = AggregationContext()
-        val stream = executeQuery(sql) { rs ->
+        val ctx = AggregationContext()
+        val stream = executeQuery(stmt) { rs ->
             while (rs.next()) {
                 val row = mutableListOf<Pair<Alias, EntityData>>()
                 var propIndex = 0
                 for ((alias, entityDesc) in desc.fetchedEntityDescMap) {
-                    val properties = mutableMapOf<PropDesc, Any?>()
+                    val values = mutableMapOf<PropDesc, Any?>()
                     for (propDesc in entityDesc.leafPropDescList) {
                         val value = config.dialect.getValue(rs, propIndex + 1, propDesc.kClass)
-                        properties[propDesc] = value
+                        values[propDesc] = value
                         propIndex++
                     }
-                    val keyAndData = context[alias]
-                    val key = EntityKey(entityDesc, entityDesc.idList.map { properties[it] })
-                    val data = keyAndData.getOrPut(key) { EntityData(key, properties) }
+                    val keyAndData = ctx[alias]
+                    val key = EntityKey(entityDesc, entityDesc.idList.map { values[it] })
+                    val data = keyAndData.getOrPut(key) { EntityData(key, values) }
                     row.forEach { (a, d) ->
                         d.associate(alias, data)
                         data.associate(a, d)
@@ -272,19 +272,19 @@ class Db(val config: DbConfig) {
         // release resources immediately
         stream.close()
         @Suppress("UNCHECKED_CAST")
-        return desc.aggregate(context) as List<T>
+        return desc.aggregate(ctx) as List<T>
     }
 
     private fun <T : Any> streamEntity(
-        sql: Sql,
+        stmt: Stmt,
         desc: EntityDesc<T>
-    ): Stream<T> = executeQuery(sql) { rs ->
+    ): Stream<T> = executeQuery(stmt) { rs ->
         val propDescMap = mutableMapOf<Int, PropDesc>()
         val metaData = rs.metaData
         val count = metaData.columnCount
         for (i in 1..count) {
             val label = metaData.getColumnLabel(i).toLowerCase()
-            val propDesc = desc.columnLabelMap[label] ?: continue
+            val propDesc = desc.propDescMapByColumnLabel[label] ?: continue
             propDescMap[i] = propDesc
         }
         fromResultSetToStream(rs) {
@@ -299,9 +299,9 @@ class Db(val config: DbConfig) {
 
     @Suppress("UNCHECKED_CAST")
     private fun <T : Any?> streamOneColumn(
-        sql: Sql,
+        stmt: Stmt,
         type: KClass<*>
-    ): Stream<T> = executeQuery(sql) { rs ->
+    ): Stream<T> = executeQuery(stmt) { rs ->
         fromResultSetToStream(rs) {
             config.dialect.getValue(it, 1, type) as T
         }
@@ -309,10 +309,10 @@ class Db(val config: DbConfig) {
 
     @Suppress("UNCHECKED_CAST")
     private fun <A : Any?, B : Any?> streamTwoColumns(
-        sql: Sql,
+        stmt: Stmt,
         firstType: KClass<*>,
         secondType: KClass<*>
-    ): Stream<Pair<A, B>> = executeQuery(sql) { rs ->
+    ): Stream<Pair<A, B>> = executeQuery(stmt) { rs ->
         fromResultSetToStream(rs) {
             val first = config.dialect.getValue(it, 1, firstType) as A
             val second = config.dialect.getValue(it, 2, secondType) as B
@@ -322,11 +322,11 @@ class Db(val config: DbConfig) {
 
     @Suppress("UNCHECKED_CAST")
     private fun <A : Any?, B : Any?, C : Any?> streamThreeColumns(
-        sql: Sql,
+        stmt: Stmt,
         firstType: KClass<*>,
         secondType: KClass<*>,
         thirdType: KClass<*>
-    ): Stream<Triple<A, B, C>> = executeQuery(sql) { rs ->
+    ): Stream<Triple<A, B, C>> = executeQuery(stmt) { rs ->
         fromResultSetToStream(rs) {
             val first = config.dialect.getValue(it, 1, firstType) as A
             val second = config.dialect.getValue(it, 2, secondType) as B
@@ -336,17 +336,17 @@ class Db(val config: DbConfig) {
     }
 
     private fun <T : Any?> executeQuery(
-        sql: Sql,
+        stmt: Stmt,
         handler: (rs: ResultSet) -> Stream<T>
     ): Stream<T> {
         var stream: Stream<T>? = null
         val con = config.connection
         try {
-            log(sql)
-            val ps = con.prepareStatement(sql.text)
+            log(stmt)
+            val ps = con.prepareStatement(stmt.sql)
             try {
                 ps.setUp()
-                ps.bind(sql.values)
+                ps.bind(stmt.values)
                 val rs = ps.executeQuery()
                 try {
                     return handler(rs).also { stream = it }
@@ -390,11 +390,11 @@ class Db(val config: DbConfig) {
      */
     inline fun <reified T : Any> insert(entity: T, option: InsertOption = InsertOption()): T {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        val (sql, desc, newEntity) = dryRun.insert(entity, option) { sequenceName ->
+        val (stmt, desc, newEntity) = dryRun.insert(entity, option) { sequenceName ->
             val t = template<Long>(config.dialect.getSequenceSql(sequenceName))
             selectOneColumn(t).first()
         }
-        return `access$executeUpdate`(sql, false) { count ->
+        return `access$executeUpdate`(stmt, false) { count ->
             check(count == 1)
             newEntity.let { newEntity ->
                 desc.listener?.postInsert(newEntity, desc) ?: newEntity
@@ -412,8 +412,8 @@ class Db(val config: DbConfig) {
      */
     inline fun <reified T : Any> insert(query: Insert<T>): Int {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        val (sql, _) = dryRun.insert(query)
-        return `access$executeUpdate`(sql, false) { it }
+        val (stmt, _) = dryRun.insert(query)
+        return `access$executeUpdate`(stmt, false) { it }
     }
 
     /**
@@ -427,8 +427,8 @@ class Db(val config: DbConfig) {
      */
     inline fun <reified T : Any> delete(entity: T, option: DeleteOption = DeleteOption()): T {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        val (sql, desc, newEntity) = dryRun.delete(entity, option)
-        return `access$executeUpdate`(sql, !option.ignoreVersion && desc.version != null) {
+        val (stmt, desc, newEntity) = dryRun.delete(entity, option)
+        return `access$executeUpdate`(stmt, !option.ignoreVersion && desc.version != null) {
             newEntity.let { newEntity ->
                 desc.listener?.postDelete(newEntity, desc) ?: newEntity
             }.let { newEntity ->
@@ -445,8 +445,8 @@ class Db(val config: DbConfig) {
      */
     inline fun <reified T : Any> delete(query: Delete<T>): Int {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        val (sql, _) = dryRun.delete(query)
-        return `access$executeUpdate`(sql, false) { it }
+        val (stmt, _) = dryRun.delete(query)
+        return `access$executeUpdate`(stmt, false) { it }
     }
 
     /**
@@ -461,8 +461,8 @@ class Db(val config: DbConfig) {
      */
     inline fun <reified T : Any> update(entity: T, option: UpdateOption = UpdateOption()): T {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        val (sql, desc, newEntity) = dryRun.update(entity, option)
-        return `access$executeUpdate`(sql, !option.ignoreVersion && desc.version != null) {
+        val (stmt, desc, newEntity) = dryRun.update(entity, option)
+        return `access$executeUpdate`(stmt, !option.ignoreVersion && desc.version != null) {
             newEntity.let { newEntity ->
                 desc.listener?.postUpdate(newEntity, desc) ?: newEntity
             }.let { newEntity ->
@@ -479,8 +479,8 @@ class Db(val config: DbConfig) {
      */
     inline fun <reified T : Any> update(query: Update<T>): Int {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        val (sql, _) = dryRun.update(query)
-        return `access$executeUpdate`(sql, false) { it }
+        val (stmt, _) = dryRun.update(query)
+        return `access$executeUpdate`(stmt, false) { it }
     }
 
     /**
@@ -509,7 +509,7 @@ class Db(val config: DbConfig) {
         )
     ): T {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        val (sql, desc, newEntity) = dryRun.merge(
+        val (stmt, desc, newEntity) = dryRun.merge(
             entity = entity,
             keys = *keys,
             insertOption = insertOption,
@@ -519,7 +519,7 @@ class Db(val config: DbConfig) {
                 selectOneColumn(t).first()
             }
         )
-        return `access$executeUpdate`(sql, !updateOption.ignoreVersion && desc.version != null) {
+        return `access$executeUpdate`(stmt, !updateOption.ignoreVersion && desc.version != null) {
             newEntity.let { newEntity ->
                 desc.listener?.postMerge(newEntity, desc) ?: newEntity
             }.let {
@@ -528,13 +528,13 @@ class Db(val config: DbConfig) {
         }
     }
 
-    private fun <T> executeUpdate(sql: Sql, versionCheck: Boolean, block: (Int) -> T): T {
+    private fun <T> executeUpdate(stmt: Stmt, versionCheck: Boolean, block: (Int) -> T): T {
         val count = try {
             config.connection.use { con ->
-                log(sql)
-                con.prepareStatement(sql.text).use { ps ->
+                log(stmt)
+                con.prepareStatement(stmt.sql).use { ps ->
                     ps.setUp()
-                    ps.bind(sql.values)
+                    ps.bind(stmt.values)
                     ps.executeUpdate()
                 }
             }
@@ -563,11 +563,11 @@ class Db(val config: DbConfig) {
     inline fun <reified T : Any> batchInsert(entities: List<T>, option: InsertOption = InsertOption()): List<T> {
         require(T::class.isData) { "The type parameter T must be a data class." }
         if (entities.isEmpty()) return entities
-        val (sqls, desc, newEntities) = dryRun.batchInsert(entities, option) { sequenceName ->
+        val (statements, desc, newEntities) = dryRun.batchInsert(entities, option) { sequenceName ->
             val t = template<Long>(config.dialect.getSequenceSql(sequenceName))
             selectOneColumn(t).first()
         }
-        return `access$executeBatch`(sqls, false) { counts ->
+        return `access$executeBatch`(statements, false) { counts ->
             check(counts.all { it == 1 })
             newEntities.map {
                 it.let { newEntity ->
@@ -675,23 +675,23 @@ class Db(val config: DbConfig) {
         }
     }
 
-    private fun <T> executeBatch(sqls: Collection<Sql>, versionCheck: Boolean, block: (IntArray) -> T): T {
+    private fun <T> executeBatch(statements: Collection<Stmt>, versionCheck: Boolean, block: (IntArray) -> T): T {
         val counts = try {
             config.connection.use { con ->
-                val firstSql = sqls.first()
-                log(firstSql)
-                con.prepareStatement(firstSql.text).use { ps ->
+                val firstStmt = statements.first()
+                log(firstStmt)
+                con.prepareStatement(firstStmt.sql).use { ps ->
                     val batchSize = config.batchSize
-                    val allCounts = IntArray(sqls.size)
+                    val allCounts = IntArray(statements.size)
                     var offset = 0
-                    for ((i, sql) in sqls.withIndex()) {
+                    for ((i, sql) in statements.withIndex()) {
                         if (i > 0) {
                             log(sql)
                         }
                         ps.setUp()
                         ps.bind(sql.values)
                         ps.addBatch()
-                        if (i == sqls.size - 1 || batchSize > 0 && (i + 1) % batchSize == 0) {
+                        if (i == statements.size - 1 || batchSize > 0 && (i + 1) % batchSize == 0) {
                             val counts = ps.executeBatch()
                             counts.copyInto(allCounts, offset)
                             offset = i + 1
@@ -720,9 +720,8 @@ class Db(val config: DbConfig) {
      * @return the row count for SQL Data Manipulation Language (DML) statements
      */
     fun executeUpdate(template: Template<Int>): Int {
-        val ctx = config.objectDescFactory.toMap(template.args)
-        val sql = config.sqlBuilder.build(template.sql, ctx)
-        return executeUpdate(sql, false) { it }
+        val stmt = config.stmtBuilder.build(template)
+        return executeUpdate(stmt, false) { it }
     }
 
     /**
@@ -731,8 +730,8 @@ class Db(val config: DbConfig) {
      * @param statements the SQL statements
      */
     fun execute(statements: CharSequence) {
-        val sql = Sql(statements.toString(), emptyList(), null)
-        executeUpdate(sql, false) {}
+        val stmt = Stmt(statements.toString(), emptyList(), null)
+        executeUpdate(stmt, false) {}
     }
 
     /**
@@ -773,7 +772,7 @@ class Db(val config: DbConfig) {
         it.createSQLXML()
     }
 
-    private fun log(sql: Sql) = config.logger.logSql(sql)
+    private fun log(stmt: Stmt) = config.logger.logStmt(stmt)
 
     private fun PreparedStatement.setUp() {
         config.fetchSize?.let { if (it > 0) this.fetchSize = it }
@@ -801,56 +800,56 @@ class Db(val config: DbConfig) {
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
     internal fun <T : Any> `access$aggregate`(
-        sql: Sql,
+        stmt: Stmt,
         desc: AggregationDesc
-    ) = aggregate<T>(sql, desc)
+    ) = aggregate<T>(stmt, desc)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
     internal fun <T : Any> `access$streamEntity`(
-        sql: Sql,
+        stmt: Stmt,
         desc: EntityDesc<T>
-    ) = streamEntity(sql, desc)
+    ) = streamEntity(stmt, desc)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
     internal fun <T : Any?> `access$streamOneColumn`(
-        sql: Sql,
+        stmt: Stmt,
         type: KClass<*>
-    ) = streamOneColumn<T>(sql, type)
+    ) = streamOneColumn<T>(stmt, type)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
     internal fun <A : Any?, B : Any?> `access$streamTwoColumns`(
-        sql: Sql,
+        stmt: Stmt,
         firstType: KClass<*>,
         secondType: KClass<*>
-    ) = streamTwoColumns<A, B>(sql, firstType, secondType)
+    ) = streamTwoColumns<A, B>(stmt, firstType, secondType)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
     internal fun <A : Any?, B : Any?, C : Any?> `access$streamThreeColumns`(
-        sql: Sql,
+        stmt: Stmt,
         firstType: KClass<*>,
         secondType: KClass<*>,
         thirdType: KClass<*>
-    ) = streamThreeColumns<A, B, C>(sql, firstType, secondType, thirdType)
+    ) = streamThreeColumns<A, B, C>(stmt, firstType, secondType, thirdType)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
     internal fun <T> `access$executeUpdate`(
-        sql: Sql,
+        stmt: Stmt,
         versionCheck: Boolean,
         block: (Int) -> T
-    ) = executeUpdate(sql, versionCheck, block)
+    ) = executeUpdate(stmt, versionCheck, block)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
     internal fun <T> `access$executeBatch`(
-        sqls: Collection<Sql>,
+        statements: Collection<Stmt>,
         versionCheck: Boolean,
         block: (IntArray) -> T
-    ) = executeBatch(sqls, versionCheck, block)
+    ) = executeBatch(statements, versionCheck, block)
 
     /**
      * A dry run for database commands.
@@ -867,11 +866,11 @@ class Db(val config: DbConfig) {
          * @param version the version value
          * @return the SQL and the metadata
          */
-        inline fun <reified T : Any> findById(id: Any, version: Any? = null): Pair<Sql, EntityDesc<T>> {
+        inline fun <reified T : Any> findById(id: Any, version: Any? = null): Pair<Stmt, EntityDesc<T>> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
-            val sql = config.entitySqlBuilder.buildFindById(desc, id, version)
-            return sql to desc
+            val stmt = config.entityStmtBuilder.buildFindById(desc, id, version)
+            return stmt to desc
         }
 
         /**
@@ -883,7 +882,7 @@ class Db(val config: DbConfig) {
          */
         inline fun <reified T : Any> select(
             query: Select<T> = { }
-        ): Pair<Sql, AggregationDesc> {
+        ): Pair<Stmt, AggregationDesc> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val criteria = SelectCriteria(T::class).also {
                 SelectScope(it).query(it.alias)
@@ -893,8 +892,8 @@ class Db(val config: DbConfig) {
                 config.entityDescFactory,
                 criteria
             )
-            val sql = builder.build()
-            return sql to builder
+            val stmt = builder.build()
+            return stmt to builder
         }
 
         /**
@@ -906,12 +905,11 @@ class Db(val config: DbConfig) {
          */
         inline fun <reified T : Any> select(
             template: Template<T>
-        ): Pair<Sql, EntityDesc<T>> {
+        ): Pair<Stmt, EntityDesc<T>> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
-            val ctx = config.objectDescFactory.toMap(template.args)
-            val sql = config.sqlBuilder.build(template.sql, ctx, desc.expander)
-            return sql to desc
+            val stmt = config.stmtBuilder.build(template, desc.expander)
+            return stmt to desc
         }
 
         /**
@@ -922,9 +920,8 @@ class Db(val config: DbConfig) {
          */
         fun <T : Any?> selectOneColumn(
             template: Template<T>
-        ): Sql {
-            val ctx = config.objectDescFactory.toMap(template.args)
-            return config.sqlBuilder.build(template.sql, ctx)
+        ): Stmt {
+            return config.stmtBuilder.build(template)
         }
 
         /**
@@ -935,9 +932,8 @@ class Db(val config: DbConfig) {
          */
         fun <A, B> selectTwoColumns(
             template: Template<Pair<A, B>>
-        ): Sql {
-            val ctx = config.objectDescFactory.toMap(template.args)
-            return config.sqlBuilder.build(template.sql, ctx)
+        ): Stmt {
+            return config.stmtBuilder.build(template)
         }
 
         /**
@@ -948,9 +944,8 @@ class Db(val config: DbConfig) {
          */
         fun <A, B, C> selectThreeColumns(
             template: Template<Triple<A, B, C>>
-        ): Sql {
-            val ctx = config.objectDescFactory.toMap(template.args)
-            return config.sqlBuilder.build(template.sql, ctx)
+        ): Stmt {
+            return config.stmtBuilder.build(template)
         }
 
         /**
@@ -966,13 +961,13 @@ class Db(val config: DbConfig) {
             template: Template<T>,
             limit: Int?,
             offset: Int?
-        ): Triple<Sql, EntityDesc<T>, Sql> {
+        ): Triple<Stmt, EntityDesc<T>, Stmt> {
             require(T::class.isData) { "The type parameter T must be a data class." }
-            val paginationTemplate = config.sqlRewriter.rewriteForPagination(template, limit, offset)
-            val countTemplate = config.sqlRewriter.rewriteForCount(template)
-            val (sql, desc) = select(paginationTemplate)
+            val paginationTemplate = config.templateRewriter.rewriteForPagination(template, limit, offset)
+            val countTemplate = config.templateRewriter.rewriteForCount(template)
+            val (stmt, desc) = select(paginationTemplate)
             val countSql = selectOneColumn(countTemplate)
-            return Triple(sql, desc, countSql)
+            return Triple(stmt, desc, countSql)
         }
 
         /**
@@ -988,7 +983,7 @@ class Db(val config: DbConfig) {
             entity: T,
             option: InsertOption = InsertOption(),
             noinline callNextValue: (String) -> Long = { 0L }
-        ): Triple<Sql, EntityDesc<T>, T> {
+        ): Triple<Stmt, EntityDesc<T>, T> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             return if (option.assignId) {
@@ -1002,8 +997,8 @@ class Db(val config: DbConfig) {
             }.let { newEntity ->
                 config.listener.preInsert(newEntity, desc)
             }.let { newEntity ->
-                val sql = config.entitySqlBuilder.buildInsert(desc, newEntity, option)
-                Triple(sql, desc, newEntity)
+                val stmt = config.entityStmtBuilder.buildInsert(desc, newEntity, option)
+                Triple(stmt, desc, newEntity)
             }
         }
 
@@ -1015,7 +1010,7 @@ class Db(val config: DbConfig) {
          */
         inline fun <reified T : Any> insert(
             query: Insert<T>
-        ): Pair<Sql, EntityDesc<T>> {
+        ): Pair<Stmt, EntityDesc<T>> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             val criteria = InsertCriteria(T::class).also {
@@ -1026,8 +1021,8 @@ class Db(val config: DbConfig) {
                 config.entityDescFactory,
                 criteria
             )
-            val sql = builder.build()
-            return sql to desc
+            val stmt = builder.build()
+            return stmt to desc
         }
 
         /**
@@ -1041,15 +1036,15 @@ class Db(val config: DbConfig) {
         inline fun <reified T : Any> delete(
             entity: T,
             option: DeleteOption = DeleteOption()
-        ): Triple<Sql, EntityDesc<T>, T> {
+        ): Triple<Stmt, EntityDesc<T>, T> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             return (desc.listener?.preDelete(entity, desc) ?: entity)
                 .let { newEntity ->
                     config.listener.preDelete(newEntity, desc)
                 }.let { newEntity ->
-                    val sql = config.entitySqlBuilder.buildDelete(desc, newEntity, option)
-                    Triple(sql, desc, newEntity)
+                    val stmt = config.entityStmtBuilder.buildDelete(desc, newEntity, option)
+                    Triple(stmt, desc, newEntity)
                 }
         }
 
@@ -1061,7 +1056,7 @@ class Db(val config: DbConfig) {
          */
         inline fun <reified T : Any> delete(
             query: Delete<T>
-        ): Pair<Sql, EntityDesc<T>> {
+        ): Pair<Stmt, EntityDesc<T>> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             val criteria = DeleteCriteria(T::class).also {
@@ -1072,8 +1067,8 @@ class Db(val config: DbConfig) {
                 config.entityDescFactory,
                 criteria
             )
-            val sql = builder.build()
-            return sql to desc
+            val stmt = builder.build()
+            return stmt to desc
         }
 
         /**
@@ -1087,7 +1082,7 @@ class Db(val config: DbConfig) {
         inline fun <reified T : Any> update(
             entity: T,
             option: UpdateOption = UpdateOption()
-        ): Triple<Sql, EntityDesc<T>, T> {
+        ): Triple<Stmt, EntityDesc<T>, T> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             return (if (option.incrementVersion) desc.incrementVersion(entity) else entity).let { newEntity ->
@@ -1097,8 +1092,8 @@ class Db(val config: DbConfig) {
             }.let { newEntity ->
                 config.listener.preUpdate(newEntity, desc)
             }.let { newEntity ->
-                val sql = config.entitySqlBuilder.buildUpdate(desc, entity, newEntity, option)
-                Triple(sql, desc, newEntity)
+                val stmt = config.entityStmtBuilder.buildUpdate(desc, entity, newEntity, option)
+                Triple(stmt, desc, newEntity)
             }
         }
 
@@ -1110,7 +1105,7 @@ class Db(val config: DbConfig) {
          */
         inline fun <reified T : Any> update(
             query: Update<T>
-        ): Pair<Sql, EntityDesc<T>> {
+        ): Pair<Stmt, EntityDesc<T>> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             val criteria = UpdateCriteria(T::class).also {
@@ -1121,8 +1116,8 @@ class Db(val config: DbConfig) {
                 config.entityDescFactory,
                 criteria
             )
-            val sql = builder.build()
-            return sql to desc
+            val stmt = builder.build()
+            return stmt to desc
         }
 
         /**
@@ -1149,7 +1144,7 @@ class Db(val config: DbConfig) {
                 ignoreVersion = true
             ),
             noinline callNextValue: (String) -> Long = { 0L }
-        ): Triple<Sql, EntityDesc<T>, T> {
+        ): Triple<Stmt, EntityDesc<T>, T> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
             return if (insertOption.assignId) {
@@ -1169,14 +1164,14 @@ class Db(val config: DbConfig) {
             }.let { newEntity ->
                 config.listener.preMerge(newEntity, desc)
             }.let { newEntity ->
-                val buildMerge: (EntityDesc<T>, T, T, List<KProperty1<*, *>>, InsertOption, UpdateOption) -> Sql =
+                val buildMerge: (EntityDesc<T>, T, T, List<KProperty1<*, *>>, InsertOption, UpdateOption) -> Stmt =
                     when {
-                        config.dialect.supportsMerge() -> config.entitySqlBuilder::buildMerge
-                        config.dialect.supportsUpsert() -> config.entitySqlBuilder::buildUpsert
+                        config.dialect.supportsMerge() -> config.entityStmtBuilder::buildMerge
+                        config.dialect.supportsUpsert() -> config.entityStmtBuilder::buildUpsert
                         else -> error("The merge command is not supported.")
                     }
-                val sql = buildMerge(desc, entity, newEntity, keys.toList(), insertOption, updateOption)
-                Triple(sql, desc, newEntity)
+                val stmt = buildMerge(desc, entity, newEntity, keys.toList(), insertOption, updateOption)
+                Triple(stmt, desc, newEntity)
             }
         }
 
@@ -1193,10 +1188,10 @@ class Db(val config: DbConfig) {
             entities: List<T>,
             option: InsertOption = InsertOption(),
             noinline callNextValue: (String) -> Long = { 0L }
-        ): Triple<List<Sql>, EntityDesc<T>, List<T>> {
+        ): Triple<List<Stmt>, EntityDesc<T>, List<T>> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
-            val (sqls, newEntities) = entities.map { entity ->
+            val (statements, newEntities) = entities.map { entity ->
                 if (option.assignId) {
                     desc.assignId(entity, config.name, callNextValue)
                 } else {
@@ -1208,13 +1203,13 @@ class Db(val config: DbConfig) {
                 }.let { newEntity ->
                     config.listener.preInsert(newEntity, desc)
                 }.let { newEntity ->
-                    val sql = config.entitySqlBuilder.buildInsert(desc, newEntity, option)
-                    sql to newEntity
+                    val stmt = config.entityStmtBuilder.buildInsert(desc, newEntity, option)
+                    stmt to newEntity
                 }
-            }.fold(entities.size.let { ArrayList<Sql>(it) to ArrayList<T>(it) }) { acc, (s, e) ->
+            }.fold(entities.size.let { ArrayList<Stmt>(it) to ArrayList<T>(it) }) { acc, (s, e) ->
                 acc.also { it.first.add(s); it.second.add(e) }
             }
-            return Triple(sqls, desc, newEntities)
+            return Triple(statements, desc, newEntities)
         }
 
         /**
@@ -1228,21 +1223,21 @@ class Db(val config: DbConfig) {
         inline fun <reified T : Any> batchDelete(
             entities: List<T>,
             option: DeleteOption = DeleteOption()
-        ): Triple<List<Sql>, EntityDesc<T>, List<T>> {
+        ): Triple<List<Stmt>, EntityDesc<T>, List<T>> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
-            val (sqls, newEntities) = entities.map { entity ->
+            val (statements, newEntities) = entities.map { entity ->
                 (desc.listener?.preDelete(entity, desc) ?: entity)
                     .let { newEntity ->
                         config.listener.preDelete(newEntity, desc)
                     }.let { newEntity ->
-                        val sql = config.entitySqlBuilder.buildDelete(desc, newEntity, option)
-                        sql to newEntity
+                        val stmt = config.entityStmtBuilder.buildDelete(desc, newEntity, option)
+                        stmt to newEntity
                     }
-            }.fold(entities.size.let { ArrayList<Sql>(it) to ArrayList<T>(it) }) { acc, (s, e) ->
+            }.fold(entities.size.let { ArrayList<Stmt>(it) to ArrayList<T>(it) }) { acc, (s, e) ->
                 acc.also { it.first.add(s); it.second.add(e) }
             }
-            return Triple(sqls, desc, newEntities)
+            return Triple(statements, desc, newEntities)
         }
 
         /**
@@ -1256,10 +1251,10 @@ class Db(val config: DbConfig) {
         inline fun <reified T : Any> batchUpdate(
             entities: List<T>,
             option: UpdateOption = UpdateOption()
-        ): Triple<List<Sql>, EntityDesc<T>, List<T>> {
+        ): Triple<List<Stmt>, EntityDesc<T>, List<T>> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
-            val (sqls, newEntities) = entities.map { entity ->
+            val (statements, newEntities) = entities.map { entity ->
                 (if (option.incrementVersion) desc.incrementVersion(entity) else entity).let { newEntity ->
                     if (option.updateTimestamp) desc.updateTimestamp(newEntity) else newEntity
                 }.let { newEntity ->
@@ -1267,13 +1262,13 @@ class Db(val config: DbConfig) {
                 }.let { newEntity ->
                     config.listener.preUpdate(newEntity, desc)
                 }.let { newEntity ->
-                    val sql = config.entitySqlBuilder.buildUpdate(desc, entity, newEntity, option)
-                    sql to newEntity
+                    val stmt = config.entityStmtBuilder.buildUpdate(desc, entity, newEntity, option)
+                    stmt to newEntity
                 }
-            }.fold(entities.size.let { ArrayList<Sql>(it) to ArrayList<T>(it) }) { acc, (s, e) ->
+            }.fold(entities.size.let { ArrayList<Stmt>(it) to ArrayList<T>(it) }) { acc, (s, e) ->
                 acc.also { it.first.add(s); it.second.add(e) }
             }
-            return Triple(sqls, desc, newEntities)
+            return Triple(statements, desc, newEntities)
         }
 
         /**
@@ -1300,10 +1295,10 @@ class Db(val config: DbConfig) {
                 ignoreVersion = true
             ),
             noinline callNextValue: (String) -> Long = { 0L }
-        ): Triple<List<Sql>, EntityDesc<T>, List<T>> {
+        ): Triple<List<Stmt>, EntityDesc<T>, List<T>> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val desc = config.entityDescFactory.get(T::class)
-            val (sqls, newEntities) = entities.map { entity ->
+            val (statements, newEntities) = entities.map { entity ->
                 if (insertOption.assignId) {
                     desc.assignId(entity, config.name, callNextValue)
                 } else {
@@ -1321,19 +1316,19 @@ class Db(val config: DbConfig) {
                 }.let { newEntity ->
                     config.listener.preMerge(newEntity, desc)
                 }.let { newEntity ->
-                    val buildMerge: (EntityDesc<T>, T, T, List<KProperty1<*, *>>, InsertOption, UpdateOption) -> Sql =
+                    val buildMerge: (EntityDesc<T>, T, T, List<KProperty1<*, *>>, InsertOption, UpdateOption) -> Stmt =
                         when {
-                            config.dialect.supportsMerge() -> config.entitySqlBuilder::buildMerge
-                            config.dialect.supportsUpsert() -> config.entitySqlBuilder::buildUpsert
+                            config.dialect.supportsMerge() -> config.entityStmtBuilder::buildMerge
+                            config.dialect.supportsUpsert() -> config.entityStmtBuilder::buildUpsert
                             else -> error("The merge command is not supported.")
                         }
-                    val sql = buildMerge(desc, entity, newEntity, keys.toList(), insertOption, updateOption)
-                    sql to newEntity
+                    val stmt = buildMerge(desc, entity, newEntity, keys.toList(), insertOption, updateOption)
+                    stmt to newEntity
                 }
-            }.fold(entities.size.let { ArrayList<Sql>(it) to ArrayList<T>(it) }) { acc, (s, e) ->
+            }.fold(entities.size.let { ArrayList<Stmt>(it) to ArrayList<T>(it) }) { acc, (s, e) ->
                 acc.also { it.first.add(s); it.second.add(e) }
             }
-            return Triple(sqls, desc, newEntities)
+            return Triple(statements, desc, newEntities)
         }
     }
 }

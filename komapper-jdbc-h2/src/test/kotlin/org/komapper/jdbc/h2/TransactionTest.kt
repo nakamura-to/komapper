@@ -18,12 +18,12 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
+import org.komapper.core.entity.DefaultEntityMetaResolver
+import org.komapper.core.entity.EntityMeta
+import org.komapper.core.entity.EntityMetaResolver
+import org.komapper.core.entity.IdMeta
+import org.komapper.core.entity.entities
 import org.komapper.core.jdbc.SimpleDataSource
-import org.komapper.core.meta.DefaultEntityMetaResolver
-import org.komapper.core.meta.EntityMeta
-import org.komapper.core.meta.EntityMetaResolver
-import org.komapper.core.meta.IdMeta
-import org.komapper.core.meta.entities
 import org.komapper.core.sql.template
 import org.komapper.core.tx.TransactionIsolationLevel
 

@@ -3,10 +3,10 @@ package org.komapper.core.builder
 import org.komapper.core.criteria.Criterion
 import org.komapper.core.criteria.Expression
 import org.komapper.core.criteria.SelectCriteria
-import org.komapper.core.sql.SqlBuffer
+import org.komapper.core.sql.StmtBuffer
 
 class CriterionVisitor(
-    private val buf: SqlBuffer,
+    private val buf: StmtBuffer,
     columnResolver: ColumnResolver,
     private val newSelectBuilder: (SelectCriteria<*>) -> SelectBuilder
 ) {

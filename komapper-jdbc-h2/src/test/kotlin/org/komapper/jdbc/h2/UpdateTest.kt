@@ -12,9 +12,9 @@ import org.komapper.core.OptimisticLockException
 import org.komapper.core.UniqueConstraintException
 import org.komapper.core.criteria.expression
 import org.komapper.core.criteria.update
-import org.komapper.core.desc.EntityDesc
-import org.komapper.core.desc.EntityListener
-import org.komapper.core.desc.GlobalEntityListener
+import org.komapper.core.entity.EntityDesc
+import org.komapper.core.entity.EntityListener
+import org.komapper.core.entity.GlobalEntityListener
 import org.komapper.core.sql.template
 
 @ExtendWith(Env::class)

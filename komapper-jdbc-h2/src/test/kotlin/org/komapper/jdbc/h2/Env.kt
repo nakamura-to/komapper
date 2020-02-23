@@ -12,11 +12,11 @@ import org.junit.jupiter.api.extension.ParameterContext
 import org.junit.jupiter.api.extension.ParameterResolver
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
-import org.komapper.core.desc.EntityListener
+import org.komapper.core.entity.DefaultEntityMetaResolver
+import org.komapper.core.entity.EntityListener
+import org.komapper.core.entity.SequenceGenerator
+import org.komapper.core.entity.entities
 import org.komapper.core.jdbc.SimpleDataSource
-import org.komapper.core.meta.DefaultEntityMetaResolver
-import org.komapper.core.meta.SequenceGenerator
-import org.komapper.core.meta.entities
 
 data class Address(
     val addressId: Int,
@@ -205,7 +205,8 @@ internal class Env :
     private val config = object : DbConfig() {
         override val dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
         override val dialect = H2Dialect()
-        override val entityMetaResolver = DefaultEntityMetaResolver(metadata)
+        override val entityMetaResolver =
+            DefaultEntityMetaResolver(metadata)
         override val batchSize = 2
     }
 

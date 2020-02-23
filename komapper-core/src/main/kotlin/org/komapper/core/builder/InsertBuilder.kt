@@ -1,17 +1,17 @@
 package org.komapper.core.builder
 
 import org.komapper.core.criteria.InsertCriteria
-import org.komapper.core.desc.EntityDescFactory
+import org.komapper.core.entity.EntityDescFactory
 import org.komapper.core.jdbc.Dialect
-import org.komapper.core.sql.Sql
-import org.komapper.core.sql.SqlBuffer
+import org.komapper.core.sql.Stmt
+import org.komapper.core.sql.StmtBuffer
 
 class InsertBuilder(
     dialect: Dialect,
     entityDescFactory: EntityDescFactory,
     private val criteria: InsertCriteria<*>
 ) {
-    private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
+    private val buf: StmtBuffer = StmtBuffer(dialect::formatValue)
 
     private val entityDescResolver =
         EntityDescResolver(
@@ -24,7 +24,7 @@ class InsertBuilder(
 
     private val exprVisitor = ExpressionVisitor(buf, columnResolver)
 
-    fun build(): Sql {
+    fun build(): Stmt {
         val entityDesc = entityDescResolver[criteria.alias]
         buf.append("insert into ${entityDesc.tableName} (")
         with(criteria) {
@@ -45,6 +45,6 @@ class InsertBuilder(
             }
         }
         buf.append(")")
-        return buf.toSql()
+        return buf.toStmt()
     }
 }

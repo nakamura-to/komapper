@@ -2,17 +2,17 @@ package org.komapper.core.builder
 
 import org.komapper.core.criteria.Expression
 import org.komapper.core.criteria.UpdateCriteria
-import org.komapper.core.desc.EntityDescFactory
+import org.komapper.core.entity.EntityDescFactory
 import org.komapper.core.jdbc.Dialect
-import org.komapper.core.sql.Sql
-import org.komapper.core.sql.SqlBuffer
+import org.komapper.core.sql.Stmt
+import org.komapper.core.sql.StmtBuffer
 
 class UpdateBuilder(
     private val dialect: Dialect,
     private val entityDescFactory: EntityDescFactory,
     private val criteria: UpdateCriteria<*>
 ) {
-    private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
+    private val buf: StmtBuffer = StmtBuffer(dialect::formatValue)
 
     private val entityDescResolver =
         EntityDescResolver(
@@ -39,7 +39,7 @@ class UpdateBuilder(
             )
         }
 
-    fun build(): Sql {
+    fun build(): Stmt {
         buf.append("update")
         val entityDesc = entityDescResolver[criteria.alias]
         buf.append(" ${entityDesc.tableName} ${criteria.alias.name}")
@@ -53,7 +53,7 @@ class UpdateBuilder(
                 criterionVisitor.visit(where)
             }
         }
-        return buf.toSql()
+        return buf.toStmt()
     }
 
     private fun processAssignmentList(assignmentList: List<Pair<Expression.Property, Expression>>) {

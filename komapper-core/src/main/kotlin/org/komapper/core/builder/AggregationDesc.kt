@@ -2,8 +2,8 @@ package org.komapper.core.builder
 
 import java.util.UUID
 import org.komapper.core.criteria.Alias
-import org.komapper.core.desc.EntityDesc
-import org.komapper.core.desc.PropDesc
+import org.komapper.core.entity.EntityDesc
+import org.komapper.core.entity.PropDesc
 
 interface AggregationDesc {
     val fetchedEntityDescMap: Map<Alias, EntityDesc<*>>

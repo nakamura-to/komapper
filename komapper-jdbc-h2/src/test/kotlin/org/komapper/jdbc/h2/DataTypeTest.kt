@@ -15,9 +15,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
-import org.komapper.core.meta.EntityMeta
-import org.komapper.core.meta.EntityMetaResolver
-import org.komapper.core.meta.IdMeta
+import org.komapper.core.entity.EntityMeta
+import org.komapper.core.entity.EntityMetaResolver
+import org.komapper.core.entity.IdMeta
 
 @ExtendWith(Env::class)
 internal class DataTypeTest(_db: Db) {

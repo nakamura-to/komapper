@@ -8,9 +8,9 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.UniqueConstraintException
-import org.komapper.core.desc.EntityDesc
-import org.komapper.core.desc.EntityListener
-import org.komapper.core.desc.GlobalEntityListener
+import org.komapper.core.entity.EntityDesc
+import org.komapper.core.entity.EntityListener
+import org.komapper.core.entity.GlobalEntityListener
 import org.komapper.core.sql.template
 
 @ExtendWith(Env::class)

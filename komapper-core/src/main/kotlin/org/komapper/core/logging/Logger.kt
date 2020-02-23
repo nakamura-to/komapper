@@ -1,15 +1,15 @@
 package org.komapper.core.logging
 
-import org.komapper.core.sql.Sql
+import org.komapper.core.sql.Stmt
 
 interface Logger {
-    fun log(lazyMessage: () -> String)
-    fun logSql(sql: Sql)
+    fun logTxMessage(message: () -> String)
+    fun logStmt(stmt: Stmt)
 }
 
 open class StdoutLogger : Logger {
-    override fun log(lazyMessage: () -> String) = println(lazyMessage())
-    override fun logSql(sql: Sql) {
-        sql.log?.let { println(it) }
+    override fun logTxMessage(message: () -> String) = println(message())
+    override fun logStmt(stmt: Stmt) {
+        stmt.log?.let { println(it) }
     }
 }

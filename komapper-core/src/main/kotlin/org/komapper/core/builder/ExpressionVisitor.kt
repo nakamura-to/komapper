@@ -1,11 +1,11 @@
 package org.komapper.core.builder
 
 import org.komapper.core.criteria.Expression
-import org.komapper.core.sql.SqlBuffer
+import org.komapper.core.sql.StmtBuffer
 import org.komapper.core.value.Value
 
 class ExpressionVisitor(
-    private val buf: SqlBuffer,
+    private val buf: StmtBuffer,
     private val columnResolver: ColumnResolver
 ) {
 

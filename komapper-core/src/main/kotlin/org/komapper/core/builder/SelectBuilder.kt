@@ -5,12 +5,12 @@ import org.komapper.core.criteria.Association
 import org.komapper.core.criteria.JoinCriteria
 import org.komapper.core.criteria.JoinKind
 import org.komapper.core.criteria.SelectCriteria
-import org.komapper.core.desc.EntityDesc
-import org.komapper.core.desc.EntityDescFactory
 import org.komapper.core.dsl.EmptyScope
+import org.komapper.core.entity.EntityDesc
+import org.komapper.core.entity.EntityDescFactory
 import org.komapper.core.jdbc.Dialect
-import org.komapper.core.sql.Sql
-import org.komapper.core.sql.SqlBuffer
+import org.komapper.core.sql.Stmt
+import org.komapper.core.sql.StmtBuffer
 
 class SelectBuilder(
     private val dialect: Dialect,
@@ -19,7 +19,7 @@ class SelectBuilder(
     parentEntityDescResolver: EntityDescResolver? = null,
     parentColumnResolver: ColumnResolver? = null
 ) : AggregationDesc {
-    private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
+    private val buf: StmtBuffer = StmtBuffer(dialect::formatValue)
 
     private val entityDescResolver =
         EntityDescResolver(
@@ -50,7 +50,7 @@ class SelectBuilder(
             )
         }
 
-    fun build(expand: Boolean = true): Sql {
+    fun build(expand: Boolean = true): Stmt {
         buf.append("select ")
         if (criteria.distinct) {
             buf.append("distinct ")
@@ -86,7 +86,7 @@ class SelectBuilder(
                 }
             }
         }
-        return buf.toSql()
+        return buf.toStmt()
     }
 
     private fun buildJoinList(joinCriteriaList: List<JoinCriteria<*, *>>) {

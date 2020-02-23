@@ -9,10 +9,10 @@ import org.junit.jupiter.api.extension.ParameterContext
 import org.junit.jupiter.api.extension.ParameterResolver
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
+import org.komapper.core.entity.DefaultEntityMetaResolver
+import org.komapper.core.entity.SequenceGenerator
+import org.komapper.core.entity.entities
 import org.komapper.core.jdbc.SimpleDataSource
-import org.komapper.core.meta.DefaultEntityMetaResolver
-import org.komapper.core.meta.SequenceGenerator
-import org.komapper.core.meta.entities
 
 class Env : BeforeAllCallback,
     AfterAllCallback,

@@ -3,8 +3,8 @@ package org.komapper.core.builder
 import kotlin.reflect.KClass
 import org.komapper.core.criteria.Alias
 import org.komapper.core.criteria.JoinCriteria
-import org.komapper.core.desc.EntityDesc
-import org.komapper.core.desc.EntityDescFactory
+import org.komapper.core.entity.EntityDesc
+import org.komapper.core.entity.EntityDescFactory
 
 class EntityDescResolver(
     entityDescFactory: EntityDescFactory,
