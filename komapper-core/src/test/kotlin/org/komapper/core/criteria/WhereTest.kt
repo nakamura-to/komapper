@@ -18,7 +18,7 @@ internal class WhereTest {
         }
         val criterionList = mutableListOf<Criterion>()
         WhereScope(a) { criterionList.add(it) }.w()
-        assertEquals(listOf(Criterion.Eq(a[Address::id], Expr.wrap(1))), criterionList)
+        assertEquals(listOf(Criterion.Eq(a[Address::id], Expression.wrap(1))), criterionList)
     }
 
     @Test
@@ -35,8 +35,8 @@ internal class WhereTest {
         WhereScope(a) { criterionList.add(it) }.w3()
         assertEquals(
             listOf(
-                Criterion.Eq(a[Address::id], Expr.wrap(1)),
-                Criterion.Ne(a[Address::street], Expr.wrap("a"))
+                Criterion.Eq(a[Address::id], Expression.wrap(1)),
+                Criterion.Ne(a[Address::street], Expression.wrap("a"))
             ),
             criterionList
         )

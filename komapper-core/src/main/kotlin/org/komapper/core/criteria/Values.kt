@@ -18,7 +18,7 @@ infix operator fun (Values).plus(other: Values): Values {
 
 @Scope
 @Suppress("FunctionName", "MemberVisibilityCanBePrivate")
-class ValuesScope(val _add: (Pair<Expr.Property<*, *>, Expr>) -> Unit) {
+class ValuesScope(val _add: (Pair<Expression.Property<*, *>, Expression>) -> Unit) {
     fun value(prop: KProperty1<*, *>, value: Any?) =
-        _add(Expr.wrap(prop) to Expr.wrap(value, prop.returnType.jvmErasure))
+        _add(Expression.wrap(prop) to Expression.wrap(value, prop.returnType.jvmErasure))
 }

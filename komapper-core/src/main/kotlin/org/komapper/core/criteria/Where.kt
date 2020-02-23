@@ -23,48 +23,48 @@ class WhereScope(val _alias: Alias, val _add: (Criterion) -> Unit) {
 
     fun eq(prop: KProperty1<*, *>, value: Any?) = _add(
         Criterion.Eq(
-            Expr.wrap(prop),
-            Expr.wrap(value, prop.returnType.jvmErasure)
+            Expression.wrap(prop),
+            Expression.wrap(value, prop.returnType.jvmErasure)
         )
     )
 
     fun ne(prop: KProperty1<*, *>, value: Any?) = _add(
         Criterion.Ne(
-            Expr.wrap(prop),
-            Expr.wrap(value, prop.returnType.jvmErasure)
+            Expression.wrap(prop),
+            Expression.wrap(value, prop.returnType.jvmErasure)
         )
     )
 
     fun gt(prop: KProperty1<*, *>, value: Any?) = _add(
         Criterion.Gt(
-            Expr.wrap(prop),
-            Expr.wrap(value, prop.returnType.jvmErasure)
+            Expression.wrap(prop),
+            Expression.wrap(value, prop.returnType.jvmErasure)
         )
     )
 
     fun lt(prop: KProperty1<*, *>, value: Any?) = _add(
         Criterion.Lt(
-            Expr.wrap(prop),
-            Expr.wrap(value, prop.returnType.jvmErasure)
+            Expression.wrap(prop),
+            Expression.wrap(value, prop.returnType.jvmErasure)
         )
     )
 
     fun ge(prop: KProperty1<*, *>, value: Any?) = _add(
         Criterion.Ge(
-            Expr.wrap(prop),
-            Expr.wrap(value, prop.returnType.jvmErasure)
+            Expression.wrap(prop),
+            Expression.wrap(value, prop.returnType.jvmErasure)
         )
     )
 
     fun le(prop: KProperty1<*, *>, value: Any?) = _add(
         Criterion.Le(
-            Expr.wrap(prop),
-            Expr.wrap(value, prop.returnType.jvmErasure)
+            Expression.wrap(prop),
+            Expression.wrap(value, prop.returnType.jvmErasure)
         )
     )
 
     fun `in`(prop: KProperty1<*, *>, values: List<Any?>) =
-        _add(Criterion.In(Expr.wrap(prop), values.map { Expr.wrap(it, prop.returnType.jvmErasure) }))
+        _add(Criterion.In(Expression.wrap(prop), values.map { Expression.wrap(it, prop.returnType.jvmErasure) }))
 
     fun in2(
         prop1: KProperty1<*, *>,
@@ -72,10 +72,10 @@ class WhereScope(val _alias: Alias, val _add: (Criterion) -> Unit) {
         values: List<Pair<*, *>>
     ) = _add(
         Criterion.In2(
-            Expr.wrap(prop1),
-            Expr.wrap(prop2),
+            Expression.wrap(prop1),
+            Expression.wrap(prop2),
             values.map { (a, b) ->
-                Expr.wrap(a, prop1.returnType.jvmErasure) to Expr.wrap(
+                Expression.wrap(a, prop1.returnType.jvmErasure) to Expression.wrap(
                     b,
                     prop2.returnType.jvmErasure
                 )
@@ -89,21 +89,21 @@ class WhereScope(val _alias: Alias, val _add: (Criterion) -> Unit) {
         values: List<Triple<*, *, *>>
     ) = _add(
         Criterion.In3(
-            Expr.wrap(prop1),
-            Expr.wrap(prop2),
-            Expr.wrap(prop3),
+            Expression.wrap(prop1),
+            Expression.wrap(prop2),
+            Expression.wrap(prop3),
             values.map { (a, b, c) ->
                 Triple(
-                    Expr.wrap(a, prop1.returnType.jvmErasure),
-                    Expr.wrap(b, prop2.returnType.jvmErasure),
-                    Expr.wrap(c, prop3.returnType.jvmErasure)
+                    Expression.wrap(a, prop1.returnType.jvmErasure),
+                    Expression.wrap(b, prop2.returnType.jvmErasure),
+                    Expression.wrap(c, prop3.returnType.jvmErasure)
                 )
             }
         )
     )
 
     fun notIn(prop: KProperty1<*, *>, values: List<Any?>) =
-        _add(Criterion.NotIn(Expr.wrap(prop), values.map { Expr.wrap(it, prop.returnType.jvmErasure) }))
+        _add(Criterion.NotIn(Expression.wrap(prop), values.map { Expression.wrap(it, prop.returnType.jvmErasure) }))
 
     fun notIn2(
         prop1: KProperty1<*, *>,
@@ -111,10 +111,10 @@ class WhereScope(val _alias: Alias, val _add: (Criterion) -> Unit) {
         values: List<Pair<*, *>>
     ) = _add(
         Criterion.NotIn2(
-            Expr.wrap(prop1),
-            Expr.wrap(prop2),
+            Expression.wrap(prop1),
+            Expression.wrap(prop2),
             values.map { (a, b) ->
-                Expr.wrap(a, prop1.returnType.jvmErasure) to Expr.wrap(
+                Expression.wrap(a, prop1.returnType.jvmErasure) to Expression.wrap(
                     b,
                     prop2.returnType.jvmErasure
                 )
@@ -128,14 +128,14 @@ class WhereScope(val _alias: Alias, val _add: (Criterion) -> Unit) {
         values: List<Triple<*, *, *>>
     ) = _add(
         Criterion.NotIn3(
-            Expr.wrap(prop1),
-            Expr.wrap(prop2),
-            Expr.wrap(prop3),
+            Expression.wrap(prop1),
+            Expression.wrap(prop2),
+            Expression.wrap(prop3),
             values.map { (a, b, c) ->
                 Triple(
-                    Expr.wrap(a, prop1.returnType.jvmErasure),
-                    Expr.wrap(b, prop2.returnType.jvmErasure),
-                    Expr.wrap(c, prop3.returnType.jvmErasure)
+                    Expression.wrap(a, prop1.returnType.jvmErasure),
+                    Expression.wrap(b, prop2.returnType.jvmErasure),
+                    Expression.wrap(c, prop3.returnType.jvmErasure)
                 )
             }
         )
@@ -144,20 +144,20 @@ class WhereScope(val _alias: Alias, val _add: (Criterion) -> Unit) {
     fun between(prop: KProperty1<*, *>, begin: Any?, end: Any?) =
         _add(
             Criterion.Between(
-                Expr.wrap(prop),
-                Expr.wrap(begin, prop.returnType.jvmErasure) to Expr.wrap(end, prop.returnType.jvmErasure)
+                Expression.wrap(prop),
+                Expression.wrap(begin, prop.returnType.jvmErasure) to Expression.wrap(end, prop.returnType.jvmErasure)
             )
         )
 
     fun like(prop: KProperty1<*, *>, value: String?) = _add(
         Criterion.Like(
-            Expr.wrap(prop),
-            Expr.wrap(value, prop.returnType.jvmErasure)
+            Expression.wrap(prop),
+            Expression.wrap(value, prop.returnType.jvmErasure)
         )
     )
 
     fun notLike(prop: KProperty1<*, *>, value: String?) =
-        _add(Criterion.NotLike(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
+        _add(Criterion.NotLike(Expression.wrap(prop), Expression.wrap(value, prop.returnType.jvmErasure)))
 
     inline fun <reified T : Any> exists(noinline block: Select<T>) {
         require(T::class.isData) { "The type parameter T must be a data class." }

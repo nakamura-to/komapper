@@ -9,27 +9,27 @@ internal class ExprTest {
 
     @Test
     fun plus() {
-        assertEquals(Expr.Plus(Expr.wrap(Person::id), Expr.wrap(1)), Person::id + 1)
+        assertEquals(Expression.Plus(Expression.wrap(Person::id), Expression.wrap(1)), expression { Person::id + 1 })
     }
 
     @Test
     fun minus() {
-        assertEquals(Expr.Minus(Expr.wrap(Person::id), Expr.wrap(1)), Person::id - 1)
+        assertEquals(Expression.Minus(Expression.wrap(Person::id), Expression.wrap(1)), expression { Person::id - 1 })
     }
 
     @Test
     fun concat() {
-        assertEquals(Expr.Concat(Expr.wrap(Person::name), Expr.wrap("a")), Person::name `||` "a")
-        assertEquals(Expr.Concat(Expr.wrap("a"), Expr.wrap(Person::name)), "a" `||` Person::name)
+        assertEquals(Expression.Concat(Expression.wrap(Person::name), Expression.wrap("a")), expression { Person::name `||` "a" })
+        assertEquals(Expression.Concat(Expression.wrap("a"), Expression.wrap(Person::name)), expression { "a" `||` Person::name })
     }
 
     @Test
     fun complex() {
-        val e = Person::id + 1 - 2 + 3
+        val e = expression { Person::id + 1 - 2 + 3 }
         assertEquals(
-            Expr.Plus(
-                Expr.Minus(Expr.Plus(Expr.wrap(Person::id), Expr.wrap(1)), Expr.wrap(2)),
-                Expr.wrap(3)
+            Expression.Plus(
+                Expression.Minus(Expression.Plus(Expression.wrap(Person::id), Expression.wrap(1)), Expression.wrap(2)),
+                Expression.wrap(3)
             ), e
         )
     }

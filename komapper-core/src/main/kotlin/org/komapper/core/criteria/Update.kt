@@ -18,7 +18,7 @@ infix operator fun <T : Any> (Update<T>).plus(other: Update<T>): Update<T> {
 data class UpdateCriteria<T : Any>(
     val kClass: KClass<T>,
     val alias: Alias = Alias(),
-    val set: MutableList<Pair<Expr.Property<*, *>, Expr>> = mutableListOf(),
+    val set: MutableList<Pair<Expression.Property<*, *>, Expression>> = mutableListOf(),
     val where: MutableList<Criterion> = mutableListOf()
 )
 

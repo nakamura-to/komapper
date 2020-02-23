@@ -34,8 +34,8 @@ internal class OrderByTest {
         OrderByScope() { criterionList.add(it) }.o3()
         assertEquals(
             listOf(
-                OrderByItem(Expr.wrap(Address::id), "desc"),
-                OrderByItem(Expr.wrap(Address::street), "asc")
+                OrderByItem(Expression.wrap(Address::id), "desc"),
+                OrderByItem(Expression.wrap(Address::street), "asc")
             ),
             criterionList
         )

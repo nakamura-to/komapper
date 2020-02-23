@@ -1,7 +1,7 @@
 package org.komapper.core.builder
 
 import kotlin.reflect.jvm.javaField
-import org.komapper.core.criteria.Expr
+import org.komapper.core.criteria.Expression
 
 class ColumnResolver(
     entityDescResolver: EntityDescResolver,
@@ -10,17 +10,17 @@ class ColumnResolver(
 
     private val defaultAlias = entityDescResolver.entityDescMap.entries.first().key
 
-    private val columnMap: Map<Expr.Property<*, *>, Column> =
+    private val columnMap: Map<Expression.Property<*, *>, Column> =
         entityDescResolver.entityDescMap.flatMap { (alias, entityDesc) ->
             entityDesc.leafPropDescList.map { propDesc ->
-                Expr.Property(alias, propDesc.prop) to Column(alias.name, propDesc.columnName)
+                Expression.Property(alias, propDesc.prop) to Column(alias.name, propDesc.columnName)
             }
         }.toMap()
 
     val values = columnMap.values
 
-    operator fun get(prop: Expr.Property<*, *>): Column {
-        val key = if (prop.alias == null) Expr.Property(defaultAlias, prop.prop) else prop
+    operator fun get(prop: Expression.Property<*, *>): Column {
+        val key = if (prop.alias == null) Expression.Property(defaultAlias, prop.prop) else prop
         if (parent != null) {
             val name = parent.getWithoutException(key)
             if (name != null) {
@@ -35,7 +35,7 @@ class ColumnResolver(
             )
     }
 
-    private fun getWithoutException(prop: Expr.Property<*, *>): Column? {
+    private fun getWithoutException(prop: Expression.Property<*, *>): Column? {
         return columnMap[prop]
     }
 }

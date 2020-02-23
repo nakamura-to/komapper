@@ -1,6 +1,6 @@
 package org.komapper.core.builder
 
-import org.komapper.core.criteria.Expr
+import org.komapper.core.criteria.Expression
 import org.komapper.core.criteria.UpdateCriteria
 import org.komapper.core.desc.EntityDescFactory
 import org.komapper.core.jdbc.Dialect
@@ -23,7 +23,7 @@ class UpdateBuilder(
 
     private val columnResolver = ColumnResolver(entityDescResolver)
 
-    private val exprVisitor = ExprVisitor(buf, columnResolver)
+    private val exprVisitor = ExpressionVisitor(buf, columnResolver)
 
     private val criterionVisitor =
         CriterionVisitor(
@@ -56,7 +56,7 @@ class UpdateBuilder(
         return buf.toSql()
     }
 
-    private fun processAssignmentList(assignmentList: List<Pair<Expr.Property<*, *>, Expr>>) {
+    private fun processAssignmentList(assignmentList: List<Pair<Expression.Property<*, *>, Expression>>) {
         assignmentList.forEach { (prop, expr) ->
             exprVisitor.visit(prop) { (_, name) -> name }
             buf.append(" = ")

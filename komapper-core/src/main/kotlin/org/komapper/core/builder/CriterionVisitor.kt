@@ -1,7 +1,7 @@
 package org.komapper.core.builder
 
 import org.komapper.core.criteria.Criterion
-import org.komapper.core.criteria.Expr
+import org.komapper.core.criteria.Expression
 import org.komapper.core.criteria.SelectCriteria
 import org.komapper.core.sql.SqlBuffer
 
@@ -11,7 +11,7 @@ class CriterionVisitor(
     private val newSelectBuilder: (SelectCriteria<*>) -> SelectBuilder
 ) {
 
-    private val exprVisitor = ExprVisitor(buf, columnResolver)
+    private val exprVisitor = ExpressionVisitor(buf, columnResolver)
 
     fun visit(criterionList: List<Criterion>) {
         criterionList.forEachIndexed { index, c ->
@@ -57,23 +57,23 @@ class CriterionVisitor(
         buf.append(")")
     }
 
-    private fun processBinaryOp(op: String, left: Expr, right: Expr) {
+    private fun processBinaryOp(op: String, left: Expression, right: Expression) {
         exprVisitor.visit(left)
         fun processRightExpr() {
             buf.append(" $op ")
             exprVisitor.visit(right)
         }
         if (op == "=") {
-            if (left is Expr.Property<*, *>) {
-                if (right is Expr.Value && right.obj == null) {
+            if (left is Expression.Property<*, *>) {
+                if (right is Expression.Value && right.obj == null) {
                     buf.append(" is null")
                 } else {
                     processRightExpr()
                 }
             }
         } else if (op == "<>") {
-            if (left is Expr.Property<*, *>) {
-                if (right is Expr.Value && right.obj == null) {
+            if (left is Expression.Property<*, *>) {
+                if (right is Expression.Value && right.obj == null) {
                     buf.append(" is not null")
                 } else {
                     processRightExpr()
@@ -84,7 +84,7 @@ class CriterionVisitor(
         }
     }
 
-    private fun processInOp(op: String, prop: Expr, values: Iterable<Expr>) {
+    private fun processInOp(op: String, prop: Expression, values: Iterable<Expression>) {
         exprVisitor.visit(prop)
         buf.append(" $op (")
         var counter = 0
@@ -100,9 +100,9 @@ class CriterionVisitor(
 
     private fun processIn2Op(
         op: String,
-        prop1: Expr,
-        prop2: Expr,
-        values: Iterable<Pair<Expr, Expr>>
+        prop1: Expression,
+        prop2: Expression,
+        values: Iterable<Pair<Expression, Expression>>
     ) {
         buf.append("(")
         exprVisitor.visit(prop1)
@@ -127,10 +127,10 @@ class CriterionVisitor(
 
     private fun processIn3Op(
         op: String,
-        prop1: Expr,
-        prop2: Expr,
-        prop3: Expr,
-        values: Iterable<Triple<Expr, Expr, Expr>>
+        prop1: Expression,
+        prop2: Expression,
+        prop3: Expression,
+        values: Iterable<Triple<Expression, Expression, Expression>>
     ) {
         buf.append("(")
         exprVisitor.visit(prop1)
@@ -157,7 +157,7 @@ class CriterionVisitor(
         buf.append(")")
     }
 
-    private fun processBetweenOp(prop: Expr, range: Pair<Expr, Expr>) {
+    private fun processBetweenOp(prop: Expression, range: Pair<Expression, Expression>) {
         exprVisitor.visit(prop)
         buf.append(" between ")
         exprVisitor.visit(range.first)

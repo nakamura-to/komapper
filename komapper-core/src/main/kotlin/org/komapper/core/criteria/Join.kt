@@ -39,22 +39,22 @@ class JoinScope<T : Any, S : Any>(
 ) {
 
     fun eq(prop: KProperty1<*, *>, value: Any) =
-        _add(Criterion.Eq(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
+        _add(Criterion.Eq(Expression.wrap(prop), Expression.wrap(value, prop.returnType.jvmErasure)))
 
     fun ne(prop: KProperty1<*, *>, value: Any) =
-        _add(Criterion.Ne(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
+        _add(Criterion.Ne(Expression.wrap(prop), Expression.wrap(value, prop.returnType.jvmErasure)))
 
     fun gt(prop: KProperty1<*, *>, value: Any) =
-        _add(Criterion.Gt(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
+        _add(Criterion.Gt(Expression.wrap(prop), Expression.wrap(value, prop.returnType.jvmErasure)))
 
     fun ge(prop: KProperty1<*, *>, value: Any) =
-        _add(Criterion.Ge(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
+        _add(Criterion.Ge(Expression.wrap(prop), Expression.wrap(value, prop.returnType.jvmErasure)))
 
     fun lt(prop: KProperty1<*, *>, value: Any) =
-        _add(Criterion.Lt(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
+        _add(Criterion.Lt(Expression.wrap(prop), Expression.wrap(value, prop.returnType.jvmErasure)))
 
     fun le(prop: KProperty1<*, *>, value: Any) =
-        _add(Criterion.Le(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
+        _add(Criterion.Le(Expression.wrap(prop), Expression.wrap(value, prop.returnType.jvmErasure)))
 
     fun associate(block: EmptyScope.(T, List<S>) -> Unit) = _associate(block)
 }

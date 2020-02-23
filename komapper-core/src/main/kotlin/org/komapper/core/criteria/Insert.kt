@@ -18,7 +18,7 @@ infix operator fun <T : Any> (Insert<T>).plus(other: Insert<T>): Insert<T> {
 data class InsertCriteria<T : Any>(
     val kClass: KClass<T>,
     val alias: Alias = Alias(),
-    val values: MutableList<Pair<Expr.Property<*, *>, Expr>> = mutableListOf()
+    val values: MutableList<Pair<Expression.Property<*, *>, Expression>> = mutableListOf()
 )
 
 @Scope

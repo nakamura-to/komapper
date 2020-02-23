@@ -10,9 +10,7 @@ import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.OptimisticLockException
 import org.komapper.core.UniqueConstraintException
-import org.komapper.core.criteria.`||`
-import org.komapper.core.criteria.minus
-import org.komapper.core.criteria.plus
+import org.komapper.core.criteria.expression
 import org.komapper.core.criteria.update
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityListener
@@ -277,7 +275,7 @@ internal class UpdateTest(private val db: Db) {
     fun plus() {
         val query = update<Address> {
             set {
-                value(Address::version, Address::version + 10)
+                value(Address::version, expression { Address::version + 10 })
             }
             where {
                 eq(Address::addressId, 15)
@@ -293,7 +291,7 @@ internal class UpdateTest(private val db: Db) {
     fun minus() {
         val query = update<Address> {
             set {
-                value(Address::version, Address::version - 10)
+                value(Address::version, expression { Address::version - 10 })
             }
             where {
                 eq(Address::addressId, 15)
@@ -309,7 +307,7 @@ internal class UpdateTest(private val db: Db) {
     fun concat() {
         val query = update<Address> {
             set {
-                value(Address::street, "[" `||` Address::street `||` "]")
+                value(Address::street, expression { "[" `||` Address::street `||` "]" })
             }
             where {
                 eq(Address::addressId, 15)

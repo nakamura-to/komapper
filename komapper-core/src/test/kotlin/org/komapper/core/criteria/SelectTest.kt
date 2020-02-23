@@ -47,21 +47,21 @@ internal class SelectTest {
         }
         scope.select(criteria.alias)
         assertEquals(4, criteria.where.size)
-        assertEquals(criteria.where[0], Criterion.Eq(Expr.wrap(Address::aaa), Expr.wrap(1)))
-        assertEquals(criteria.where[1], Criterion.Ne(Expr.wrap(Address::bbb), Expr.wrap("B")))
+        assertEquals(criteria.where[0], Criterion.Eq(Expression.wrap(Address::aaa), Expression.wrap(1)))
+        assertEquals(criteria.where[1], Criterion.Ne(Expression.wrap(Address::bbb), Expression.wrap("B")))
         assertEquals(
             criteria.where[2], Criterion.Or(
                 listOf(
-                    Criterion.Gt(Expr.wrap(Address::ccc), Expr.wrap(2)),
-                    Criterion.Ge(Expr.wrap(Address::ddd), Expr.wrap("D"))
+                    Criterion.Gt(Expression.wrap(Address::ccc), Expression.wrap(2)),
+                    Criterion.Ge(Expression.wrap(Address::ddd), Expression.wrap("D"))
                 )
             )
         )
         assertEquals(
             criteria.where[3], Criterion.And(
                 listOf(
-                    Criterion.Lt(Expr.wrap(Address::eee), Expr.wrap(3)),
-                    Criterion.Le(Expr.wrap(Address::fff), Expr.wrap("F"))
+                    Criterion.Lt(Expression.wrap(Address::eee), Expression.wrap(3)),
+                    Criterion.Le(Expression.wrap(Address::fff), Expression.wrap("F"))
                 )
             )
         )
@@ -79,7 +79,7 @@ internal class SelectTest {
         }
         scope.select(criteria.alias)
         assertEquals(2, criteria.orderBy.size)
-        assertEquals(criteria.orderBy[0], OrderByItem(Expr.wrap(Address::aaa), "desc"))
+        assertEquals(criteria.orderBy[0], OrderByItem(Expression.wrap(Address::aaa), "desc"))
         assertEquals(criteria.orderBy[1], OrderByItem(criteria.alias[Address::bbb], "asc"))
     }
 
@@ -121,7 +121,7 @@ internal class SelectTest {
         }
         scope.select(criteria.alias)
         assertEquals(1, criteria.where.size)
-        assertEquals(Criterion.Eq(criteria.alias[Address::aaa], Expr.wrap(1)), criteria.where[0])
+        assertEquals(Criterion.Eq(criteria.alias[Address::aaa], Expression.wrap(1)), criteria.where[0])
         assertEquals(1, criteria.orderBy.size)
         assertEquals(OrderByItem(criteria.alias[Address::bbb], "desc"), criteria.orderBy[0])
         assertEquals(5, criteria.limit)
@@ -147,9 +147,9 @@ internal class SelectTest {
         val scope = SelectScope(criteria)
         scope.s3(criteria.alias)
         assertEquals(1, criteria.where.size)
-        assertEquals(Criterion.Eq(Expr.wrap(Address::aaa), Expr.wrap(1)), criteria.where[0])
+        assertEquals(Criterion.Eq(Expression.wrap(Address::aaa), Expression.wrap(1)), criteria.where[0])
         assertEquals(1, criteria.orderBy.size)
-        assertEquals(OrderByItem(Expr.wrap(Address::bbb), "desc"), criteria.orderBy[0])
+        assertEquals(OrderByItem(Expression.wrap(Address::bbb), "desc"), criteria.orderBy[0])
         assertEquals(5, criteria.limit)
         assertEquals(15, criteria.offset)
     }

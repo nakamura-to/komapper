@@ -49,7 +49,7 @@ internal class SelectBuilderTest {
     fun test() {
         val criteria = SelectCriteria(Address::class).apply {
             val alias = this.alias
-            where.add(Criterion.Eq(alias[Address::street], Expr.wrap("a")))
+            where.add(Criterion.Eq(alias[Address::street], Expression.wrap("a")))
         }
         val processor = SelectBuilder(MyDialect(), factory, criteria)
         val sql = processor.build()

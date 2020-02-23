@@ -25,6 +25,6 @@ internal class UpdateTest {
         scope.query(criteria.alias)
         assertEquals(1, criteria.set.size)
         assertEquals(1, criteria.where.size)
-        assertEquals(criteria.where[0], Criterion.Eq(criteria.alias[Address::id], Expr.wrap(1)))
+        assertEquals(criteria.where[0], Criterion.Eq(criteria.alias[Address::id], Expression.wrap(1)))
     }
 }

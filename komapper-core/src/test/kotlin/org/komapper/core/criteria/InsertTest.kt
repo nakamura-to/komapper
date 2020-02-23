@@ -22,7 +22,7 @@ internal class InsertTest {
         }
         scope.query(criteria.alias)
         assertEquals(2, criteria.values.size)
-        assertEquals(Expr.Property(null, Address::id) to Expr.wrap(1), criteria.values[0])
-        assertEquals(Expr.Property(null, Address::street) to Expr.wrap("aaa"), criteria.values[1])
+        assertEquals(Expression.Property(null, Address::id) to Expression.wrap(1), criteria.values[0])
+        assertEquals(Expression.Property(null, Address::street) to Expression.wrap("aaa"), criteria.values[1])
     }
 }

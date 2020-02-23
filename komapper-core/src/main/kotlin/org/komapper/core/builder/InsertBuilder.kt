@@ -22,7 +22,7 @@ class InsertBuilder(
 
     private val columnResolver = ColumnResolver(entityDescResolver)
 
-    private val exprVisitor = ExprVisitor(buf, columnResolver)
+    private val exprVisitor = ExpressionVisitor(buf, columnResolver)
 
     fun build(): Sql {
         val entityDesc = entityDescResolver[criteria.alias]
