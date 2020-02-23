@@ -1,11 +1,11 @@
 package org.komapper.core.builder
 
+import org.komapper.core.criteria.Alias
 import org.komapper.core.criteria.JoinCriteria
 import org.komapper.core.criteria.JoinKind
 import org.komapper.core.criteria.SelectCriteria
+import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityDescFactory
-import org.komapper.core.desc.MultiEntityDesc
-import org.komapper.core.desc.PropDesc
 import org.komapper.core.dsl.EmptyScope
 import org.komapper.core.jdbc.Dialect
 import org.komapper.core.sql.Sql
@@ -17,7 +17,7 @@ class SelectBuilder(
     private val criteria: SelectCriteria<*>,
     parentEntityDescResolver: EntityDescResolver? = null,
     parentColumnResolver: ColumnResolver? = null
-) : MultiEntityDesc {
+) : AggregationDesc {
     private val buf: SqlBuffer = SqlBuffer(dialect::formatValue)
 
     private val entityDescResolver =
@@ -28,6 +28,9 @@ class SelectBuilder(
             criteria.joins,
             parentEntityDescResolver
         )
+
+    override val entityDescMap: Map<Alias, EntityDesc<*>>
+        get() = entityDescResolver.entityDescMap
 
     private val columnResolver =
         ColumnResolver(entityDescResolver, parentColumnResolver)
@@ -98,19 +101,18 @@ class SelectBuilder(
         }
     }
 
-    override val leafPropDescList: List<PropDesc> =
-        entityDescResolver.values.flatMap { it.leafPropDescList }
-
-    override fun new(leafValues: Map<PropDesc, Any?>): List<Any> {
-        return entityDescResolver.entries.map { (_, entityDesc) ->
-            entityDesc.new(leafValues)
-        }
-    }
-
-    override fun associate(entity: Any, joinedEntities: List<Any>) {
-        joinedEntities.zip(criteria.joins).forEach { (joinedEntity, join) ->
+    override fun process(context: AggregationContext): List<Any> {
+        if (context.isEmpty()) return emptyList()
+        val keyAndDataMap = context[criteria.alias]
+        val dataAndEntityList = keyAndDataMap.values.map { it to it.new() }
+        criteria.joins.forEach { join ->
             val block = join.association
-            EmptyScope.block(entity, joinedEntity)
+            dataAndEntityList.forEach { (data, entity) ->
+                val joinedKeyAndDataMap = data.associations[join.alias]
+                val joinedEntities = joinedKeyAndDataMap.values.filter { !it.isEmpty() }.map { it.new() }
+                EmptyScope.block(entity, joinedEntities)
+            }
         }
+        return dataAndEntityList.map { it.second }
     }
 }

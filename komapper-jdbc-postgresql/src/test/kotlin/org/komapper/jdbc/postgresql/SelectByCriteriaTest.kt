@@ -27,19 +27,19 @@ class SelectByCriteriaTest {
 
     @Test
     fun join(db: Db) {
-        val addressMap: MutableMap<Employee, Address> = mutableMapOf()
-        val departmentMap: MutableMap<Employee, Department> = mutableMapOf()
+        val addressMap = mutableMapOf<Employee, List<Address>>()
+        val departmentMap = mutableMapOf<Employee, List<Department>>()
         val employees = db.select<Employee> { e ->
             leftJoin<Address> { a ->
                 eq(e[Employee::addressId], a[Address::addressId])
-                associate { employee, address ->
-                    addressMap[employee] = address
+                associate { employee, addresses ->
+                    addressMap[employee] = addresses
                 }
             }
             innerJoin<Department> { d ->
                 eq(e[Employee::departmentId], d[Department::departmentId])
-                associate { employee, department ->
-                    departmentMap[employee] = department
+                associate { employee, departments ->
+                    departmentMap[employee] = departments
                 }
             }
             where {

@@ -16,10 +16,15 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.streams.asSequence
 import kotlin.streams.toList
+import org.komapper.core.builder.AggregationContext
+import org.komapper.core.builder.AggregationDesc
 import org.komapper.core.builder.DeleteBuilder
+import org.komapper.core.builder.EntityData
+import org.komapper.core.builder.EntityKey
 import org.komapper.core.builder.InsertBuilder
 import org.komapper.core.builder.SelectBuilder
 import org.komapper.core.builder.UpdateBuilder
+import org.komapper.core.criteria.Alias
 import org.komapper.core.criteria.Delete
 import org.komapper.core.criteria.DeleteCriteria
 import org.komapper.core.criteria.DeleteScope
@@ -33,7 +38,6 @@ import org.komapper.core.criteria.Update
 import org.komapper.core.criteria.UpdateCriteria
 import org.komapper.core.criteria.UpdateScope
 import org.komapper.core.desc.EntityDesc
-import org.komapper.core.desc.MultiEntityDesc
 import org.komapper.core.desc.PropDesc
 import org.komapper.core.sql.Sql
 import org.komapper.core.sql.Template
@@ -85,31 +89,8 @@ class Db(val config: DbConfig) {
         query: Select<T> = { }
     ): List<T> {
         require(T::class.isData) { "The type parameter T must be a data class." }
-        return select(query, Sequence<T>::toList)
-    }
-
-    /**
-     * Selects entities by criteria and process them as sequence.
-     *
-     * @param T the entity type
-     * @param query the criteria query
-     * @param block the result processor
-     * @return the processed result
-     */
-    inline fun <reified T : Any, R> select(
-        query: Select<T> = { },
-        block: (Sequence<T>) -> R
-    ): R {
-        require(T::class.isData) { "The type parameter T must be a data class." }
         val (sql, desc) = dryRun.select(query)
-        return `access$streamMultiEntity`(sql, desc).use { stream ->
-            stream.asSequence().map { entities ->
-                val entity = entities.first()
-                val joinedEntities = entities.subList(1, entities.size)
-                desc.associate(entity, joinedEntities)
-                entity as T
-            }.let { block(it) }
-        }
+        return `access$processAggregation`(sql, desc)
     }
 
     /**
@@ -260,18 +241,38 @@ class Db(val config: DbConfig) {
         return list to count
     }
 
-    private fun streamMultiEntity(
+    private fun <T : Any> processAggregation(
         sql: Sql,
-        desc: MultiEntityDesc
-    ): Stream<List<Any>> = executeQuery(sql) { rs ->
-        fromResultSetToStream(rs) {
-            val row = mutableMapOf<PropDesc, Any?>()
-            for ((i, propDesc) in desc.leafPropDescList.withIndex()) {
-                val value = config.dialect.getValue(it, i + 1, propDesc.kClass)
-                row[propDesc] = value
+        desc: AggregationDesc
+    ): List<T> {
+        val context = AggregationContext()
+        val stream = executeQuery(sql) { rs ->
+            while (rs.next()) {
+                val row = mutableListOf<Pair<Alias, EntityData>>()
+                var propIndex = 0
+                for ((alias, entityDesc) in desc.entityDescMap) {
+                    val properties = mutableMapOf<PropDesc, Any?>()
+                    for (propDesc in entityDesc.leafPropDescList) {
+                        val value = config.dialect.getValue(rs, propIndex + 1, propDesc.kClass)
+                        properties[propDesc] = value
+                        propIndex++
+                    }
+                    val keyAndData = context[alias]
+                    val key = EntityKey(entityDesc, properties)
+                    val data = keyAndData.getOrPut(key) { EntityData(key) }
+                    row.forEach { (a, d) ->
+                        d.associate(alias, data)
+                        data.associate(a, d)
+                    }
+                    row.add(alias to data)
+                }
             }
-            desc.new(row)
+            Stream.empty<T>()
         }
+        // release resources immediately
+        stream.close()
+        @Suppress("UNCHECKED_CAST")
+        return desc.process(context) as List<T>
     }
 
     private fun <T : Any> streamEntity(
@@ -799,10 +800,10 @@ class Db(val config: DbConfig) {
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
-    internal fun `access$streamMultiEntity`(
+    internal fun <T : Any> `access$processAggregation`(
         sql: Sql,
-        desc: MultiEntityDesc
-    ) = streamMultiEntity(sql, desc)
+        desc: AggregationDesc
+    ) = processAggregation<T>(sql, desc)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
@@ -882,7 +883,7 @@ class Db(val config: DbConfig) {
          */
         inline fun <reified T : Any> select(
             query: Select<T> = { }
-        ): Pair<Sql, MultiEntityDesc> {
+        ): Pair<Sql, AggregationDesc> {
             require(T::class.isData) { "The type parameter T must be a data class." }
             val criteria = SelectCriteria(T::class).also {
                 SelectScope(it).query(it.alias)

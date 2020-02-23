@@ -23,7 +23,7 @@ data class JoinCriteria<T : Any, S : Any>(
     val type: KClass<S>,
     val alias: Alias,
     val on: MutableList<Criterion> = mutableListOf(),
-    var association: EmptyScope.(T, S) -> Unit = { _, _ -> }
+    var association: EmptyScope.(T, List<S>) -> Unit = { _, _ -> }
 )
 
 enum class JoinKind {
@@ -35,7 +35,7 @@ enum class JoinKind {
 @Scope
 class JoinScope<T : Any, S : Any>(
     val _add: (Criterion) -> Unit,
-    val _associate: (EmptyScope.(T, S) -> Unit) -> Unit
+    val _associate: (EmptyScope.(T, List<S>) -> Unit) -> Unit
 ) {
 
     fun eq(prop: KProperty1<*, *>, value: Any) =
@@ -56,5 +56,5 @@ class JoinScope<T : Any, S : Any>(
     fun le(prop: KProperty1<*, *>, value: Any) =
         _add(Criterion.Le(Expr.wrap(prop), Expr.wrap(value, prop.returnType.jvmErasure)))
 
-    fun associate(block: EmptyScope.(T, S) -> Unit) = _associate(block)
+    fun associate(block: EmptyScope.(T, List<S>) -> Unit) = _associate(block)
 }

@@ -8,10 +8,10 @@ class ColumnResolver(
     private val parent: ColumnResolver? = null
 ) {
 
-    private val defaultAlias = entityDescResolver.entries.first().key
+    private val defaultAlias = entityDescResolver.entityDescMap.entries.first().key
 
     private val columnMap: Map<Expr.Property<*, *>, Column> =
-        entityDescResolver.entries.flatMap { (alias, entityDesc) ->
+        entityDescResolver.entityDescMap.flatMap { (alias, entityDesc) ->
             entityDesc.leafPropDescList.map { propDesc ->
                 Expr.Property(alias, propDesc.prop) to Column(alias.name, propDesc.columnName)
             }

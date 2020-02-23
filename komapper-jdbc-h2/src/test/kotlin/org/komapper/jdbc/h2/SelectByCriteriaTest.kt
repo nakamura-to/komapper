@@ -405,41 +405,18 @@ internal class SelectByCriteriaTest(private val db: Db) {
     }
 
     @Test
-    fun sequence() {
-
-        val list = db.select<Address, List<Address>>({
-            where {
-                ge(Address::addressId, 1)
-            }
-            orderBy {
-                desc(Address::addressId)
-            }
-            limit(2)
-            offset(5)
-        }) {
-            it.toList()
-        }
-        assertEquals(
-            listOf(
-                Address(10, "STREET 10", 1),
-                Address(9, "STREET 9", 1)
-            ), list
-        )
-    }
-
-    @Test
     fun join() {
-        val addressMap: MutableMap<Employee, Address> = mutableMapOf()
-        val departmentMap: MutableMap<Employee, Department> = mutableMapOf()
+        val addressMap = mutableMapOf<Employee, List<Address>>()
+        val departmentMap = mutableMapOf<Employee, List<Department>>()
 
         val employees = db.select<Employee> { e ->
             val a = leftJoin<Address> { a ->
                 eq(e[Employee::addressId], a[Address::addressId])
-                associate { employee, address -> addressMap[employee] = address }
+                associate { employee, addresses -> addressMap[employee] = addresses }
             }
             innerJoin<Department> { d ->
                 eq(e[Employee::departmentId], d[Department::departmentId])
-                associate { employee, department -> departmentMap[employee] = department }
+                associate { employee, departments -> departmentMap[employee] = departments }
             }
             where {
                 ge(a[Address::addressId], 1)

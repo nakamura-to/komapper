@@ -13,16 +13,12 @@ class EntityDescResolver(
     joins: MutableList<JoinCriteria<Any, Any>>? = null,
     private val parent: EntityDescResolver? = null
 ) {
-    private val entityDescMap: Map<Alias, EntityDesc<*>> =
+    val entityDescMap: Map<Alias, EntityDesc<*>> =
                 listOf(alias to entityDescFactory.get(entityClass)).plus(
                     joins?.map {
                         it.alias to entityDescFactory.get(it.type)
                     } ?: emptyList()
                 ).toMap()
-
-    val entries = entityDescMap.entries
-
-    val values = entityDescMap.values
 
     operator fun get(alias: Alias): EntityDesc<*> {
         if (parent != null) {
