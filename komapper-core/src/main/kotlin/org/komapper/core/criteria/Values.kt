@@ -5,8 +5,6 @@ import org.komapper.core.dsl.Scope
 
 typealias Values = ValuesScope.() -> Unit
 
-fun values(block: Values): Values = block
-
 infix operator fun (Values).plus(other: Values): Values {
     val self = this
     return {

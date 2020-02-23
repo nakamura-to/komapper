@@ -79,7 +79,7 @@ class Db(val config: DbConfig) {
     }
 
     /**
-     * Selects entities by criteria.
+     * Selects entities by the criteria query.
      *
      * @param T the entity type
      * @param query the criteria query
@@ -90,7 +90,7 @@ class Db(val config: DbConfig) {
     ): List<T> {
         require(T::class.isData) { "The type parameter T must be a data class." }
         val (sql, desc) = dryRun.select(query)
-        return `access$processAggregation`(sql, desc)
+        return `access$aggregate`(sql, desc)
     }
 
     /**
@@ -241,7 +241,7 @@ class Db(val config: DbConfig) {
         return list to count
     }
 
-    private fun <T : Any> processAggregation(
+    private fun <T : Any> aggregate(
         sql: Sql,
         desc: AggregationDesc
     ): List<T> {
@@ -258,8 +258,8 @@ class Db(val config: DbConfig) {
                         propIndex++
                     }
                     val keyAndData = context[alias]
-                    val key = EntityKey(entityDesc, properties)
-                    val data = keyAndData.getOrPut(key) { EntityData(key) }
+                    val key = EntityKey(entityDesc, entityDesc.idList.map { properties[it] })
+                    val data = keyAndData.getOrPut(key) { EntityData(key, properties) }
                     row.forEach { (a, d) ->
                         d.associate(alias, data)
                         data.associate(a, d)
@@ -272,7 +272,7 @@ class Db(val config: DbConfig) {
         // release resources immediately
         stream.close()
         @Suppress("UNCHECKED_CAST")
-        return desc.process(context) as List<T>
+        return desc.aggregate(context) as List<T>
     }
 
     private fun <T : Any> streamEntity(
@@ -405,7 +405,7 @@ class Db(val config: DbConfig) {
     }
 
     /**
-     * Inserts by criteria.
+     * Inserts by the criteria query.
      *
      * @param query the criteria query
      * @return the affected row count
@@ -438,7 +438,7 @@ class Db(val config: DbConfig) {
     }
 
     /**
-     * Deletes by criteria.
+     * Deletes by the criteria query.
      *
      * @param query the criteria query
      * @return the affected row count
@@ -472,7 +472,7 @@ class Db(val config: DbConfig) {
     }
 
     /**
-     * Updates by criteria.
+     * Updates by the criteria query.
      *
      * @param query the criteria query
      * @return the affected row count
@@ -800,10 +800,10 @@ class Db(val config: DbConfig) {
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")
-    internal fun <T : Any> `access$processAggregation`(
+    internal fun <T : Any> `access$aggregate`(
         sql: Sql,
         desc: AggregationDesc
-    ) = processAggregation<T>(sql, desc)
+    ) = aggregate<T>(sql, desc)
 
     @PublishedApi
     @Suppress("UNUSED", "FunctionName")

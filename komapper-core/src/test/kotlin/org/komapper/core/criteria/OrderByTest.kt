@@ -13,7 +13,7 @@ internal class OrderByTest {
     @Test
     fun test() {
         val a = Alias()
-        val o = orderBy {
+        val o: OrderBy = {
             desc(a[Address::id])
         }
         val criterionList = mutableListOf<OrderByItem>()
@@ -23,10 +23,10 @@ internal class OrderByTest {
 
     @Test
     fun plus() {
-        val o1 = orderBy {
+        val o1: OrderBy = {
             desc(Address::id)
         }
-        val o2 = orderBy {
+        val o2: OrderBy = {
             asc(Address::street)
         }
         val o3 = o1 + o2

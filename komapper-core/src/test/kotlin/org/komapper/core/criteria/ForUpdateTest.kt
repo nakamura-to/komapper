@@ -7,7 +7,7 @@ internal class ForUpdateTest {
 
     @Test
     fun test() {
-        val f = forUpdate {
+        val f: ForUpdate = {
             nowait()
         }
         var criteria: ForUpdateCriteria? = null
@@ -17,10 +17,10 @@ internal class ForUpdateTest {
 
     @Test
     fun plus() {
-        val f1 = forUpdate {
+        val f1: ForUpdate = {
             nowait()
         }
-        val f2 = forUpdate {
+        val f2: ForUpdate = {
             nowait(false)
         }
         val f3 = f1 + f2

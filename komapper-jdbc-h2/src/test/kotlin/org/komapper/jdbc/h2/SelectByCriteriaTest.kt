@@ -406,17 +406,17 @@ internal class SelectByCriteriaTest(private val db: Db) {
 
     @Test
     fun join() {
-        val addressMap = mutableMapOf<Employee, List<Address>>()
+        val addressMap = mutableMapOf<Employee, Address>()
         val departmentMap = mutableMapOf<Employee, List<Department>>()
 
         val employees = db.select<Employee> { e ->
             val a = leftJoin<Address> { a ->
                 eq(e[Employee::addressId], a[Address::addressId])
-                associate { employee, addresses -> addressMap[employee] = addresses }
+                oneToOne { employee, address -> addressMap[employee] = address!! }
             }
             innerJoin<Department> { d ->
                 eq(e[Employee::departmentId], d[Department::departmentId])
-                associate { employee, departments -> departmentMap[employee] = departments }
+                oneToMany { employee, departments -> departmentMap[employee] = departments }
             }
             where {
                 ge(a[Address::addressId], 1)
@@ -453,6 +453,89 @@ internal class SelectByCriteriaTest(private val db: Db) {
         }
         assertEquals(2, employees.size)
         assertEquals(listOf(9, 8), employees.map { it.employeeId })
+    }
+
+    @Test
+    fun innerJoin_oneToOne() {
+        val map = mutableMapOf<Int, Boolean>()
+        val employees = db.select<Employee> { e ->
+            innerJoin<Address> { a ->
+                eq(e[Employee::addressId], a[Address::addressId])
+                oneToOne { employee, address -> map[employee.employeeId] = address == null }
+            }
+            orderBy {
+                asc(e[Employee::employeeId])
+            }
+            limit(3)
+        }
+        assertEquals(listOf(1, 2, 3), employees.map { it.employeeId })
+        assertEquals(map, mapOf(1 to false, 2 to false, 3 to false))
+    }
+
+    @Test
+    fun leftJoin_oneToOne() {
+        val map = mutableMapOf<Int, Boolean>()
+        val employees = db.select<Employee> { e ->
+            leftJoin<Address> { a ->
+                eq(e[Employee::addressId], a[Address::addressId])
+                oneToOne { employee, address -> map[employee.employeeId] = address == null }
+            }
+            orderBy {
+                asc(e[Employee::employeeId])
+            }
+            limit(3)
+        }
+        assertEquals(listOf(1, 2, 3), employees.map { it.employeeId })
+        assertEquals(map, mapOf(1 to false, 2 to false, 3 to false))
+    }
+
+    @Test
+    fun innerJoin_oneToMany() {
+        val map = mutableMapOf<Int, Int>()
+        val departments = db.select<Department> { d ->
+            innerJoin<Employee> { e ->
+                eq(d[Department::departmentId], e[Employee::departmentId])
+                oneToMany { department, employees -> map[department.departmentId] = employees.size }
+            }
+            orderBy {
+                asc(d[Department::departmentId])
+            }
+        }
+        assertEquals(listOf(1, 2, 3), departments.map { it.departmentId })
+        assertEquals(map, mapOf(1 to 3, 2 to 5, 3 to 6))
+    }
+
+    @Test
+    fun leftJoin_oneToMany() {
+        val map = mutableMapOf<Int, Int>()
+        val departments = db.select<Department> { d ->
+            leftJoin<Employee> { e ->
+                eq(d[Department::departmentId], e[Employee::departmentId])
+                oneToMany { department, employees -> map[department.departmentId] = employees.size }
+            }
+            orderBy {
+                asc(d[Department::departmentId])
+            }
+        }
+        assertEquals(listOf(1, 2, 3, 4), departments.map { it.departmentId })
+        assertEquals(map, mapOf(1 to 3, 2 to 5, 3 to 6, 4 to 0))
+    }
+
+    @Test
+    fun leftJoin_orderByJoinedEntity_oneToMany() {
+        val map = mutableMapOf<Int, Int>()
+        val departments = db.select<Department> { d ->
+            val e = leftJoin<Employee> { e ->
+                eq(d[Department::departmentId], e[Employee::departmentId])
+                oneToMany { department, employees -> map[department.departmentId] = employees.size }
+            }
+            orderBy {
+                asc(e[Employee::employeeId])
+            }
+        }
+        println(departments.map { it.departmentId })
+        assertEquals(listOf(4, 2, 3, 1), departments.map { it.departmentId })
+        assertEquals(map, mapOf(4 to 0, 2 to 5, 3 to 6, 1 to 3))
     }
 
     @Test

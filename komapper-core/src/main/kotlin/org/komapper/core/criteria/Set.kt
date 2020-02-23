@@ -5,8 +5,6 @@ import org.komapper.core.dsl.Scope
 
 typealias Set = SetScope.() -> Unit
 
-fun set(block: Set): Set = block
-
 infix operator fun (Set).plus(other: Set): Set {
     val self = this
     return {

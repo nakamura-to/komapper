@@ -6,8 +6,6 @@ import org.komapper.core.dsl.Scope
 
 typealias Where = WhereScope.() -> Unit
 
-fun where(block: Where): Where = block
-
 infix operator fun (Where).plus(other: Where): Where {
     val self = this
     return {

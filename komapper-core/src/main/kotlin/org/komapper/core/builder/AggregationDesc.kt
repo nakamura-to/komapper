@@ -1,14 +1,14 @@
 package org.komapper.core.builder
 
+import java.util.UUID
 import org.komapper.core.criteria.Alias
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.PropDesc
 
 interface AggregationDesc {
-
     val fetchedEntityDescMap: Map<Alias, EntityDesc<*>>
 
-    fun process(context: AggregationContext): List<Any>
+    fun aggregate(context: AggregationContext): List<Any>
 }
 
 class AggregationContext {
@@ -21,11 +21,11 @@ class AggregationContext {
     fun isEmpty() = store.isEmpty()
 }
 
-class EntityKey(val entityDesc: EntityDesc<*>, val properties: Map<PropDesc, Any?>) {
-    private val idValues = if (entityDesc.idList.isEmpty()) {
-        entityDesc.idList.map { properties[it] }
+class EntityKey(val entityDesc: EntityDesc<*>, idList: List<Any?>) {
+    private val identifier: Any = if (idList.isEmpty()) {
+        UUID.randomUUID()!!
     } else {
-        properties.values
+        idList
     }
 
     override fun equals(other: Any?): Boolean {
@@ -35,24 +35,24 @@ class EntityKey(val entityDesc: EntityDesc<*>, val properties: Map<PropDesc, Any
         other as EntityKey
 
         if (entityDesc != other.entityDesc) return false
-        if (idValues != other.idValues) return false
+        if (identifier != other.identifier) return false
 
         return true
     }
 
     override fun hashCode(): Int {
         var result = entityDesc.hashCode()
-        result = 31 * result + idValues.hashCode()
+        result = 31 * result + identifier.hashCode()
         return result
     }
 }
 
-class EntityData(private val key: EntityKey) {
+class EntityData(private val key: EntityKey, private val properties: Map<PropDesc, Any?>) {
     val associations = AggregationContext()
 
-    fun new(): Any = key.entityDesc.new(key.properties)
+    fun new(): Any = key.entityDesc.new(properties)
 
-    fun isEmpty() = key.properties.values.all { it == null }
+    fun isEmpty() = properties.values.all { it == null }
 
     fun associate(alias: Alias, data: EntityData) {
         val keyAndData = associations[alias]

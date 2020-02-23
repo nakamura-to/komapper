@@ -5,8 +5,6 @@ import org.komapper.core.dsl.Scope
 
 typealias OrderBy = OrderByScope.() -> Unit
 
-fun orderBy(block: OrderBy): OrderBy = block
-
 infix operator fun (OrderBy).plus(other: OrderBy): OrderBy {
     val self = this
     return {

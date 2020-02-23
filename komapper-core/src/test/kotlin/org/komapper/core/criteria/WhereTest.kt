@@ -13,7 +13,7 @@ internal class WhereTest {
     @Test
     fun test() {
         val a = Alias()
-        val w = where {
+        val w: Where = {
             eq(a[Address::id], 1)
         }
         val criterionList = mutableListOf<Criterion>()
@@ -24,10 +24,10 @@ internal class WhereTest {
     @Test
     fun plus() {
         val a = Alias()
-        val w1 = where {
+        val w1: Where = {
             eq(a[Address::id], 1)
         }
-        val w2 = where {
+        val w2: Where = {
             ne(a[Address::street], "a")
         }
         val w3 = w1 + w2

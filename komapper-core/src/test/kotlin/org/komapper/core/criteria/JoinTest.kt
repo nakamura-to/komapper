@@ -18,7 +18,7 @@ internal class JoinTest {
     @Test
     fun test() {
         val e = Alias()
-        val j = join<Employee, Address> { a ->
+        val j: Join<Employee, Address> = { a ->
             eq(e[Employee::addressId], a[Address::id])
         }
         val criterionList = mutableListOf<Criterion>()
@@ -31,10 +31,10 @@ internal class JoinTest {
     @Test
     fun plus() {
         val e = Alias()
-        val j1 = join<Employee, Address> { a ->
+        val j1: Join<Employee, Address> = { a ->
             eq(e[Employee::id], a[Address::id])
         }
-        val j2 = join<Employee, Address> { a ->
+        val j2: Join<Employee, Address> = { a ->
             ne(e[Employee::id], a[Address::id])
         }
         val j3 = j1 + j2

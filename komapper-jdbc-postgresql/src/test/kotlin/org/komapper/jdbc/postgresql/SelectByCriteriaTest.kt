@@ -32,13 +32,13 @@ class SelectByCriteriaTest {
         val employees = db.select<Employee> { e ->
             leftJoin<Address> { a ->
                 eq(e[Employee::addressId], a[Address::addressId])
-                associate { employee, addresses ->
+                oneToMany { employee, addresses ->
                     addressMap[employee] = addresses
                 }
             }
             innerJoin<Department> { d ->
                 eq(e[Employee::departmentId], d[Department::departmentId])
-                associate { employee, departments ->
+                oneToMany { employee, departments ->
                     departmentMap[employee] = departments
                 }
             }

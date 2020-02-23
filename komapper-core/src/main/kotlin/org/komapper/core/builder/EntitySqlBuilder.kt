@@ -17,7 +17,6 @@ import org.komapper.core.criteria.delete
 import org.komapper.core.criteria.insert
 import org.komapper.core.criteria.select
 import org.komapper.core.criteria.update
-import org.komapper.core.criteria.where
 import org.komapper.core.desc.EntityDesc
 import org.komapper.core.desc.EntityDescFactory
 import org.komapper.core.desc.PropDesc
@@ -248,7 +247,7 @@ open class DefaultEntitySqlBuilder(
         entity: T,
         ignoreVersion: Boolean
     ): Where {
-        return where {
+        return {
             with(entityDesc) {
                 if (idList.isNotEmpty()) {
                     idList.forEach {

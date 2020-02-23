@@ -1,6 +1,7 @@
 package org.komapper.core.builder
 
 import org.komapper.core.criteria.Alias
+import org.komapper.core.criteria.Association
 import org.komapper.core.criteria.JoinCriteria
 import org.komapper.core.criteria.JoinKind
 import org.komapper.core.criteria.SelectCriteria
@@ -101,17 +102,28 @@ class SelectBuilder(
         }
     }
 
-    override fun process(context: AggregationContext): List<Any> {
+    override fun aggregate(context: AggregationContext): List<Any> {
         if (context.isEmpty()) return emptyList()
         val keyAndDataMap = context[criteria.alias]
         val dataAndEntityList = keyAndDataMap.values.map { it to it.new() }
         criteria.joins.forEach { join ->
-            val block = join.association
-            if (block != null) {
+            val association = join.association
+            if (association != null) {
                 dataAndEntityList.forEach { (data, entity) ->
                     val joinedKeyAndDataMap = data.associations[join.alias]
                     val joinedEntities = joinedKeyAndDataMap.values.filter { !it.isEmpty() }.map { it.new() }
-                    EmptyScope.block(entity, joinedEntities)
+                    when (association) {
+                        is Association.OneToOne<*, *> -> {
+                            association as Association.OneToOne<Any, Any>
+                            val block = association.block
+                            EmptyScope.block(entity, joinedEntities.firstOrNull())
+                        }
+                        is Association.OneToMany<*, *> -> {
+                            association as Association.OneToMany<Any, Any>
+                            val block = association.block
+                            EmptyScope.block(entity, joinedEntities)
+                        }
+                    }
                 }
             }
         }

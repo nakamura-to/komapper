@@ -7,8 +7,6 @@ import org.komapper.core.dsl.Scope
 
 typealias Join<T, S> = JoinScope<T, S>.(Alias) -> Unit
 
-fun <T : Any, S : Any> join(block: Join<T, S>) = block
-
 infix operator fun <T : Any, S : Any> (Join<T, S>).plus(other: Join<T, S>): Join<T, S> {
     val self = this
     return { alias ->
@@ -22,7 +20,7 @@ data class JoinCriteria<T : Any, S : Any>(
     val kClass: KClass<S>,
     val alias: Alias,
     val on: MutableList<Criterion> = mutableListOf(),
-    var association: (EmptyScope.(T, List<S>) -> Unit)? = null
+    var association: Association<T, S>? = null
 )
 
 enum class JoinKind {
@@ -30,11 +28,16 @@ enum class JoinKind {
     LEFT
 }
 
+sealed class Association<T, S> {
+    data class OneToOne<T, S>(val block: EmptyScope.(T, S?) -> Unit) : Association<T, S>()
+    data class OneToMany<T, S>(val block: EmptyScope.(T, List<S>) -> Unit) : Association<T, S>()
+}
+
 @Suppress("MemberVisibilityCanBePrivate")
 @Scope
 class JoinScope<T : Any, S : Any>(
     val _add: (Criterion) -> Unit,
-    val _associate: (EmptyScope.(T, List<S>) -> Unit) -> Unit
+    val _associate: (Association<T, S>) -> Unit
 ) {
 
     fun eq(prop: KProperty1<*, *>, value: Any) =
@@ -73,5 +76,7 @@ class JoinScope<T : Any, S : Any>(
     fun le(prop: Expression.Property, value: Any) =
         _add(Criterion.Le(prop, Expression.wrap(value, prop.kClass)))
 
-    fun associate(block: EmptyScope.(T, List<S>) -> Unit) = _associate(block)
+    fun oneToOne(block: EmptyScope.(T, S?) -> Unit) = _associate(Association.OneToOne(block))
+
+    fun oneToMany(block: EmptyScope.(T, List<S>) -> Unit) = _associate(Association.OneToMany(block))
 }

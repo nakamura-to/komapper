@@ -4,8 +4,6 @@ import org.komapper.core.dsl.Scope
 
 typealias ForUpdate = ForUpdateScope.() -> Unit
 
-fun forUpdate(block: ForUpdate): ForUpdate = block
-
 infix operator fun (ForUpdate).plus(other: ForUpdate): ForUpdate {
     val self = this
     return {
