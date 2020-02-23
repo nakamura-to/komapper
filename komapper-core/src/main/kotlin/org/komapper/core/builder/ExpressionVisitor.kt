@@ -15,7 +15,7 @@ class ExpressionVisitor(
                 val value = Value(expression.obj, expression.kClass)
                 buf.bind(value)
             }
-            is Expression.Property<*, *> -> {
+            is Expression.Property -> {
                 val column = columnResolver[expression]
                 buf.append(columnHandler(column))
             }

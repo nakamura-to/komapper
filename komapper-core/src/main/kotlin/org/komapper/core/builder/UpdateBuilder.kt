@@ -56,7 +56,7 @@ class UpdateBuilder(
         return buf.toSql()
     }
 
-    private fun processAssignmentList(assignmentList: List<Pair<Expression.Property<*, *>, Expression>>) {
+    private fun processAssignmentList(assignmentList: List<Pair<Expression.Property, Expression>>) {
         assignmentList.forEach { (prop, expr) ->
             exprVisitor.visit(prop) { (_, name) -> name }
             buf.append(" = ")

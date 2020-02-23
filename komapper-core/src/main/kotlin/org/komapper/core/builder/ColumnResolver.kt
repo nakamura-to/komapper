@@ -17,14 +17,14 @@ class ColumnResolver(
             }
         }
 
-    private val columnMap: Map<Expression.Property<*, *>, Column> =
+    private val columnMap: Map<Expression.Property, Column> =
         entityDescResolver.entityDescMap.flatMap { (alias, entityDesc) ->
             entityDesc.leafPropDescList.map { propDesc ->
                 Expression.Property(alias, propDesc.prop) to Column(alias.name, propDesc.columnName)
             }
         }.toMap()
 
-    operator fun get(prop: Expression.Property<*, *>): Column {
+    operator fun get(prop: Expression.Property): Column {
         val key = if (prop.alias == null) Expression.Property(defaultAlias, prop.prop) else prop
         if (parent != null) {
             val name = parent.getWithoutException(key)
@@ -40,7 +40,7 @@ class ColumnResolver(
             )
     }
 
-    private fun getWithoutException(prop: Expression.Property<*, *>): Column? {
+    private fun getWithoutException(prop: Expression.Property): Column? {
         return columnMap[prop]
     }
 }

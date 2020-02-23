@@ -64,7 +64,7 @@ class CriterionVisitor(
             exprVisitor.visit(right)
         }
         if (op == "=") {
-            if (left is Expression.Property<*, *>) {
+            if (left is Expression.Property) {
                 if (right is Expression.Value && right.obj == null) {
                     buf.append(" is null")
                 } else {
@@ -72,7 +72,7 @@ class CriterionVisitor(
                 }
             }
         } else if (op == "<>") {
-            if (left is Expression.Property<*, *>) {
+            if (left is Expression.Property) {
                 if (right is Expression.Value && right.obj == null) {
                     buf.append(" is not null")
                 } else {

@@ -14,7 +14,7 @@ sealed class Expression {
 
     data class Value(val obj: Any?, override val kClass: KClass<*>) : Expression()
 
-    data class Property<T, R>(val alias: Alias?, val prop: KProperty1<T, R>) : Expression(), KProperty1<T, R> by prop {
+    data class Property(val alias: Alias?, val prop: KProperty1<*, *>) : Expression() {
         override val kClass = prop.returnType.jvmErasure
     }
 
@@ -31,10 +31,7 @@ sealed class Expression {
     }
 
     companion object {
-        fun wrap(prop: KProperty1<*, *>): Property<*, *> = when (prop) {
-            is Property -> prop
-            else -> Property(null, prop)
-        }
+        fun wrap(prop: KProperty1<*, *>): Property = Property(null, prop)
 
         fun wrap(expr: Any?, kClass: KClass<*>): Expression = when (expr) {
             is Expression -> expr

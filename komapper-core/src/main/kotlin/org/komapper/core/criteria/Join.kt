@@ -2,7 +2,6 @@ package org.komapper.core.criteria
 
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
-import kotlin.reflect.jvm.jvmErasure
 import org.komapper.core.dsl.EmptyScope
 import org.komapper.core.dsl.Scope
 
@@ -39,22 +38,40 @@ class JoinScope<T : Any, S : Any>(
 ) {
 
     fun eq(prop: KProperty1<*, *>, value: Any) =
-        _add(Criterion.Eq(Expression.wrap(prop), Expression.wrap(value, prop.returnType.jvmErasure)))
+        eq(Expression.wrap(prop), value)
+
+    fun eq(prop: Expression.Property, value: Any) =
+        _add(Criterion.Eq(prop, Expression.wrap(value, prop.kClass)))
 
     fun ne(prop: KProperty1<*, *>, value: Any) =
-        _add(Criterion.Ne(Expression.wrap(prop), Expression.wrap(value, prop.returnType.jvmErasure)))
+        ne(Expression.wrap(prop), value)
+
+    fun ne(prop: Expression.Property, value: Any) =
+        _add(Criterion.Ne(prop, Expression.wrap(value, prop.kClass)))
 
     fun gt(prop: KProperty1<*, *>, value: Any) =
-        _add(Criterion.Gt(Expression.wrap(prop), Expression.wrap(value, prop.returnType.jvmErasure)))
+        gt(Expression.wrap(prop), value)
+
+    fun gt(prop: Expression.Property, value: Any) =
+        _add(Criterion.Gt(prop, Expression.wrap(value, prop.kClass)))
 
     fun ge(prop: KProperty1<*, *>, value: Any) =
-        _add(Criterion.Ge(Expression.wrap(prop), Expression.wrap(value, prop.returnType.jvmErasure)))
+        ge(Expression.wrap(prop), value)
+
+    fun ge(prop: Expression.Property, value: Any) =
+        _add(Criterion.Ge(prop, Expression.wrap(value, prop.kClass)))
 
     fun lt(prop: KProperty1<*, *>, value: Any) =
-        _add(Criterion.Lt(Expression.wrap(prop), Expression.wrap(value, prop.returnType.jvmErasure)))
+        lt(Expression.wrap(prop), value)
+
+    fun lt(prop: Expression.Property, value: Any) =
+        _add(Criterion.Lt(prop, Expression.wrap(value, prop.kClass)))
 
     fun le(prop: KProperty1<*, *>, value: Any) =
-        _add(Criterion.Le(Expression.wrap(prop), Expression.wrap(value, prop.returnType.jvmErasure)))
+        le(Expression.wrap(prop), value)
+
+    fun le(prop: Expression.Property, value: Any) =
+        _add(Criterion.Le(prop, Expression.wrap(value, prop.kClass)))
 
     fun associate(block: EmptyScope.(T, List<S>) -> Unit) = _associate(block)
 }
