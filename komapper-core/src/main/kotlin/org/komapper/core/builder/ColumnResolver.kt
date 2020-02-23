@@ -10,14 +10,19 @@ class ColumnResolver(
 
     private val defaultAlias = entityDescResolver.entityDescMap.entries.first().key
 
+    val fetchedColumns: List<Column> =
+        entityDescResolver.fetchedEntityDescMap.flatMap { (alias, entityDesc) ->
+            entityDesc.leafPropDescList.map { propDesc ->
+                Column(alias.name, propDesc.columnName)
+            }
+        }
+
     private val columnMap: Map<Expression.Property<*, *>, Column> =
         entityDescResolver.entityDescMap.flatMap { (alias, entityDesc) ->
             entityDesc.leafPropDescList.map { propDesc ->
                 Expression.Property(alias, propDesc.prop) to Column(alias.name, propDesc.columnName)
             }
         }.toMap()
-
-    val values = columnMap.values
 
     operator fun get(prop: Expression.Property<*, *>): Column {
         val key = if (prop.alias == null) Expression.Property(defaultAlias, prop.prop) else prop

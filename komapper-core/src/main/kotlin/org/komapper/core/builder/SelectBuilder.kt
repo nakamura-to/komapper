@@ -29,8 +29,8 @@ class SelectBuilder(
             parentEntityDescResolver
         )
 
-    override val entityDescMap: Map<Alias, EntityDesc<*>>
-        get() = entityDescResolver.entityDescMap
+    override val fetchedEntityDescMap: Map<Alias, EntityDesc<*>>
+        get() = entityDescResolver.fetchedEntityDescMap
 
     private val columnResolver =
         ColumnResolver(entityDescResolver, parentColumnResolver)
@@ -55,7 +55,7 @@ class SelectBuilder(
             buf.append("distinct ")
         }
         if (expand) {
-            columnResolver.values.forEach { buf.append("$it, ") }
+            columnResolver.fetchedColumns.forEach { buf.append("$it, ") }
         } else {
             buf.append("*  ")
         }
@@ -107,10 +107,12 @@ class SelectBuilder(
         val dataAndEntityList = keyAndDataMap.values.map { it to it.new() }
         criteria.joins.forEach { join ->
             val block = join.association
-            dataAndEntityList.forEach { (data, entity) ->
-                val joinedKeyAndDataMap = data.associations[join.alias]
-                val joinedEntities = joinedKeyAndDataMap.values.filter { !it.isEmpty() }.map { it.new() }
-                EmptyScope.block(entity, joinedEntities)
+            if (block != null) {
+                dataAndEntityList.forEach { (data, entity) ->
+                    val joinedKeyAndDataMap = data.associations[join.alias]
+                    val joinedEntities = joinedKeyAndDataMap.values.filter { !it.isEmpty() }.map { it.new() }
+                    EmptyScope.block(entity, joinedEntities)
+                }
             }
         }
         return dataAndEntityList.map { it.second }

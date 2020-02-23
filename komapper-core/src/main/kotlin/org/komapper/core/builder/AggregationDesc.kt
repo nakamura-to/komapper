@@ -6,7 +6,7 @@ import org.komapper.core.desc.PropDesc
 
 interface AggregationDesc {
 
-    val entityDescMap: Map<Alias, EntityDesc<*>>
+    val fetchedEntityDescMap: Map<Alias, EntityDesc<*>>
 
     fun process(context: AggregationContext): List<Any>
 }

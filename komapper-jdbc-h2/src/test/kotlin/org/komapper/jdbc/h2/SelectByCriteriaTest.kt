@@ -434,6 +434,28 @@ internal class SelectByCriteriaTest(private val db: Db) {
     }
 
     @Test
+    fun joinOnly() {
+        val employees = db.select<Employee> { e ->
+            val a = leftJoin<Address> { a ->
+                eq(e[Employee::addressId], a[Address::addressId])
+            }
+            innerJoin<Department> { d ->
+                eq(e[Employee::departmentId], d[Department::departmentId])
+            }
+            where {
+                ge(a[Address::addressId], 1)
+            }
+            orderBy {
+                desc(a[Address::addressId])
+            }
+            limit(2)
+            offset(5)
+        }
+        assertEquals(2, employees.size)
+        assertEquals(listOf(9, 8), employees.map { it.employeeId })
+    }
+
+    @Test
     fun forUpdate() {
 
         val list = db.select<Address> {

@@ -250,7 +250,7 @@ class Db(val config: DbConfig) {
             while (rs.next()) {
                 val row = mutableListOf<Pair<Alias, EntityData>>()
                 var propIndex = 0
-                for ((alias, entityDesc) in desc.entityDescMap) {
+                for ((alias, entityDesc) in desc.fetchedEntityDescMap) {
                     val properties = mutableMapOf<PropDesc, Any?>()
                     for (propDesc in entityDesc.leafPropDescList) {
                         val value = config.dialect.getValue(rs, propIndex + 1, propDesc.kClass)

@@ -20,10 +20,10 @@ infix operator fun <T : Any, S : Any> (Join<T, S>).plus(other: Join<T, S>): Join
 
 data class JoinCriteria<T : Any, S : Any>(
     val kind: JoinKind,
-    val type: KClass<S>,
+    val kClass: KClass<S>,
     val alias: Alias,
     val on: MutableList<Criterion> = mutableListOf(),
-    var association: EmptyScope.(T, List<S>) -> Unit = { _, _ -> }
+    var association: (EmptyScope.(T, List<S>) -> Unit)? = null
 )
 
 enum class JoinKind {
