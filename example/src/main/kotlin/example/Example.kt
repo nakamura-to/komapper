@@ -1,6 +1,5 @@
 package example
 
-import java.time.LocalDateTime
 import org.komapper.core.Db
 import org.komapper.core.DbConfig
 import org.komapper.core.criteria.select
@@ -15,8 +14,6 @@ import org.komapper.jdbc.h2.H2Dialect
 data class Address(
     val id: Int = 0,
     val street: String,
-    val createdAt: LocalDateTime? = null,
-    val updatedAt: LocalDateTime? = null,
     val version: Int = 0
 )
 
@@ -24,8 +21,6 @@ data class Address(
 val metadata = entities {
     entity<Address> {
         id(Address::id, SequenceGenerator("ADDRESS_SEQ", 100))
-        createdAt(Address::createdAt)
-        updatedAt(Address::updatedAt)
         version(Address::version)
         table {
             column(Address::id, "address_id")
@@ -36,14 +31,14 @@ val metadata = entities {
 fun main() {
     // create Db instance
     val db = Db(
+        // configuration
         object : DbConfig() {
             // dataSource for H2
             override val dataSource = SimpleDataSource("jdbc:h2:mem:example;DB_CLOSE_DELAY=-1")
             // dialect for H2
             override val dialect = H2Dialect()
             // register entity metadata
-            override val entityMetaResolver =
-                DefaultEntityMetaResolver(metadata)
+            override val entityMetaResolver = DefaultEntityMetaResolver(metadata)
         }
     )
 
@@ -55,8 +50,6 @@ fun main() {
             CREATE TABLE ADDRESS(
                 ADDRESS_ID INTEGER NOT NULL PRIMARY KEY,
                 STREET VARCHAR(20) UNIQUE,
-                CREATED_AT TIMESTAMP,
-                UPDATED_AT TIMESTAMP,
                 VERSION INTEGER
             );
             """.trimIndent()
