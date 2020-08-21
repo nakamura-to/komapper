@@ -13,7 +13,7 @@ repositories {
 dependencies {
     api(project(":komapper-core"))
     implementation("org.postgresql:postgresql:42.2.6")
-    testRuntime("org.junit.platform:junit-platform-launcher:1.5.1")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.5.1")
     testImplementation("org.junit.jupiter:junit-jupiter:5.5.1")
 }
 
