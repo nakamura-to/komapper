@@ -13,7 +13,7 @@ repositories {
 dependencies {
     api(kotlin("stdlib-jdk8"))
     api(kotlin("reflect"))
-    testRuntime("org.junit.platform:junit-platform-launcher:1.5.1")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.5.1")
     testImplementation("org.junit.jupiter:junit-jupiter:5.5.1")
 }
 
