@@ -511,7 +511,7 @@ class Db(val config: DbConfig) {
         require(T::class.isData) { "The type parameter T must be a data class." }
         val (stmt, desc, newEntity) = dryRun.merge(
             entity = entity,
-            keys = *keys,
+            keys = keys,
             insertOption = insertOption,
             updateOption = updateOption,
             callNextValue = { sequenceName ->
@@ -656,7 +656,7 @@ class Db(val config: DbConfig) {
         if (entities.isEmpty()) return entities
         val (sqls, desc, newEntities) = dryRun.batchMerge(
             entities = entities,
-            keys = *keys,
+            keys = keys,
             insertOption = insertOption,
             updateOption = updateOption,
             callNextValue = { sequenceName ->
