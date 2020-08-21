@@ -25,7 +25,7 @@ class Env : BeforeAllCallback,
     val db = Db(
         object : DbConfig() {
             override val dataSource =
-                SimpleDataSource(url = "jdbc:postgresql://127.0.0.1:$port/komapper", user = "postgres")
+                SimpleDataSource(url = "jdbc:postgresql://127.0.0.1:$port/komapper", user = "postgres", password = "postgres")
             override val dialect = PostgreSqlDialect()
             override val entityMetaResolver = DefaultEntityMetaResolver(
                 entities {
