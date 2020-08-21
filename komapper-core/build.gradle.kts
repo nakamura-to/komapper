@@ -11,7 +11,6 @@ repositories {
 }
 
 dependencies {
-    api(kotlin("stdlib-jdk8"))
     api(kotlin("reflect"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.5.1")
     testImplementation("org.junit.jupiter:junit-jupiter:5.5.1")
@@ -26,7 +25,7 @@ configure<JavaPluginConvention> {
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "11"
 }
 
 publishJar {
