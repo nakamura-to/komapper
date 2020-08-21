@@ -1,7 +1,7 @@
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 plugins {
-    kotlin("jvm") version "1.3.61" apply true
+    kotlin("jvm") version "1.4.0" apply true
     id("tanvd.kosogor") version "1.0.4" apply true
     id("org.jlleitschuh.gradle.ktlint") version "8.2.0" apply true
 }
