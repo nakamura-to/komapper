@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 plugins {
-    kotlin("jvm") version "1.4.0"
+    kotlin("jvm") version "1.4.0" apply false
     id("tanvd.kosogor") version "1.0.4"
     id("org.jlleitschuh.gradle.ktlint") version "8.2.0"
 }
