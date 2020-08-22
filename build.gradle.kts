@@ -1,12 +1,14 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 plugins {
-    kotlin("jvm") version "1.4.0" apply true
-    id("tanvd.kosogor") version "1.0.4" apply true
-    id("org.jlleitschuh.gradle.ktlint") version "8.2.0" apply true
+    kotlin("jvm") version "1.4.0"
+    id("tanvd.kosogor") version "1.0.4"
+    id("org.jlleitschuh.gradle.ktlint") version "8.2.0"
 }
 
 subprojects {
+    apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "tanvd.kosogor")
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
 
@@ -17,9 +19,17 @@ subprojects {
         coloredOutput.set(true)
         reporters.set(setOf(ReporterType.CHECKSTYLE, ReporterType.JSON))
     }
-}
 
-repositories {
-    mavenCentral()
-    jcenter()
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+
+    tasks.withType<Test> {
+        useJUnitPlatform()
+    }
+
+    tasks.withType<KotlinCompile> {
+        kotlinOptions.jvmTarget = "11"
+    }
 }
