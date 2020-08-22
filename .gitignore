@@ -1,3 +1,4 @@
 build
 komapper-core/src/test/**/StudyTest.kt
 .idea
+/.sdkmanrc
