@@ -209,7 +209,7 @@ class SqlParserTest {
         }
 
         @Test
-        fun `The token "*" must follow the expand directive`() {
+        fun `The asterisk token must follow the expand directive`() {
             val sql = "select /*%expand*/"
             val exception = assertThrows<SqlException> { SqlParser(sql).parse() }
             println(exception)
