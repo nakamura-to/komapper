@@ -3,8 +3,8 @@ import tanvd.kosogor.proxy.publishJar
 dependencies {
     api(project(":komapper-core"))
     implementation("com.h2database:h2:1.4.200")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.5.1")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.5.1")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.7.1")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.7.1")
 }
 
 publishJar {
