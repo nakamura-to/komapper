@@ -1,6 +1,6 @@
 package org.komapper.core.tx
 
-import org.komapper.core.dsl.Scope
+import org.komapper.core.Scope
 
 @Scope
 class TransactionScope(

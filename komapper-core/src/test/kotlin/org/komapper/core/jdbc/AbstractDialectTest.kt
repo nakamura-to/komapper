@@ -1,10 +1,10 @@
 package org.komapper.core.jdbc
 
-import java.sql.SQLException
-import kotlin.reflect.KClass
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.sql.SQLException
+import kotlin.reflect.KClass
 
 internal class AbstractDialectTest {
 

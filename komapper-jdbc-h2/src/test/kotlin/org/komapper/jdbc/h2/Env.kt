@@ -2,39 +2,33 @@
 
 package org.komapper.jdbc.h2
 
-import java.math.BigDecimal
-import java.time.LocalDate
-import java.time.LocalDateTime
 import org.junit.jupiter.api.extension.AfterTestExecutionCallback
 import org.junit.jupiter.api.extension.BeforeTestExecutionCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.ParameterContext
 import org.junit.jupiter.api.extension.ParameterResolver
-import org.komapper.core.Db
-import org.komapper.core.DbConfig
-import org.komapper.core.entity.DefaultEntityMetaResolver
-import org.komapper.core.entity.EntityListener
-import org.komapper.core.entity.SequenceGenerator
-import org.komapper.core.entity.entities
-import org.komapper.core.jdbc.SimpleDataSource
+import org.komapper.core.Database
+import org.komapper.core.KmColumn
+import org.komapper.core.KmCreatedAt
+import org.komapper.core.KmEntity
+import org.komapper.core.KmId
+import org.komapper.core.KmIdentityGenerator
+import org.komapper.core.KmIgnore
+import org.komapper.core.KmSequenceGenerator
+import org.komapper.core.KmTable
+import org.komapper.core.KmUpdatedAt
+import org.komapper.core.KmVersion
+import java.math.BigDecimal
+import java.time.LocalDate
+import java.time.LocalDateTime
 
+@KmEntity
 data class Address(
-    val addressId: Int,
+    @KmId @KmColumn(name = "ADDRESS_ID") val addressId: Int,
     val street: String,
-    val version: Int
-)
-
-class AddressListenerConfig(config: DbConfig, listener: EntityListener<Address>) : DbConfig() {
-    private val metadata = entities {
-        entity(Address::class) {
-            id(Address::addressId)
-            version(Address::version)
-            listener(listener)
-        }
-    }
-    override val dataSource = config.dataSource
-    override val dialect = config.dialect
-    override val entityMetaResolver = DefaultEntityMetaResolver(metadata)
+    @KmVersion val version: Int
+) {
+    companion object
 }
 
 data class CompositeKeyAddress(
@@ -44,10 +38,23 @@ data class CompositeKeyAddress(
     val version: Int
 )
 
-data class SequenceStrategy(
-    val id: Int,
+@KmEntity
+@KmTable("IDENTITY_STRATEGY")
+data class IdentityStrategy(
+    @KmId @KmIdentityGenerator val id: Int?,
     val value: String
-)
+) {
+    companion object
+}
+
+@KmEntity
+@KmTable("SEQUENCE_STRATEGY")
+data class SequenceStrategy(
+    @KmId @KmSequenceGenerator(name = "SEQUENCE_STRATEGY_ID", incrementBy = 100) val id: Int,
+    val value: String
+) {
+    companion object
+}
 
 data class MultiSequenceStrategy(
     val id: Int,
@@ -59,28 +66,37 @@ data class Quotes(
     val value: String
 )
 
+@KmEntity
 data class Person(
-    val personId: Int,
+    @KmId @KmColumn("PERSON_ID") val personId: Int,
     val name: String,
-    val createdAt: LocalDateTime = LocalDateTime.MIN,
-    val updatedAt: LocalDateTime = LocalDateTime.MIN
-)
+    @KmCreatedAt @KmColumn("CREATED_AT") val createdAt: LocalDateTime? = null,
+    @KmUpdatedAt @KmColumn("UPDATED_AT") val updatedAt: LocalDateTime? = null
+) {
+    companion object
+}
 
 data class EmployeeDetail(
     val hiredate: LocalDate,
     val salary: BigDecimal
 )
 
+@KmEntity
 data class Employee(
-    val employeeId: Int,
-    val employeeNo: Int,
-    val employeeName: String,
-    val managerId: Int?,
-    val detail: EmployeeDetail,
-    val departmentId: Int,
-    val addressId: Int,
-    val version: Int
-)
+    @KmId @KmColumn("EMPLOYEE_ID") val employeeId: Int,
+    @KmColumn("EMPLOYEE_NO") val employeeNo: Int,
+    @KmColumn("EMPLOYEE_NAME") val employeeName: String,
+    @KmColumn("MANAGER_ID") val managerId: Int?,
+    val hiredate: LocalDate,
+    val salary: BigDecimal,
+    @KmColumn("DEPARTMENT_ID") val departmentId: Int,
+    @KmColumn("ADDRESS_ID") val addressId: Int,
+    @KmVersion val version: Int,
+    @KmIgnore val address: Address? = null,
+    @KmIgnore val department: Department? = null
+) {
+    companion object
+}
 
 data class WorkerSalary(val salary: BigDecimal)
 
@@ -112,108 +128,33 @@ data class Human(
     val common: Common
 )
 
+@KmEntity
 data class Department(
-    val departmentId: Int,
-    val departmentNo: Int,
-    val departmentName: String,
-    val Location: String,
-    val version: Int
-)
+    @KmId @KmColumn("DEPARTMENT_ID") val departmentId: Int,
+    @KmColumn("DEPARTMENT_NO") val departmentNo: Int,
+    @KmColumn("DEPARTMENT_NAME") val departmentName: String,
+    val location: String,
+    @KmVersion val version: Int,
+    @KmIgnore val employeeList: List<Employee> = emptyList()
+) {
+    companion object
+}
 
 data class NoId(val value1: Int, val value2: Int)
-
-private val metadata = entities {
-    entity<Address> {
-        id(Address::addressId)
-        version(Address::version)
-    }
-    entity<CompositeKeyAddress> {
-        id(CompositeKeyAddress::addressId1)
-        id(CompositeKeyAddress::addressId2)
-        version(CompositeKeyAddress::version)
-        table {
-            name("COMP_KEY_ADDRESS")
-        }
-    }
-    entity<SequenceStrategy> {
-        id(SequenceStrategy::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", 100))
-        table {
-            name("SEQUENCE_STRATEGY")
-        }
-    }
-    entity<MultiSequenceStrategy> {
-        id(MultiSequenceStrategy::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", 100))
-        id(MultiSequenceStrategy::value, SequenceGenerator("MY_SEQUENCE_STRATEGY_ID", 100))
-        table {
-            name("SEQUENCE_STRATEGY")
-        }
-    }
-    entity<Quotes> {
-        id(Quotes::id, SequenceGenerator("SEQUENCE_STRATEGY_ID", quote = true))
-        table {
-            name(name = "SEQUENCE_STRATEGY", quote = true)
-            column(Quotes::id, "ID", quote = true)
-            column(Quotes::value, "VALUE", quote = true)
-        }
-    }
-    entity(Person::class) {
-        id(Person::personId)
-        createdAt(Person::createdAt)
-        updatedAt(Person::updatedAt)
-    }
-    entity(Employee::class) {
-        id(Employee::employeeId)
-        embedded(Employee::detail)
-        version(Employee::version)
-    }
-    entity(WorkerDetail::class) {
-        embedded(WorkerDetail::salary)
-    }
-    entity(Worker::class) {
-        id(Worker::employeeId)
-        embedded(Worker::detail)
-        version(Worker::version)
-        table {
-            name("employee")
-        }
-    }
-    entity(Common::class) {
-        id(Common::personId, SequenceGenerator("PERSON_ID_SEQUENCE", 100))
-        createdAt(Common::createdAt)
-        updatedAt(Common::updatedAt)
-        version(Common::version)
-    }
-    entity(Human::class) {
-        embedded(Human::common)
-        table {
-            name("person")
-        }
-    }
-    entity(Department::class) {
-        id(Department::departmentId)
-        version(Department::version)
-    }
-    entity(NoId::class) {
-    }
-}
 
 internal class Env :
     BeforeTestExecutionCallback,
     AfterTestExecutionCallback,
     ParameterResolver {
 
-    private val config = object : DbConfig() {
-        override val dataSource = SimpleDataSource("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
-        override val dialect = H2Dialect()
-        override val entityMetaResolver =
-            DefaultEntityMetaResolver(metadata)
+    private val config = object : H2DatabaseConfig("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1") {
         override val batchSize = 2
     }
 
-    private val db = Db(config)
+    private val db = Database(config)
 
     override fun beforeTestExecution(context: ExtensionContext?) =
-        db.execute(
+        db.script(
             """
             CREATE SEQUENCE SEQUENCE_STRATEGY_ID START WITH 1 INCREMENT BY 100;
             CREATE SEQUENCE MY_SEQUENCE_STRATEGY_ID START WITH 1 INCREMENT BY 100;
@@ -357,7 +298,7 @@ internal class Env :
         parameterContext: ParameterContext?,
         extensionContext: ExtensionContext?
     ): Boolean =
-        parameterContext!!.parameter.type === Db::class.java
+        parameterContext!!.parameter.type === Database::class.java
 
     override fun resolveParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Any =
         db

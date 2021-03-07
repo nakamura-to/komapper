@@ -1,5 +1,6 @@
 package org.komapper.core.expr
 
+import org.komapper.core.data.Value
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
@@ -11,7 +12,6 @@ import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.staticFunctions
 import kotlin.reflect.full.valueParameters
 import kotlin.reflect.jvm.jvmErasure
-import org.komapper.core.value.Value
 
 interface ExprEvaluator {
     fun eval(expression: String, ctx: Map<String, Value> = emptyMap()): Value
@@ -50,7 +50,7 @@ open class DefaultExprEvaluator(
         is ExprNode.Literal -> Value(node.value, node.kClass)
         is ExprNode.Comma -> node.nodeList.map {
             visit(it, ctx)
-        }.map { it.obj }.toCollection(ArgList()).let {
+        }.map { it.any }.toCollection(ArgList()).let {
             Value(
                 it,
                 List::class
@@ -191,7 +191,7 @@ open class DefaultExprEvaluator(
         val property = findProperty(node.name, receiverType)
             ?: throw ExprException("The property \"${node.name}\" is not found at ${node.location}")
         if (receiver == null && node.safeCall) {
-            return Value(null, property.returnType)
+            return Value(null, property.returnType.jvmErasure)
         }
         try {
             // a const property of an object declaration doesn't accept a receiver
@@ -199,7 +199,7 @@ open class DefaultExprEvaluator(
                 property.call()
             else
                 property.call(receiver)
-            return Value(obj, property.returnType)
+            return Value(obj, property.returnType.jvmErasure)
         } catch (cause: Exception) {
             throw ExprException("Failed to call the property \"${node.name}\" at ${node.location}. The cause is $cause")
         }
@@ -215,7 +215,7 @@ open class DefaultExprEvaluator(
     private fun visitFunction(node: ExprNode.Function, ctx: Map<String, Value>): Value {
         fun call(function: KFunction<*>, arguments: List<Any?>): Value {
             try {
-                return Value(function.call(*arguments.toTypedArray()), function.returnType)
+                return Value(function.call(*arguments.toTypedArray()), function.returnType.jvmErasure)
             } catch (cause: Exception) {
                 throw ExprException("Failed to call the function \"${node.name}\" at ${node.location}. The cause is $cause")
             }
@@ -231,7 +231,7 @@ open class DefaultExprEvaluator(
             findFunction(node.name, receiverType, receiver, args)
                 ?.let { (function, arguments) ->
                     if (receiver == null && node.safeCall) {
-                        Value(null, function.returnType)
+                        Value(null, function.returnType.jvmErasure)
                     } else {
                         call(function, arguments)
                     }

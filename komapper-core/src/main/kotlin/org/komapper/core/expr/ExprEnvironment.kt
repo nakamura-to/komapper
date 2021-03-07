@@ -1,9 +1,9 @@
 package org.komapper.core.expr
 
+import org.komapper.core.data.Value
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
 import kotlin.reflect.jvm.isAccessible
-import org.komapper.core.value.Value
 
 interface ExprEnvironment {
     val ctx: Map<String, Value>

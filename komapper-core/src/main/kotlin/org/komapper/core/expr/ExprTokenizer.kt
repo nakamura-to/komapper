@@ -1,7 +1,5 @@
 package org.komapper.core.expr
 
-import java.lang.Math.min
-import java.nio.CharBuffer
 import org.komapper.core.expr.ExprTokenType.AND
 import org.komapper.core.expr.ExprTokenType.BIG_DECIMAL
 import org.komapper.core.expr.ExprTokenType.CHAR
@@ -34,6 +32,8 @@ import org.komapper.core.expr.ExprTokenType.STRING
 import org.komapper.core.expr.ExprTokenType.TRUE
 import org.komapper.core.expr.ExprTokenType.VALUE
 import org.komapper.core.expr.ExprTokenType.WHITESPACE
+import java.lang.Math.min
+import java.nio.CharBuffer
 
 class ExprTokenizer(private val expression: String) {
 
