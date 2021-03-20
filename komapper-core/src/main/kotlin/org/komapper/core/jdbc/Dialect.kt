@@ -22,7 +22,9 @@ interface Dialect {
     val closeQuote: String
     val escapePattern: Pattern
     fun getValue(rs: ResultSet, index: Int, valueClass: KClass<*>): Any?
-    fun setValue(stmt: PreparedStatement, index: Int, value: Any?, valueClass: KClass<*>)
+    // TODO
+    fun getValue(rs: ResultSet, columnLabel: String, valueClass: KClass<*>): Any?
+    fun setValue(ps: PreparedStatement, index: Int, value: Any?, valueClass: KClass<*>)
     fun formatValue(value: Any?, valueClass: KClass<*>): String
     fun isUniqueConstraintViolation(exception: SQLException): Boolean
     fun getSequenceSql(sequenceName: String): String
@@ -43,10 +45,15 @@ abstract class AbstractDialect : Dialect {
         return dataType.getValue(rs, index)
     }
 
-    override fun setValue(stmt: PreparedStatement, index: Int, value: Any?, valueClass: KClass<*>) {
+    override fun getValue(rs: ResultSet, columnLabel: String, valueClass: KClass<*>): Any? {
+        val dataType = getDataType(valueClass)
+        return dataType.getValue(rs, columnLabel)
+    }
+
+    override fun setValue(ps: PreparedStatement, index: Int, value: Any?, valueClass: KClass<*>) {
         @Suppress("UNCHECKED_CAST")
         val dataType = getDataType(valueClass) as DataType<Any>
-        dataType.setValue(stmt, index, value)
+        dataType.setValue(ps, index, value)
     }
 
     override fun formatValue(value: Any?, valueClass: KClass<*>): String {
@@ -81,7 +88,7 @@ abstract class AbstractDialect : Dialect {
         type == SQLXML::class -> SQLXMLType
         else -> error(
             "The dataType is not found for the type \"${type.qualifiedName}\"." +
-                    "Are you forgetting to specify @Embedded to the property?"
+                "Are you forgetting to specify @Embedded to the property?"
         )
     }
 

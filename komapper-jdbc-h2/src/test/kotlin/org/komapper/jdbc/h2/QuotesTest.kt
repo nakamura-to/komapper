@@ -1,17 +1,12 @@
 package org.komapper.jdbc.h2
 
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.komapper.core.Db
-import org.komapper.core.DbConfig
-import org.komapper.core.logging.Logger
-import org.komapper.core.logging.StdoutLogger
-import org.komapper.core.sql.Stmt
+import org.komapper.core.Database
 
 @ExtendWith(Env::class)
-internal class QuotesTest(private val db: Db) {
+class QuotesTest(private val db: Database) {
 
+    /*
     @Test
     fun test() {
         val messages = mutableListOf<String>()
@@ -46,4 +41,5 @@ internal class QuotesTest(private val db: Db) {
             ), messages
         )
     }
+     */
 }

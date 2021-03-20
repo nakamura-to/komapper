@@ -1,8 +1,5 @@
 package org.komapper.core.expr
 
-import java.math.BigDecimal
-import java.util.Deque
-import java.util.LinkedList
 import org.komapper.core.expr.ExprTokenType.AND
 import org.komapper.core.expr.ExprTokenType.BIG_DECIMAL
 import org.komapper.core.expr.ExprTokenType.CHAR
@@ -35,6 +32,9 @@ import org.komapper.core.expr.ExprTokenType.STRING
 import org.komapper.core.expr.ExprTokenType.TRUE
 import org.komapper.core.expr.ExprTokenType.VALUE
 import org.komapper.core.expr.ExprTokenType.WHITESPACE
+import java.math.BigDecimal
+import java.util.Deque
+import java.util.LinkedList
 
 class ExprParser(
     private val expression: String,

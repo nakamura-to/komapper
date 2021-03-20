@@ -1,25 +1,22 @@
-import tanvd.kosogor.proxy.publishJar
+plugins {
+    idea
+    id("com.google.devtools.ksp") version "1.4.30-1.0.0-alpha05"
+}
+
+sourceSets {
+    test {
+        java {
+            srcDir("build/generated/ksp/test/kotlin")
+        }
+    }
+}
+
+idea.module {
+    generatedSourceDirs.add(file("build/generated/ksp/main/kotlin"))
+}
 
 dependencies {
     api(project(":komapper-core"))
-    implementation("com.h2database:h2:1.4.200")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.7.1")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.7.1")
-}
-
-publishJar {
-    publication {
-        artifactId = "komapper-jdbc-h2"
-    }
-
-    bintray {
-        username = project.properties["bintrayUser"]?.toString() ?: System.getenv("BINTRAY_USER")
-        secretKey = project.properties["bintrayApiKey"]?.toString() ?: System.getenv("BINTRAY_API_KEY")
-        repository = "maven"
-        info {
-            githubRepo = "https://github.com/nakamura-to/komapper.git"
-            vcsUrl = "https://github.com/nakamura-to/komapper.git"
-            license = "Apache-2.0"
-        }
-    }
+    implementation("com.h2database:h2:1.4.199")
+    kspTest(project(":komapper-processor"))
 }

@@ -1,5 +1,12 @@
 package org.komapper.jdbc.h2
 
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import org.komapper.core.Database
+import org.komapper.core.KmEntity
+import org.komapper.core.KmId
+import org.komapper.core.KmTable
 import java.io.Serializable
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -8,219 +15,290 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
-import kotlin.reflect.KClass
-import kotlin.reflect.full.memberProperties
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-import org.komapper.core.Db
-import org.komapper.core.DbConfig
-import org.komapper.core.entity.EntityMeta
-import org.komapper.core.entity.EntityMetaResolver
-import org.komapper.core.entity.IdMeta
 
 @ExtendWith(Env::class)
-internal class DataTypeTest(_db: Db) {
+class DataTypeTest(val db: Database) {
 
-    class DataTypeEntityMetaResolver : EntityMetaResolver {
-        override fun <T : Any> resolve(kClass: KClass<T>): EntityMeta<T> {
-            val id = kClass.memberProperties.first { it.name == "id" }.let { IdMeta.Assign(it.name) }
-            return EntityMeta(kClass, idList = listOf(id))
-        }
+    @KmEntity
+    @KmTable("ANY_PERSON")
+    data class AnyPerson(@KmId val name: String) : Serializable {
+        companion object
     }
 
-    val db = Db(object : DbConfig() {
-        override val dataSource = _db.config.dataSource
-        override val dialect = _db.config.dialect
-        override val entityMetaResolver = DataTypeEntityMetaResolver()
-    })
+    @KmEntity
+    @KmTable("ANY_TEST")
+    data class AnyTest(@KmId val id: Int, val value: Any) {
+        companion object
+    }
 
     @Test
     fun any() {
-        data class AnyPerson(val name: String) : Serializable
-        data class AnyTest(val id: Int, val value: Any)
-
+        val m = AnyTest.metamodel()
         val data = AnyTest(
             1,
             AnyPerson("ABC")
         )
-        db.insert(data)
-        val data2 = db.findById<AnyTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
+    }
+
+    @KmEntity
+    @KmTable("BIG_DECIMAL_TEST")
+    data class BigDecimalTest(@KmId val id: Int, val value: BigDecimal) {
+        companion object
     }
 
     @Test
     fun bigDecimal() {
-        data class BigDecimalTest(val id: Int, val value: BigDecimal)
-
+        val m = BigDecimalTest.metamodel()
         val data = BigDecimalTest(1, BigDecimal.TEN)
-        db.insert(data)
-        val data2 = db.findById<BigDecimalTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
+    }
+
+    @KmEntity
+    @KmTable("BIG_INTEGER_TEST")
+    data class BigIntegerTest(@KmId val id: Int, val value: BigInteger) {
+        companion object
     }
 
     @Test
     fun bigInteger() {
-        data class BigIntegerTest(val id: Int, val value: BigInteger)
-
+        val m = BigIntegerTest.metamodel()
         val data = BigIntegerTest(1, BigInteger.TEN)
-        db.insert(data)
-        val data2 = db.findById<BigIntegerTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
+    }
+
+    @KmEntity
+    @KmTable("BOOLEAN_TEST")
+    data class BooleanTest(@KmId val id: Int, val value: Boolean) {
+        companion object
     }
 
     @Test
     fun boolean() {
-        data class BooleanTest(val id: Int, val value: Boolean)
-
+        val m = BooleanTest.metamodel()
         val data = BooleanTest(1, true)
-        db.insert(data)
-        val data2 = db.findById<BooleanTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
+    }
+
+    @KmEntity
+    @KmTable("BYTE_TEST")
+    data class ByteTest(@KmId val id: Int, val value: Byte) {
+        companion object
     }
 
     @Test
     fun byte() {
-        data class ByteTest(val id: Int, val value: Byte)
-
+        val m = ByteTest.metamodel()
         val data = ByteTest(1, 10)
-        db.insert(data)
-        val data2 = db.findById<ByteTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
+    }
+
+    @KmEntity
+    @KmTable("BYTE_ARRAY_TEST")
+    @Suppress("ArrayInDataClass")
+    data class ByteArrayTest(@KmId val id: Int, val value: ByteArray) {
+        companion object
     }
 
     @Test
     fun byteArray() {
-        @Suppress("ArrayInDataClass")
-        data class ByteArrayTest(val id: Int, val value: ByteArray)
-
+        val m = ByteArrayTest.metamodel()
         val data = ByteArrayTest(1, byteArrayOf(10, 20, 30))
-        db.insert(data)
-        val data2 = db.findById<ByteArrayTest>(1)
-        Assertions.assertEquals(data.id, data2!!.id)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
+        Assertions.assertEquals(data.id, data2.id)
         Assertions.assertArrayEquals(data.value, data2.value)
+    }
+
+    @KmEntity
+    @KmTable("DOUBLE_TEST")
+    data class DoubleTest(@KmId val id: Int, val value: Double) {
+        companion object
     }
 
     @Test
     fun double() {
-        data class DoubleTest(val id: Int, val value: Double)
-
+        val m = DoubleTest.metamodel()
         val data = DoubleTest(1, 10.0)
-        db.insert(data)
-        val data2 = db.findById<DoubleTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
     }
 
+    @Suppress("unused")
     enum class Direction {
         NORTH, SOUTH, WEST, EAST
     }
 
+    @KmEntity
+    @KmTable("ENUM_TEST")
+    data class EnumTest(@KmId val id: Int, val value: Direction) {
+        companion object
+    }
+
     @Test
     fun enum() {
-        data class EnumTest(val id: Int, val value: Direction)
-
+        val m = EnumTest.metamodel()
         val data = EnumTest(
             1,
             Direction.EAST
         )
-        db.insert(data)
-        val data2 = db.findById<EnumTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
+    }
+
+    @KmEntity
+    @KmTable("FLOAT_TEST")
+    data class FloatTest(@KmId val id: Int, val value: Float) {
+        companion object
     }
 
     @Test
     fun float() {
-        data class FloatTest(val id: Int, val value: Float)
-
+        val m = FloatTest.metamodel()
         val data = FloatTest(1, 10.0f)
-        db.insert(data)
-        val data2 = db.findById<FloatTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
+    }
+
+    @KmEntity
+    @KmTable("INT_TEST")
+    data class IntTest(@KmId val id: Int, val value: Int) {
+        companion object
     }
 
     @Test
     fun int() {
-        data class IntTest(val id: Int, val value: Int)
-
+        val m = IntTest.metamodel()
         val data = IntTest(1, 10)
-        db.insert(data)
-        val data2 = db.findById<IntTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
+    }
+
+    @KmEntity
+    @KmTable("LOCAL_DATE_TIME_TEST")
+    data class LocalDateTimeTest(@KmId val id: Int, val value: LocalDateTime) {
+        companion object
     }
 
     @Test
     fun localDateTime() {
-        data class LocalDateTimeTest(val id: Int, val value: LocalDateTime)
-
+        val m = LocalDateTimeTest.metamodel()
         val data = LocalDateTimeTest(
             1,
             LocalDateTime.of(2019, 6, 1, 12, 11, 10)
         )
-        db.insert(data)
-        val data2 = db.findById<LocalDateTimeTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
+    }
+
+    @KmEntity
+    @KmTable("LOCAL_DATE_TEST")
+    data class LocalDateTest(@KmId val id: Int, val value: LocalDate) {
+        companion object
     }
 
     @Test
     fun localDate() {
-        data class LocalDateTest(val id: Int, val value: LocalDate)
-
-        val data = LocalDateTest(1, LocalDate.of(2019, 6, 1))
-        db.insert(data)
-        val data2 = db.findById<LocalDateTest>(1)
+        val m = LocalDateTest.metamodel()
+        val data = LocalDateTest(
+            1,
+            LocalDate.of(2019, 6, 1)
+        )
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
+    }
+
+    @KmEntity
+    @KmTable("LOCAL_TIME_TEST")
+    data class LocalTimeTest(@KmId val id: Int, val value: LocalTime) {
+        companion object
     }
 
     @Test
     fun localTime() {
-        data class LocalTimeTest(val id: Int, val value: LocalTime)
-
+        val m = LocalTimeTest.metamodel()
         val data = LocalTimeTest(1, LocalTime.of(12, 11, 10))
-        db.insert(data)
-        val data2 = db.findById<LocalTimeTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
+    }
+
+    @KmEntity
+    @KmTable("LONG_TEST")
+    data class LongTest(@KmId val id: Int, val value: Long) {
+        companion object
     }
 
     @Test
     fun long() {
-        data class LongTest(val id: Int, val value: Long)
-
+        val m = LongTest.metamodel()
         val data = LongTest(1, 10L)
-        db.insert(data)
-        val data2 = db.findById<LongTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
+    }
+
+    @KmEntity
+    @KmTable("OFFSET_DATE_TIME_TEST")
+    data class OffsetDateTimeTest(@KmId val id: Int, val value: OffsetDateTime) {
+        companion object
     }
 
     @Test
     fun offsetDateTime() {
-        data class OffsetDateTimeTest(val id: Int, val value: OffsetDateTime)
-
+        val m = OffsetDateTimeTest.metamodel()
         val dateTime = LocalDateTime.of(2019, 6, 1, 12, 11, 10)
         val offset = ZoneOffset.ofHours(9)
         val value = OffsetDateTime.of(dateTime, offset)
         val data = OffsetDateTimeTest(1, value)
-        db.insert(data)
-        val data2 = db.findById<OffsetDateTimeTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
+    }
+
+    @KmEntity
+    @KmTable("SHORT_TEST")
+    data class ShortTest(@KmId val id: Int, val value: Short) {
+        companion object
     }
 
     @Test
     fun short() {
-        data class ShortTest(val id: Int, val value: Short)
-
+        val m = ShortTest.metamodel()
         val data = ShortTest(1, 10)
-        db.insert(data)
-        val data2 = db.findById<ShortTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
+    }
+
+    @KmEntity
+    @KmTable("STRING_TEST")
+    data class StringTest(@KmId val id: Int, val value: String) {
+        companion object
     }
 
     @Test
     fun string() {
-        data class StringTest(val id: Int, val value: String)
-
+        val m = StringTest.metamodel()
         val data = StringTest(1, "ABC")
-        db.insert(data)
-        val data2 = db.findById<StringTest>(1)
+        db.insert(m, data)
+        val data2 = db.find(m) { m.id eq 1 }
         Assertions.assertEquals(data, data2)
     }
 }
