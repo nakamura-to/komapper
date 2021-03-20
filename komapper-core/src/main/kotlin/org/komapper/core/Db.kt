@@ -495,7 +495,6 @@ class Db(val config: DbConfig) {
      * @throws UniqueConstraintException if the unique constraint is violated
      * @throws OptimisticLockException if the optimistic lock is failed
      */
-    @Suppress("CHANGING_ARGUMENTS_EXECUTION_ORDER_FOR_NAMED_VARARGS")
     inline fun <reified T : Any> merge(
         entity: T,
         vararg keys: KProperty1<*, *>,
@@ -640,7 +639,6 @@ class Db(val config: DbConfig) {
      * @throws UniqueConstraintException if the unique constraint is violated
      * @throws OptimisticLockException if the optimistic lock is failed
      */
-    @Suppress("CHANGING_ARGUMENTS_EXECUTION_ORDER_FOR_NAMED_VARARGS")
     inline fun <reified T : Any> batchMerge(
         entities: List<T>,
         vararg keys: KProperty1<*, *>,
